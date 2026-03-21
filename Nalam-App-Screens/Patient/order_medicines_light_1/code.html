@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nalam Hospital - Order Medicines</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#F8FAFC",
+                        "text-dark": "#0B1B3D",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.75rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+            background-color: #F8FAFC;
+            color: #0B1B3D;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-text-dark min-h-screen pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-background-light/80 backdrop-blur-md border-b border-slate-200 px-4 py-4">
+<div class="flex items-center justify-between max-w-md mx-auto">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary font-bold">arrow_back</span>
+<h1 class="text-xl font-bold tracking-tight text-text-dark">Arun Priya Multispeciality Hospital</h1>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined text-slate-600">shopping_cart</span>
+<span class="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+</div>
+</div>
+</header>
+<main class="max-w-md mx-auto px-4 pt-4 space-y-6">
+<!-- Search Bar -->
+<div class="relative">
+<div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400">search</span>
+</div>
+<input class="w-full bg-white border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary focus:border-transparent text-sm text-text-dark placeholder-slate-400" placeholder="Search medicines, wellness products..." type="text"/>
+</div>
+<!-- Prescription Upload -->
+<div class="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-white shadow-sm">
+<div class="bg-primary/10 p-3 rounded-full mb-3">
+<span class="material-symbols-outlined text-primary text-3xl">description</span>
+</div>
+<h3 class="font-bold text-sm mb-1 text-text-dark">Upload Prescription</h3>
+<p class="text-xs text-slate-500 mb-4">Upload a photo of your prescription to order quickly</p>
+<button class="bg-primary text-white text-sm font-bold px-8 py-2.5 rounded-full shadow-lg shadow-primary/20 transition-transform active:scale-95">Select File</button>
+</div>
+<!-- Categories Carousel -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-bold text-lg text-text-dark">Categories</h2>
+<a class="text-primary text-xs font-bold" href="#">View All</a>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+<div class="flex-shrink-0 flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-primary">pill</span>
+</div>
+<span class="text-xs font-semibold text-text-dark">Tablets</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-primary">vaccines</span>
+</div>
+<span class="text-xs font-semibold text-text-dark">Syrups</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-primary">air</span>
+</div>
+<span class="text-xs font-semibold text-text-dark">Inhalers</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-primary">medical_services</span>
+</div>
+<span class="text-xs font-semibold text-text-dark">General</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-primary">wounds_injuries</span>
+</div>
+<span class="text-xs font-semibold text-text-dark">Kits</span>
+</div>
+</div>
+</section>
+<!-- Recent Orders -->
+<section>
+<h2 class="font-bold text-lg mb-4 text-text-dark">Recent Orders</h2>
+<div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order #NLM-99231</p>
+<p class="font-bold text-sm text-text-dark">Paracetamol, Vitamin C + 2 more</p>
+</div>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase">On the way</span>
+</div>
+<div class="relative pt-4 pb-2">
+<div class="absolute top-0 left-0 w-full h-1.5 bg-slate-100 rounded-full"></div>
+<div class="absolute top-0 left-0 w-2/3 h-1.5 bg-primary rounded-full shadow-sm shadow-primary/30"></div>
+<div class="flex justify-between text-[10px] font-bold mt-2">
+<span class="text-slate-400">Ordered</span>
+<span class="text-primary">Shipped</span>
+<span class="text-slate-400">Delivered</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Common Medicines -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-bold text-lg text-text-dark">Common Medicines</h2>
+<span class="material-symbols-outlined text-slate-400">filter_list</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Product Card 1 -->
+<div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+<div class="w-full aspect-square bg-slate-50 rounded-lg mb-3 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-slate-300 text-4xl">medication</span>
+<div class="absolute top-2 right-2">
+<span class="material-symbols-outlined text-slate-300 text-lg">favorite</span>
+</div>
+</div>
+<h4 class="text-sm font-bold mb-1 text-text-dark">Amoxicillin 500mg</h4>
+<p class="text-[10px] font-semibold text-slate-500 mb-2">Antibiotic • 10 Capsules</p>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-bold text-primary text-base">$12.50</span>
+<button class="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+<div class="w-full aspect-square bg-slate-50 rounded-lg mb-3 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-slate-300 text-4xl">medication_liquid</span>
+<div class="absolute top-2 right-2">
+<span class="material-symbols-outlined text-primary text-lg fill-current">favorite</span>
+</div>
+</div>
+<h4 class="text-sm font-bold mb-1 text-text-dark">Cough Relief Syrup</h4>
+<p class="text-[10px] font-semibold text-slate-500 mb-2">Syrup • 100ml Bottle</p>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-bold text-primary text-base">$8.99</span>
+<button class="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+<div class="w-full aspect-square bg-slate-50 rounded-lg mb-3 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-slate-300 text-4xl">pill</span>
+<div class="absolute top-2 right-2">
+<span class="material-symbols-outlined text-slate-300 text-lg">favorite</span>
+</div>
+</div>
+<h4 class="text-sm font-bold mb-1 text-text-dark">Loratadine 10mg</h4>
+<p class="text-[10px] font-semibold text-slate-500 mb-2">Antihistamine • 30 Tablets</p>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-bold text-primary text-base">$15.20</span>
+<button class="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col">
+<div class="w-full aspect-square bg-slate-50 rounded-lg mb-3 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-slate-300 text-4xl">vital_signs</span>
+<div class="absolute top-2 right-2">
+<span class="material-symbols-outlined text-slate-300 text-lg">favorite</span>
+</div>
+</div>
+<h4 class="text-sm font-bold mb-1 text-text-dark">B-Complex Plus</h4>
+<p class="text-[10px] font-semibold text-slate-500 mb-2">Supplements • 60 Caps</p>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-bold text-primary text-base">$22.00</span>
+<button class="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Glassmorphism Bottom Nav Bar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-white/50 dark:border-slate-800 shadow-[0_-4px_20px_rgba(26,115,232,0.1)] rounded-t-[2rem] z-50">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30 rounded-full px-4 py-1 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Pharmacy</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Profile</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "midnight": "#0B1B3D",
+                        "background-light": "#F8FAFC",
+                        "success-green": "#22C55E",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "24px",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: #FFFFFF;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-midnight antialiased">
+<div class="relative flex h-screen w-full flex-col bg-background-light overflow-hidden">
+<!-- Header -->
+<div class="flex items-center p-4 justify-between z-10">
+<div class="text-midnight flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 cursor-pointer">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-midnight text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Order Status</h2>
+</div>
+<!-- Main Content Area (Scrollable) -->
+<div class="flex-1 overflow-y-auto px-6 pb-24">
+<!-- Success Icon Section -->
+<div class="flex flex-col items-center justify-center pt-8 pb-10">
+<div class="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6 shadow-xl border border-slate-100">
+<span class="material-symbols-outlined text-success-green text-5xl font-bold">check</span>
+</div>
+<h1 class="text-midnight text-3xl font-bold leading-tight text-center mb-2">Order Placed Successfully!</h1>
+<p class="text-slate-500 text-lg font-medium">Order #NLM-12345</p>
+</div>
+<!-- Delivery Card -->
+<div class="glass-card border border-slate-100 rounded-lg p-6 mb-6">
+<div class="flex items-center justify-between mb-8">
+<div>
+<p class="text-slate-400 text-sm uppercase tracking-wider font-semibold mb-1">Estimated Delivery</p>
+<p class="text-midnight text-2xl font-bold">45 mins</p>
+</div>
+<div class="bg-primary/10 p-3 rounded-full">
+<span class="material-symbols-outlined text-primary text-3xl">delivery_dining</span>
+</div>
+</div>
+<!-- Timeline -->
+<div class="space-y-6">
+<!-- Step 1 -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="z-10 flex size-6 items-center justify-center rounded-full bg-primary ring-4 ring-primary/10">
+<span class="material-symbols-outlined text-white text-xs font-bold">check</span>
+</div>
+<div class="h-full w-0.5 bg-primary/30 mt-1"></div>
+</div>
+<div class="pb-4">
+<p class="text-midnight font-semibold">Order Placed</p>
+<p class="text-slate-500 text-sm">We've received your order</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="z-10 flex size-6 items-center justify-center rounded-full bg-primary/10 border border-primary animate-pulse">
+<div class="size-2 rounded-full bg-primary"></div>
+</div>
+<div class="h-full w-0.5 bg-slate-200 mt-1"></div>
+</div>
+<div class="pb-4">
+<p class="text-midnight font-semibold">Pharmacy Processing</p>
+<p class="text-slate-500 text-sm">Pharmacist is verifying your prescription</p>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="z-10 flex size-6 items-center justify-center rounded-full bg-slate-100 border border-slate-200">
+</div>
+</div>
+<div class="">
+<p class="text-slate-400 font-semibold">Out for Delivery</p>
+<p class="text-slate-400 text-sm">Our rider will pick up soon</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-4 mt-8">
+<button class="bg-primary text-white font-bold py-4 px-8 rounded-full shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors">
+                    Track Order
+                </button>
+<button class="bg-white border border-slate-200 text-midnight font-semibold py-4 px-8 rounded-full hover:bg-slate-50 transition-colors">
+                    Back to Home
+                </button>
+</div>
+</div>
+<!-- Bottom Navigation (Fixed) -->
+<div class="fixed bottom-0 left-0 right-0 z-20 flex gap-2 border-t border-slate-100 bg-white/90 backdrop-blur-lg px-4 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<p class="text-xs font-medium leading-normal tracking-wide">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1">receipt_long</span>
+<p class="text-xs font-medium leading-normal tracking-wide">Orders</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined text-2xl">medication</span>
+<p class="text-xs font-medium leading-normal tracking-wide">Pharmacy</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined text-2xl">person</span>
+<p class="text-xs font-medium leading-normal tracking-wide">Profile</p>
+</a>
+</div>
+</div>
+</body></html>

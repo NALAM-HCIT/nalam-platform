@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#1c74e9",
+              "background-light": "#F8FAFC",
+              "text-dark": "#0B1B3D",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.75rem", "lg": "1.5rem", "xl": "2.25rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<title>Nalam Patient Portal - Login</title>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+            background-color: #F8FAFC;
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<!-- Top 35% Header with Gradient -->
+<div class="h-[35%] w-full bg-gradient-to-br from-[#0a192f] via-primary to-[#60a5fa] relative flex flex-col p-6">
+<div class="flex items-center justify-between mb-4">
+<div class="text-white flex size-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<div class="text-white flex size-10 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/20">
+<span class="material-symbols-outlined">help_outline</span>
+</div>
+</div>
+<div class="mt-4">
+<h1 class="text-white text-3xl font-bold tracking-tight">Welcome to Arun Priya Multispeciality Hospital</h1>
+<p class="text-white/80 text-lg mt-1">Patient Portal</p>
+</div>
+<!-- Decorative element -->
+<div class="absolute bottom-10 right-0 opacity-20">
+<span class="material-symbols-outlined text-[120px] text-white">medical_services</span>
+</div>
+</div>
+<!-- Bottom 65% Content Area (White Bottom Sheet Style) -->
+<div class="flex-1 bg-white rounded-t-[2.25rem] -mt-8 relative z-10 shadow-2xl flex flex-col p-8">
+<!-- Handle for visual "bottom sheet" effect -->
+<div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
+<div class="space-y-6 flex-1">
+<div>
+<h2 class="text-text-dark text-2xl font-bold leading-tight">Login or Signup</h2>
+<p class="text-slate-500 mt-2">Enter your mobile number to continue</p>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-text-dark ml-1">Mobile Number</label>
+<div class="flex gap-3">
+<div class="relative w-28">
+<select class="appearance-none w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 text-text-dark focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all">
+<option>+91</option>
+<option>+1</option>
+<option>+44</option>
+<option>+971</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+</div>
+<div class="flex-1">
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 text-text-dark placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="00000 00000" type="tel"/>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] mt-4">
+                        Get OTP
+                    </button>
+</div>
+<!-- Divider -->
+<div class="flex items-center gap-4 py-4">
+<div class="h-px bg-slate-200 flex-1"></div>
+<span class="text-slate-400 text-sm font-medium">Or continue with</span>
+<div class="h-px bg-slate-200 flex-1"></div>
+</div>
+<!-- Social Logins -->
+<div class="flex justify-center gap-6">
+<button class="size-14 rounded-full border border-slate-200 flex items-center justify-center bg-white hover:bg-slate-50 transition-colors shadow-sm">
+<img alt="Google Logo" class="size-6" data-alt="Google colorful logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSlhjUGTgO0LKzJMWJvx5zWy4VlFMMG7fppyHrvhTjFUNgyUrvASmbRe7eWMiNgTKtJH7d2fZolzYbnLV6eCLB12QKoP0XJ13SepnaBdzpnSr78-uml5L5JeQAMSPC1CNBkU10Lrx-w0q_hmPbCfbA4SqsMmh2XNUqsGO4_9KHFIiM-r4zkPI3Dcw_-RwjQZ13qDAHluusOk5NSz1-n1dRMvkj0tzu050szlHcc5ElBWgxnyZwmy7yZPPQlPtEwtqA0B3zGpxNGC6M"/>
+</button>
+<button class="size-14 rounded-full border border-slate-200 flex items-center justify-center bg-white hover:bg-slate-50 transition-colors shadow-sm">
+<img alt="Apple Logo" class="size-6" data-alt="Apple brand logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDziYkJygdqRTdgAyX8o5shHrrLA1m90Vp_S5hJj62lCZqMiTgbVJjJvpILqfvoibesZa20zUNNtZVrZn-BtTS2wuzNxB_4iGDPnIALD2Mf4WuawcZUd2ayYlSR0rTLZHpGt3FDZjGNwtGpYQuN0c85URgsmx6dNipYdoRoc-IDfDpzw5hhobFGl3te96K14dBzJDiaG19_yrJKqLcsuvm5UQ0nHqS0YLUrJFFs_u7Wmd0eyiDFSnIxBQ9fmHbdLq0-m_0Bp5otN4fb"/>
+</button>
+</div>
+</div>
+<!-- Footer -->
+<div class="mt-auto pt-6 text-center">
+<p class="text-slate-500 text-xs">
+                    By continuing, you agree to Nalam's 
+                    <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> &amp; 
+                    <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>
+</p>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Azure Admin - Arun Priya Multispeciality Hospital</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#FFFFFF",
+              "on-secondary-container": "#0B1B3D",
+              "on-primary-container": "#FFFFFF",
+              "surface": "#F0F7FF",
+              "tertiary-fixed-dim": "#BAE6FD",
+              "surface-container-highest": "rgba(255, 255, 255, 0.95)",
+              "surface-tint": "#1A73E8",
+              "surface-container-high": "rgba(255, 255, 255, 0.85)",
+              "error": "#DC2626",
+              "surface-container-lowest": "#FFFFFF",
+              "on-primary": "#FFFFFF",
+              "on-tertiary": "#FFFFFF",
+              "primary-fixed-dim": "#BFDBFE",
+              "error-container": "#FEE2E2",
+              "surface-variant": "#F1F5F9",
+              "outline": "#BFDBFE",
+              "tertiary-container": "#BAE6FD",
+              "on-surface-variant": "#64748B",
+              "inverse-on-surface": "#F0F7FF",
+              "surface-bright": "#FFFFFF",
+              "on-surface": "#0B1B3D",
+              "surface-container": "rgba(255, 255, 255, 0.7)",
+              "on-background": "#0B1B3D",
+              "on-secondary-fixed-variant": "#1E1B4B",
+              "on-error": "#FFFFFF",
+              "on-secondary-fixed": "#0B1B3D",
+              "secondary-fixed-dim": "#C7D2FE",
+              "primary-fixed": "#DBEAFE",
+              "secondary": "#0B1B3D",
+              "surface-dim": "#E0E9F5",
+              "on-tertiary-fixed-variant": "#082F49",
+              "tertiary-fixed": "#E0F2FE",
+              "on-secondary": "#FFFFFF",
+              "outline-variant": "#E2E8F0",
+              "on-primary-fixed": "#1A73E8",
+              "surface-container-low": "rgba(255, 255, 255, 0.4)",
+              "inverse-primary": "#D1E4FF",
+              "secondary-fixed": "#E0E7FF",
+              "secondary-container": "#E0E7FF",
+              "primary-container": "#257df1",
+              "primary": "#1A73E8",
+              "on-error-container": "#991B1B",
+              "tertiary": "#38BDF8",
+              "on-tertiary-container": "#0369A1",
+              "on-primary-fixed-variant": "#172554",
+              "on-tertiary-fixed": "#0369A1",
+              "inverse-surface": "#0B1B3D"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body {
+        background: radial-gradient(circle at top left, #F0F7FF 0%, #FFFFFF 100%);
+        min-height: 100vh;
+        font-family: 'Inter', sans-serif;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .btn-gradient {
+        background: linear-gradient(180deg, #257DF1 0%, #1A73E8 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(26, 115, 232, 0.25);
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg flex items-center justify-between px-6 h-20 w-full no-border shadow-sm shadow-blue-900/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-700 dark:text-blue-400 text-3xl" data-icon="local_hospital">local_hospital</span>
+<span class="text-2xl font-extrabold text-blue-700 dark:text-blue-400 tracking-tighter font-headline">Azure Admin</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-blue-700 dark:text-blue-300 font-semibold transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-1 rounded-full transition-colors duration-200" href="#">Users</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-1 rounded-full transition-colors duration-200" href="#">Roles</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-1 rounded-full transition-colors duration-200" href="#">Logs</a>
+</nav>
+<div class="flex items-center gap-4">
+<div class="text-right hidden sm:block">
+<p class="text-[10px] font-light tracking-[0.1em] text-slate-500 uppercase">Super Admin</p>
+<p class="text-sm font-semibold text-on-surface">Arun Priya Admin</p>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-primary-fixed overflow-hidden">
+<img alt="Admin Profile Photo" class="w-full h-full object-cover" data-alt="Professional portrait of a hospital administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAru97q5Uld9SPn6gwRPzlMK3k_s-HezhfBqUN9kFX6WMcfQr1EDrFOqCqDW7CTsicYJjQCA2hHZyb9KrkIz_l0YJF_xEke76XLf0lB-OczOW326GmpN1lEfxBdJCWrxVa17yuKIRhJ5hn7TVrwwc_fKBDGWdpHXhq7v2tfD45YPlnHCJojlakhT64NIHo1V4ZSoyOtzcS6asCgicRtQWOiYlJqi90PxG9On31BrXlb3WmOIVY9FZacor6tm1fIqJ_Yr0oE2Gfip9Bf"/>
+</div>
+</div>
+</header>
+<main class="pt-28 pb-32 px-6 max-w-7xl mx-auto space-y-12">
+<!-- Welcome Section -->
+<section class="space-y-2">
+<h1 class="text-[3rem] font-extrabold tracking-tight text-on-surface font-headline leading-tight">Hello, Super Admin.</h1>
+<p class="text-lg font-light text-on-surface-variant tracking-wide">Welcome back to Arun Priya Multispeciality Hospital Management portal.</p>
+</section>
+<!-- Quick Stats: High-end Bento Grid Style -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="glass-card p-8 rounded-lg shadow-2xl shadow-blue-900/5 group hover:scale-[1.02] transition-transform duration-300">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="group">group</span>
+<span class="text-xs font-light tracking-widest text-slate-500 uppercase">Growth +4%</span>
+</div>
+<h3 class="text-4xl font-extrabold text-on-surface">124</h3>
+<p class="text-sm font-light text-slate-500 mt-1 tracking-wide">Total Users</p>
+</div>
+<div class="glass-card p-8 rounded-lg shadow-2xl shadow-blue-900/5 group hover:scale-[1.02] transition-transform duration-300">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="badge">badge</span>
+<span class="text-xs font-light tracking-widest text-slate-500 uppercase">Active Now</span>
+</div>
+<h3 class="text-4xl font-extrabold text-on-surface">86</h3>
+<p class="text-sm font-light text-slate-500 mt-1 tracking-wide">Active Staff</p>
+</div>
+<div class="glass-card p-8 rounded-lg shadow-2xl shadow-blue-900/5 border-error/20 group hover:scale-[1.02] transition-transform duration-300">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-error text-4xl" data-icon="pending_actions">pending_actions</span>
+<span class="text-xs font-bold tracking-widest text-error uppercase">Urgent</span>
+</div>
+<h3 class="text-4xl font-extrabold text-on-surface">5</h3>
+<p class="text-sm font-light text-slate-500 mt-1 tracking-wide">Pending Approvals</p>
+</div>
+<div class="glass-card p-8 rounded-lg shadow-2xl shadow-blue-900/5 group hover:scale-[1.02] transition-transform duration-300">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-tertiary text-4xl" data-icon="monitor_heart">monitor_heart</span>
+<span class="text-xs font-light tracking-widest text-slate-500 uppercase">Stable</span>
+</div>
+<h3 class="text-4xl font-extrabold text-on-surface">99%</h3>
+<p class="text-sm font-light text-slate-500 mt-1 tracking-wide">System Health</p>
+</div>
+</section>
+<!-- Main Content Area: Activities & Actions -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+<!-- Recent Activities (List) -->
+<section class="lg:col-span-2 space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="text-2xl font-bold tracking-tight text-on-surface">Recent Activities</h2>
+<button class="text-sm font-semibold text-primary hover:underline">View All Logs</button>
+</div>
+<div class="glass-card rounded-lg overflow-hidden shadow-2xl shadow-blue-900/5">
+<div class="divide-y divide-slate-100 dark:divide-slate-800">
+<!-- Activity Item 1 -->
+<div class="p-6 flex items-start gap-4 hover:bg-blue-50/50 transition-colors">
+<div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary" data-icon="description">description</span>
+</div>
+<div class="flex-1">
+<p class="text-on-surface font-medium">Dr. Rajesh Kumar <span class="text-slate-500 font-normal">added a new report for</span> Patient #4421</p>
+<p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-light">2 minutes ago • Clinical</p>
+</div>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+<!-- Activity Item 2 -->
+<div class="p-6 flex items-start gap-4 hover:bg-blue-50/50 transition-colors">
+<div class="w-12 h-12 rounded-full bg-tertiary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary" data-icon="person_add">person_add</span>
+</div>
+<div class="flex-1">
+<p class="text-on-surface font-medium">New receptionist account created <span class="text-slate-500 font-normal">by</span> HR Manager</p>
+<p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-light">1 hour ago • User Management</p>
+</div>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+<!-- Activity Item 3 -->
+<div class="p-6 flex items-start gap-4 hover:bg-blue-50/50 transition-colors">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary" data-icon="security">security</span>
+</div>
+<div class="flex-1">
+<p class="text-on-surface font-medium">System Role Updated: <span class="text-slate-500 font-normal">Nurse Practitioner permissions expanded</span></p>
+<p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-light">4 hours ago • Security</p>
+</div>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+<!-- Activity Item 4 -->
+<div class="p-6 flex items-start gap-4 hover:bg-blue-50/50 transition-colors">
+<div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-slate-500" data-icon="update">update</span>
+</div>
+<div class="flex-1">
+<p class="text-on-surface font-medium">Auto-backup completed <span class="text-slate-500 font-normal">successfully on Cloud-01</span></p>
+<p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-light">12 hours ago • System</p>
+</div>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors" data-icon="more_vert">more_vert</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid -->
+<section class="space-y-6">
+<h2 class="text-2xl font-bold tracking-tight text-on-surface">Quick Actions</h2>
+<div class="grid grid-cols-1 gap-4">
+<button class="glass-card p-6 flex items-center gap-4 text-left hover:bg-white transition-all group active:scale-95 duration-200 shadow-sm">
+<div class="w-12 h-12 rounded-full btn-gradient flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Create New User</p>
+<p class="text-xs font-light text-slate-500 tracking-wide">Add doctors, nurses or staff</p>
+</div>
+</button>
+<button class="glass-card p-6 flex items-center gap-4 text-left hover:bg-white transition-all group active:scale-95 duration-200 shadow-sm">
+<div class="w-12 h-12 rounded-full bg-white border border-outline flex items-center justify-center text-primary group-hover:bg-primary-fixed duration-300">
+<span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Manage Roles</p>
+<p class="text-xs font-light text-slate-500 tracking-wide">Adjust access permissions</p>
+</div>
+</button>
+<button class="glass-card p-6 flex items-center gap-4 text-left hover:bg-white transition-all group active:scale-95 duration-200 shadow-sm">
+<div class="w-12 h-12 rounded-full bg-white border border-outline flex items-center justify-center text-primary group-hover:bg-primary-fixed duration-300">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">System Settings</p>
+<p class="text-xs font-light text-slate-500 tracking-wide">Global hospital config</p>
+</div>
+</button>
+<button class="glass-card p-6 flex items-center gap-4 text-left hover:bg-white transition-all group active:scale-95 duration-200 shadow-sm">
+<div class="w-12 h-12 rounded-full bg-white border border-outline flex items-center justify-center text-primary group-hover:bg-primary-fixed duration-300">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">View Audit Logs</p>
+<p class="text-xs font-light text-slate-500 tracking-wide">Monitor all system events</p>
+</div>
+</button>
+</div>
+<!-- Abstract Visual Anchor -->
+<div class="relative h-48 w-full rounded-lg overflow-hidden glass-card p-1 shadow-lg">
+<img alt="Medical Background Pattern" class="w-full h-full object-cover rounded-[0.9rem] opacity-40 mix-blend-multiply" data-alt="Abstract blue healthcare background with microscopic textures" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-VZtUgemhGZwe0AxCmc6Jspsz1B4dtLlgtLW3S2gg06-OoZc85Xua9kxHpLlgE_kHOQa1a3S7FeAvO4YqZMopFPLuwMXdnPw5rJF2dhaMRE3JspAOvfVQMboRtuuijdWtLEbUyijAIpJ4rdefuw3dIifzD0KdKzeAUyjOj2TPHKy2uK0Rb8Lyrn96MtW8fC4iMLMHyOv4-VPFVn4iTAZxMlQeXEHKOuQzNQtFC7KveyCTRFZpLBQbpmO7ulWGHfvz07-TcwC3xw5H"/>
+<div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+<p class="text-xs font-bold tracking-[0.2em] uppercase text-primary mb-2">Facility Status</p>
+<p class="text-lg font-bold text-on-secondary-container">All systems operational at Arun Priya Main Campus</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl z-50 rounded-t-[24px] no-border shadow-[0_-4px_20px_rgba(26,115,232,0.1)]">
+<a class="flex flex-col items-center justify-center bg-blue-600 dark:bg-blue-500 text-white rounded-full px-5 py-2 shadow-lg shadow-blue-500/30 active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 dark:hover:text-blue-300 transition-all active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Users</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 dark:hover:text-blue-300 transition-all active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Roles</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 dark:hover:text-blue-300 transition-all active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Logs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-blue-500 dark:hover:text-blue-300 transition-all active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Profile</span>
+</a>
+</nav>
+</body></html>

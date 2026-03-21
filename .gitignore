@@ -1,0 +1,34 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# .env
+.env
+.env.local
+
+# Android & iOS
+android/
+ios/
+*.apk
+*.aab
+
+# .NET Core
+**/bin/
+**/obj/
+*.userprefs
+*.user
+*.suo
+*.docstates
+
+# Next.js
+nalam-web/.next/
+nalam-web/out/
+nalam-web/build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride

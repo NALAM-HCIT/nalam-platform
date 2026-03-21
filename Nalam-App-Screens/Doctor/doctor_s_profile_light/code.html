@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nalam Hospital Doctor Portal - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-32">
+<!-- Header -->
+<div class="sticky top-0 z-20 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold">Profile Settings</h2>
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<!-- Doctor Profile Header -->
+<div class="px-6 py-8 flex flex-col items-center">
+<div class="relative">
+<div class="size-32 rounded-full border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden bg-slate-200">
+<img alt="Dr. Sarah" class="w-full h-full object-cover" data-alt="Professional portrait of a female doctor in a white coat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9ycDBYbrbSQR3L8GVxYwo8PpUeFEc3TB7rZhRBYdwOlqND-ubLV2KYm6PA_kI6TjV3kLFzDmp4bKK3EnV7sKIly_-zEXxWe_CpjouB6x40o0O49KmPun2nQKjMOC7OSm49fwnOTKOq9kHEcmnMc2jE9umjOd4Zn9fITiu6iLrVPaLolZclB0pFFKhNpyWJsOPVkClr1OHJxGOzi0vhcia1u0iYJklCYlpOsj2Dqw2WD-Ag8lWtyWLYZuvNv6xwvS34eDfYsNs6wn0"/>
+</div>
+<div class="absolute bottom-1 right-1 bg-primary text-white size-8 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm">
+<span class="material-symbols-outlined text-sm">edit</span>
+</div>
+</div>
+<div class="mt-4 text-center">
+<h1 class="text-2xl font-bold tracking-tight">Dr. Sarah Johnson</h1>
+<p class="text-slate-500 dark:text-slate-400 font-medium">Senior Cardiologist</p>
+<div class="mt-1 px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full inline-block">
+                ID: NLM-9921
+            </div>
+</div>
+</div>
+<!-- Stats Summary -->
+<div class="px-6 grid grid-cols-2 gap-4">
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-lg">groups</span>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Consults</p>
+</div>
+<p class="text-2xl font-bold">1,240</p>
+<p class="text-xs text-green-600 font-medium mt-1">+12% this month</p>
+</div>
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-yellow-500 text-lg">star</span>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Rating</p>
+</div>
+<p class="text-2xl font-bold">4.9<span class="text-sm text-slate-400 font-normal">/5</span></p>
+<p class="text-xs text-slate-400 font-medium mt-1">Based on 850 reviews</p>
+</div>
+</div>
+<!-- Menu List -->
+<div class="px-6 mt-8 space-y-2">
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-2 mb-4">Account Settings</h3>
+<a class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm group" href="#">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">person</span>
+</div>
+<span class="font-semibold">Personal Information</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm group" href="#">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+<span class="material-symbols-outlined">medical_services</span>
+</div>
+<span class="font-semibold">Professional Details</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm group" href="#">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined">calendar_month</span>
+</div>
+<span class="font-semibold">Availability Settings</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm group" href="#">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+<span class="material-symbols-outlined">shield_lock</span>
+</div>
+<span class="font-semibold">Security</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm group" href="#">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">help_center</span>
+</div>
+<span class="font-semibold">Help &amp; Support</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+</a>
+</div>
+<!-- Sign Out Button -->
+<div class="px-6 mt-12 mb-8">
+<button class="w-full flex items-center justify-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+<span class="material-symbols-outlined">logout</span>
+            Sign Out
+        </button>
+<p class="text-center text-xs text-slate-400 mt-6">Version 2.4.1 (Build 1082)</p>
+</div>
+<!-- Bottom Navigation Bar (Floating Glassmorphism) -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
+<div class="glass-nav rounded-full px-6 py-3 flex items-center justify-between shadow-2xl">
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person_search</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Patients</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary transition-colors relative" href="#">
+<span class="material-symbols-outlined fill-[1]">person</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+<div class="absolute -top-1 right-0 size-1.5 bg-primary rounded-full"></div>
+</a>
+</div>
+</div>
+</body></html>

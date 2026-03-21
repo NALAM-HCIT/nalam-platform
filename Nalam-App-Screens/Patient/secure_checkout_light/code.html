@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1A73E8",
+                        "midnight": "#0B1B3D",
+                        "background-page": "#F8FAFC",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft-blue': '0 10px 25px -5px rgba(26, 115, 232, 0.08), 0 8px 10px -6px rgba(26, 115, 232, 0.08)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-page font-display text-midnight min-h-screen pb-32">
+<!-- Header Section with Vivid Blue Gradient -->
+<header class="bg-gradient-to-br from-[#1A73E8] to-[#1557B0] pt-6 pb-12 px-4 rounded-b-lg">
+<div class="flex items-center justify-between max-w-md mx-auto">
+<button class="p-2 hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined text-white">arrow_back</span>
+</button>
+<h1 class="text-white text-xl font-bold tracking-tight">Checkout</h1>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-md mx-auto px-4 -mt-6 space-y-4">
+<!-- Delivery Address Section -->
+<section class="bg-white p-6 rounded-lg shadow-soft-blue border border-slate-100">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-bold text-midnight">Delivery Address</h2>
+<button class="text-primary text-sm font-semibold hover:underline">Change</button>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-base text-midnight">Home</p>
+<p class="text-slate-500 text-sm leading-tight">123 Medical Drive, Healthcare City, NY 10001</p>
+</div>
+</div>
+</section>
+<!-- Delivery Slot Section -->
+<section class="bg-white p-6 rounded-lg shadow-soft-blue border border-slate-100">
+<h2 class="text-lg font-bold text-midnight mb-4">Delivery Slot</h2>
+<div class="flex gap-3 overflow-x-auto custom-scrollbar">
+<button class="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-white px-6 font-medium transition-colors">
+<span>Standard</span>
+</button>
+<button class="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-50 text-slate-600 px-6 font-medium hover:bg-slate-100 transition-colors border border-slate-100">
+<span>Express</span>
+</button>
+<button class="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-50 text-slate-600 px-6 font-medium hover:bg-slate-100 transition-colors border border-slate-100">
+<span>Scheduled</span>
+</button>
+</div>
+</section>
+<!-- Payment Method Section -->
+<section class="bg-white p-6 rounded-lg shadow-soft-blue border border-slate-100">
+<h2 class="text-lg font-bold text-midnight mb-4">Payment Method</h2>
+<div class="space-y-3">
+<!-- Apple Pay (Selected) -->
+<label class="flex items-center justify-between p-4 rounded-xl border-2 border-primary bg-primary/5 cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-midnight">ios</span>
+<span class="font-bold text-midnight">Apple Pay</span>
+</div>
+<input checked="" class="w-5 h-5 text-primary border-slate-300 focus:ring-primary" name="payment" type="radio"/>
+</label>
+<!-- Credit/Debit Card -->
+<label class="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-primary/50 cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">credit_card</span>
+<span class="font-semibold text-slate-600">Credit/Debit Card</span>
+</div>
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary" name="payment" type="radio"/>
+</label>
+<!-- Insurance Coverage -->
+<label class="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-primary/50 cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">verified_user</span>
+<div class="flex flex-col">
+<span class="font-semibold text-slate-600">Insurance Coverage</span>
+<span class="text-xs text-primary font-bold">Hospital Partner Benefit</span>
+</div>
+</div>
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary" name="payment" type="radio"/>
+</label>
+</div>
+</section>
+<!-- Order Summary -->
+<div class="px-4 py-2 space-y-2">
+<div class="flex justify-between text-sm text-slate-500 font-medium">
+<span>Subtotal</span>
+<span class="text-midnight">$20.00</span>
+</div>
+<div class="flex justify-between text-sm text-slate-500 font-medium">
+<span>Delivery Fee</span>
+<span class="text-midnight">$4.50</span>
+</div>
+</div>
+</main>
+<!-- Fixed Bottom Action Section -->
+<footer class="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 flex justify-center shadow-[0_-4px_20px_0_rgba(0,0,0,0.05)]">
+<div class="max-w-md w-full">
+<button class="w-full bg-gradient-to-r from-primary to-[#1557B0] hover:opacity-90 text-white font-bold py-4 rounded-full shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2">
+<span>Pay $24.50</span>
+<span class="material-symbols-outlined text-[20px]">lock</span>
+</button>
+</div>
+</footer>
+</body></html>

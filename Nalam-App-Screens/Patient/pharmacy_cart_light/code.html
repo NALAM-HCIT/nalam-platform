@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1A73E8",
+                        "background-light": "#F8FAFC",
+                        "midnight-blue": "#0B1B3D",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft-blue': '0 10px 25px -5px rgba(26, 115, 232, 0.1), 0 8px 10px -6px rgba(26, 115, 232, 0.1)',
+                    }
+                },
+            },
+        }
+    </script>
+<title>Arun Priya Multispeciality Hospital - Pharmacy Cart</title>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-midnight-blue antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Header: Vivid Light Blue gradient -->
+<header class="bg-gradient-to-b from-primary to-primary/90 pt-8 pb-12 px-6 rounded-b-lg shadow-lg">
+<div class="flex items-center justify-between mb-4">
+<button class="flex items-center justify-center size-10 rounded-full bg-white/20 text-white backdrop-blur-md">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-white">My Cart</h1>
+<button class="flex items-center justify-center size-10 rounded-full bg-white/20 text-white backdrop-blur-md">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<p class="text-white/90 text-sm">2 Items in your pharmacy cart</p>
+</header>
+<!-- Main Content -->
+<main class="flex-1 -mt-6 px-6 space-y-4 pb-48 pb-80">
+<!-- Medicine Card 1 -->
+<div class="bg-white p-4 rounded-xl border border-blue-50/50 flex items-center gap-4 shadow-soft-blue">
+<div class="size-16 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100">
+<img class="w-full h-full object-cover" data-alt="Blister pack of Amoxicillin 500mg capsules" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZsEV-Ix-Ul18Mnfd0TaO29AFxFXCZrb3ffSGv3b-GGS3bryetzIzn8bwhNPkU28HBzVjsNzG3Nr_plpI09ch75I-YjVYUo-Zy-JEn6WnydMDymOyFgMzxt9wmmDvoIxvCdmF7NCZMfIJRasOck7_FMY5JaomIWTRo0LBFC0kjNc49Ic5eggddXD9fK00TDx6Y8eRgX4ib8TseUc3jaKKTsNIpb0rVT5RM7LP4XA-JIUBfXb2oyGKNrqKsj8wtse5rCB4ezhQpVgTl"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-midnight-blue">Amoxicillin 500mg</h3>
+<p class="text-xs text-slate-500 mb-2 font-medium">Antibiotic • 10 Capsules</p>
+<div class="flex items-center justify-between">
+<span class="text-primary font-bold">₹120.00</span>
+<div class="flex items-center gap-3 bg-slate-100 px-2 py-1 rounded-full">
+<button class="size-6 flex items-center justify-center text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-sm font-bold w-4 text-center">1</span>
+<button class="size-6 flex items-center justify-center text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Medicine Card 2 -->
+<div class="bg-white p-4 rounded-xl border border-blue-50/50 flex items-center gap-4 shadow-soft-blue">
+<div class="size-16 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100">
+<img class="w-full h-full object-cover" data-alt="Amber medicine bottle of cough relief syrup" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChb4HDPfzME4H_O4SCg4ndIbJVChvq3ipDvgU8c6baWx6Uxr0e_XFvR8AmWoiEcBxNtmqrJtm1Eiq2gB-h_c9hXD9YZOaQNqT3YyKS6QvLuWkMkHe2VZumyiYjT21QYawW-wvtcYPBdyP3aNvuSg7JzYYoTAwp7qlJhWmnjReq_rjwcpRf-3h__-0Pm1RGrDUUjJe9QmgSUhzgxMo5MwoYnqcGMUZNSP1oON-CjNhM3Rgs1-KuNGOkOTiQ_T-X-ipgG8uVB3BW16rG"/>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-midnight-blue">Cough Relief Syrup</h3>
+<p class="text-xs text-slate-500 mb-2 font-medium">Expectorant • 100ml</p>
+<div class="flex items-center justify-between">
+<span class="text-primary font-bold">₹85.00</span>
+<div class="flex items-center gap-3 bg-slate-100 px-2 py-1 rounded-full">
+<button class="size-6 flex items-center justify-center text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">remove</span>
+</button>
+<span class="text-sm font-bold w-4 text-center">2</span>
+<button class="size-6 flex items-center justify-center text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Suggestion or Info Card -->
+<div class="bg-primary/5 border border-primary/10 p-4 rounded-xl flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">info</span>
+<p class="text-xs leading-relaxed text-slate-600 font-medium">
+                    A valid prescription is required for Amoxicillin. You can upload it during the checkout process.
+                </p>
+</div>
+</main>
+<!-- Bottom Summary Section: White Frosted Glass -->
+<div class="fixed left-0 right-0 p-6 z-50 bottom-[88px]">
+<div class="bg-white/70 backdrop-blur-xl border border-white/40 rounded-lg p-6 shadow-[0_-8px_30px_rgb(0,0,0,0.08)]">
+<div class="space-y-3 mb-6">
+<div class="flex justify-between items-center">
+<span class="text-slate-500 font-medium">Subtotal</span>
+<span class="font-semibold text-midnight-blue">₹290.00</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-slate-500 font-medium">Delivery Fee</span>
+<span class="font-semibold text-midnight-blue">₹40.00</span>
+</div>
+<div class="h-px bg-slate-200/60 my-2"></div>
+<div class="flex justify-between items-center">
+<span class="text-lg font-bold text-midnight-blue">Total Amount</span>
+<span class="text-xl font-bold text-primary">₹330.00</span>
+</div>
+</div>
+<!-- Action: Vivid Light Blue button -->
+<button class="w-full bg-primary text-white font-bold py-4 rounded-full shadow-lg shadow-primary/25 flex items-center justify-center gap-2 active:scale-[0.98] transition-all hover:bg-blue-600">
+<span>Proceed to Checkout</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-white/50 dark:border-slate-800 shadow-[0_-4px_20px_rgba(26,115,232,0.1)] z-50 rounded-t-[2rem]">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30 rounded-full px-4 py-1 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Pharmacy</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Profile</span>
+</a>
+</nav></body></html>

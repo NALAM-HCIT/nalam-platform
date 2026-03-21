@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nalam Hospital - Patient Clinical Summary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .frosted-glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-32">
+<header class="bg-gradient-to-r from-primary/10 to-primary/5 pt-6 pb-8 px-6 rounded-b-xl border-b border-primary/10">
+<div class="flex items-center justify-between mb-6">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm text-primary">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-slate-900">Patient Summary</h1>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
+<img alt="John Doe" data-alt="Portrait of a male patient John Doe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9DkjoSO1O21yjS8bjVksgf3S200zS_gN_ORj5GCv-ICJ0quXR0n9JBbOLtiusOozq0MDX9_5eCFObZzks5W9OjzLQJr-pmWirHvr0AqKhaqHQYroIY3pzvk-pXDIrN1CyXivN_G8403ra98aT1mdEqBRMp6GggJTu3wDSJj6dzmiMaPK0-re7arB_Q0z3L1xl6tGtlfM4ztkFEb5E4iBqXsh-Xfvb43jVVCOWUeoGElDkwQhe4hNESq0xTYFg42D9Zh1rxbD12FkQ"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex-1">
+<h2 class="text-2xl font-bold text-slate-900">John Doe</h2>
+<p class="text-slate-600 font-medium">Male, 45 years • ID: #NH-89231</p>
+</div>
+<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">Stable</span>
+</div>
+</header>
+<main class="px-6 -mt-4 space-y-6">
+<section>
+<h3 class="text-lg font-bold mb-4 px-1">Quick Vitals</h3>
+<div class="grid grid-cols-3 gap-3">
+<div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-red-500 mb-2">favorite</span>
+<span class="text-xs text-slate-500 font-medium">Heart Rate</span>
+<span class="text-lg font-bold text-slate-900">72 bpm</span>
+</div>
+<div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-primary mb-2">blood_pressure</span>
+<span class="text-xs text-slate-500 font-medium">BP</span>
+<span class="text-lg font-bold text-slate-900">120/80</span>
+</div>
+<div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-orange-400 mb-2">device_thermostat</span>
+<span class="text-xs text-slate-500 font-medium">Temp</span>
+<span class="text-lg font-bold text-slate-900">98.6°F</span>
+</div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-4 px-1">
+<h3 class="text-lg font-bold">Chronic Conditions</h3>
+<span class="text-primary text-sm font-semibold">Edit</span>
+</div>
+<div class="space-y-3">
+<div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+<span class="material-symbols-outlined">medical_information</span>
+</div>
+<div>
+<h4 class="font-bold text-slate-900">Type II Diabetes</h4>
+<p class="text-sm text-slate-500">Diagnosed: Jan 2021</p>
+</div>
+</div>
+<div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+<span class="material-symbols-outlined">monitor_heart</span>
+</div>
+<div>
+<h4 class="font-bold text-slate-900">Hypertension</h4>
+<p class="text-sm text-slate-500">Diagnosed: Mar 2019</p>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-lg font-bold mb-4 px-1">Recent Lab Results</h3>
+<div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">lab_profile</span>
+</div>
+<div>
+<h4 class="font-bold text-slate-900">Blood Work</h4>
+<p class="text-sm text-slate-500">Oct 24, 2023</p>
+</div>
+</div>
+<button class="px-4 py-2 bg-slate-100 text-slate-700 rounded-full text-sm font-bold">View</button>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-4 px-1">
+<h3 class="text-lg font-bold">Medication List</h3>
+<span class="text-primary text-sm font-semibold">See All</span>
+</div>
+<div class="bg-white rounded-lg shadow-sm border border-slate-100 divide-y divide-slate-50">
+<div class="p-4 flex items-center justify-between">
+<div>
+<h4 class="font-bold text-slate-900">Metformin 500mg</h4>
+<p class="text-sm text-slate-500">1 tablet, twice daily</p>
+</div>
+<span class="material-symbols-outlined text-slate-300">pill</span>
+</div>
+<div class="p-4 flex items-center justify-between">
+<div>
+<h4 class="font-bold text-slate-900">Lisinopril 10mg</h4>
+<p class="text-sm text-slate-500">1 tablet, once daily</p>
+</div>
+<span class="material-symbols-outlined text-slate-300">pill</span>
+</div>
+</div>
+</section>
+<div class="pt-4">
+<button class="w-full py-4 bg-primary text-white rounded-lg font-bold shadow-lg shadow-primary/25 text-lg flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">videocam</span>
+                Start Consultation
+            </button>
+</div>
+</main>
+<nav class="fixed bottom-6 left-6 right-6 h-20 frosted-glass rounded-xl shadow-xl border border-white/50 flex items-center justify-around px-2 z-50">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Patients</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Messages</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Directory</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+</body></html>

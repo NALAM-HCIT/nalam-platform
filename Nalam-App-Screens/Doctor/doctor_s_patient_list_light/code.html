@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- Header Section -->
+<header class="sticky top-0 z-30 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 pt-6 pb-4">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary text-2xl">local_hospital</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight">Nalam Hospital</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Doctor Portal</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="relative p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background-light dark:border-background-dark"></span>
+</button>
+<img alt="Doctor Portrait" class="w-10 h-10 rounded-full object-cover border-2 border-primary/20" data-alt="Professional doctor headshot portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBi8O_-pwXr0Ls1oPUv_Mx2ps-4bNAw3siGUB8AD4y_qfK0JujjLZq12G53ISiicZVFdBUk-91xNEogr81KGcMI9FxEs_JLVwilufCgXiRPU8YbZEPt0jGBMy97tJ2LYpfNLFQ7iRTEyNS0GC5S5PIB8A1MRJ0_rWOKeFLC-4MAsoVfhrksaQOiRPDiSneHlkH6aFrG-WE67ePcr1xe6WqRvmOJHCPyZ-1UdY7jEJLPB9cwvuUMOiS4x9msQs-uStGwNHT2hyZUjka"/>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="w-full bg-white dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-slate-400 text-sm" placeholder="Search patient name, ID or department..." type="text"/>
+</div>
+<!-- Filters -->
+<div class="flex gap-2 mt-6 overflow-x-auto no-scrollbar pb-1"><button class="px-5 py-2 rounded-full bg-primary text-white text-sm font-semibold shadow-md shadow-primary/20">All</button>
+<button class="px-5 py-2 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-sm font-medium hover:border-primary/50 transition-colors whitespace-nowrap">In-Person</button>
+<button class="px-5 py-2 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-sm font-medium hover:border-primary/50 transition-colors whitespace-nowrap">Video Consultations</button></div>
+</header>
+<!-- Patient List -->
+<main class="px-6 space-y-4">
+<div class="flex items-center justify-between py-2">
+<h2 class="font-bold text-slate-800 dark:text-slate-200">Active Patients <span class="text-slate-400 font-normal ml-1">(24)</span></h2>
+<button class="text-primary text-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                Sort
+            </button>
+</div>
+<!-- Patient Card 1 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 hover:shadow-md transition-shadow">
+<div class="flex items-start gap-4">
+<img alt="Patient Sarah" class="w-14 h-14 rounded-xl object-cover" data-alt="Young woman smiling patient profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVBWK1doKSO34AjVxEcEVhaN4262zfUymHQMypRZ7FEKkUZ5FOEdrycfOg-atEBqtvcz7V-yot7tj_DOF0qiz9w6te6pXw0kShtp0ahyKfS3fNn59x5PL-4vypOAgP37yq4mAgjhp819gOH6i8jLLh2pAlTFMOTzaA6kU56KveJsYJvpRVNYR0j5j4eHwyWAFvn-paf5ISnLjh2yPfwONiKYNDgwaFkuO3YtVLCSdRPB8oLN8HK7QeUR1jWYZHNLMbafGRJa0FwR_S"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Sarah Jenkins</h3>
+<p class="text-xs text-slate-500 font-medium uppercase tracking-tight">ID: #PT-88210 • Room 402</p>
+</div>
+<span class="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Stable</span>
+</div>
+<div class="mt-3 flex flex-wrap gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Post-op Recovery</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Orthopedics</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                    Last visit: 10:30 AM (Today)
+                </div>
+<button class="text-primary font-bold">View Charts</button>
+</div>
+</div>
+<!-- Patient Card 2 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 hover:shadow-md transition-shadow">
+<div class="flex items-start gap-4">
+<img alt="Patient Robert" class="w-14 h-14 rounded-xl object-cover" data-alt="Middle aged man patient profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8g8rsH5jVahUnVPSUiJjParVEyKp_btCbp2kP3sQqhuzOKlAQrLW4-CRDX_8fbhdEC0_YH91xTgdOEQ7KJYGx0nVXmKCMywCyK2PodWxrXPiqnaCl8R7Y45yuCmMtYE2kBQQmmEsJkzEwXwvz8pcd-VryCoGkts4c_VGRstNl35f3kze2uhYd_CA0dPjPFh-xEZsLIXhIXpHdCHS80sCJuw4NvViKo7zylUQ6o-oDbi1i-3Tr9F_mixYeVe5QTiXLzCr1itefT9m3"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Robert Vance</h3>
+<p class="text-xs text-slate-500 font-medium uppercase tracking-tight">ID: #PT-44912 • ICU Bed 12</p>
+</div>
+<span class="px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wider">Critical</span>
+</div>
+<div class="mt-3 flex flex-wrap gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Cardiac Arrhythmia</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Cardiology</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                    Last visit: 09:15 AM (Today)
+                </div>
+<button class="text-primary font-bold">View Charts</button>
+</div>
+</div>
+<!-- Patient Card 3 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 hover:shadow-md transition-shadow">
+<div class="flex items-start gap-4">
+<img alt="Patient Elena" class="w-14 h-14 rounded-xl object-cover" data-alt="Woman patient smiling profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDN4Uk9jVX3VDsiYMoZpSVj0F43SuUhNJwtOePWi-SlEzNIplBw1XA3qtIICE3kHOYL-lHisHhmvzpwt06if2hw1it_Fwkx4hUdbOO2vuLU8IHTJbH2pDUrGTx6Mlqi10SVLdgXgjbSkWOKoy2XYCkoK0SwHGkoqE6Mw8oGNjwVBh6pNjTXlVFJXaY_laOohV2vFuvswrchrVAeWxOyJW5VS__Hbh2s6UX549AcTi1f3PEYoD8iPM6pljiGqePUQHiSzprYMhVn7neQ"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Elena Rodriguez</h3>
+<p class="text-xs text-slate-500 font-medium uppercase tracking-tight">ID: #PT-99302 • Out-patient</p>
+</div>
+<span class="px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">Observation</span>
+</div>
+<div class="mt-3 flex flex-wrap gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Type II Diabetes</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Endocrinology</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                    Last visit: 08:45 AM (Today)
+                </div>
+<button class="text-primary font-bold">View Charts</button>
+</div>
+</div>
+<!-- Patient Card 4 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 hover:shadow-md transition-shadow">
+<div class="flex items-start gap-4">
+<img alt="Patient Michael" class="w-14 h-14 rounded-xl object-cover" data-alt="Young man patient smiling profile photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGc9j11uwi6D0_KPClL2sd8WRJQUhNiicXuXpAASkRRJMNe1-02rpEqidUBrgpEy5qV_9zDleMTnpDIeoSHrZMHKLmW89CFQcihNLXk3Tc0kaiFNclOj-kEVVru_N6DxocJ3n8EP2oVQmS-iNDAd8Nd98vNR-tjFjKExlZhX4G_w_RxHi1nKrauaKF-eLdHZ2AKFRSjXpJ3cNmlFuBImljBlgsD257Vbrm8D6NACrHy9csrY8SAuyD8Lcdc-d6vulwOPMlprVZfFI7"/>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Michael Cho</h3>
+<p class="text-xs text-slate-500 font-medium uppercase tracking-tight">ID: #PT-11204 • Room 205</p>
+</div>
+<span class="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Stable</span>
+</div>
+<div class="mt-3 flex flex-wrap gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Bronchitis</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium">Pulmonology</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                    Last visit: 04:20 PM (Yesterday)
+                </div>
+<button class="text-primary font-bold">View Charts</button>
+</div>
+</div>
+</main>
+<!-- Floating Glassmorphism Bottom Nav -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
+<nav class="glass-nav rounded-2xl flex items-center justify-around p-3 shadow-2xl shadow-slate-200 dark:shadow-slate-950/50">
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-semibold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary group" href="#">
+<div class="relative">
+<span class="material-symbols-outlined fill-1">group</span>
+<span class="absolute -top-1 -right-1 w-1.5 h-1.5 bg-primary rounded-full"></span>
+</div>
+<span class="text-[10px] font-bold">Patients</span>
+</a>
+<div class="relative -top-8">
+<button class="bg-primary text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-primary/40 active:scale-95 transition-transform border-4 border-background-light dark:border-background-dark">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+</div>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-[10px] font-semibold">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-semibold">Settings</span>
+</a>
+</nav>
+</div>
+</body></html>

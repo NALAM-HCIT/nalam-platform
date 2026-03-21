@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display">
+<div class="max-w-md mx-auto min-h-screen flex flex-col relative pb-24">
+<!-- Header Section -->
+<header class="p-6 pb-2">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Messages</h1>
+<p class="text-sm text-slate-500 dark:text-slate-400">Nalam Hospital Portal</p>
+</div>
+<div class="bg-primary/10 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary">edit_square</span>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border-none rounded-xl shadow-sm focus:ring-2 focus:ring-primary/20 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 transition-all" placeholder="Search contacts..." type="text"/>
+</div>
+</header>
+<!-- Tabs -->
+<div class="px-6 mt-4">
+<div class="flex gap-2 p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl">
+<button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-primary">All</button>
+<button class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">Doctors</button>
+<button class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50">Staff</button>
+</div>
+</div>
+<!-- Chat List -->
+<div class="mt-6 flex flex-col px-2">
+<!-- Active Chat Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer group">
+<div class="relative">
+<div class="size-14 rounded-full bg-slate-200 overflow-hidden bg-cover bg-center" data-alt="Male doctor professional headshot portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCwzLxdD7n5BYxIh0MCin30gy9AKDmZs_ZIFGpOeMc_54ex7EVvkkuye3UxAzuqtHbVaiCwxj33d57het27_OWfSMW1DI3JRnVtop0Dj89xpaHm_09UyAYJs4Po_eGi3RmyYUa18HmiUoi1HV31eNq6obgToqrOZcDJ9JRtIMAE0gnLZo1z5TB3s0jvSoSy-yhs3E6ZEDfANjwvhw0QcA1AhfvMp55g9T7Rcgy4F5EJh8knboXxkhwDvo4y7yc7d9IgNrJYPvS1wR90')"></div>
+<div class="absolute bottom-0 right-0 size-3.5 bg-green-500 border-2 border-background-light dark:border-background-dark rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100 truncate">Dr. Aris Thorne</h3>
+<span class="text-[10px] font-semibold text-primary uppercase">10:45 AM</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1">The lab results are ready for patient #402...</p>
+<span class="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">2</span>
+</div>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<div class="relative">
+<div class="size-14 rounded-full bg-slate-200 overflow-hidden bg-cover bg-center" data-alt="Female doctor smiling professional headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAwweivVqXMVUoPk_DIP10DV0wRxSdwIvisWvsRMlCzOV2UteRoCcvW_0jXEBcJtGyQGuISaLVteKLCCKiKrXgy_F2XaclrWxxhd3c1jFIOtDN_WLtfU6G3Rg3TlZSr8XOlicVkeH89GFV4GQxBOU-IXcnmAUUaWpMpNvXFDxJjGhjwdL7m5UtytG0U7LTqKgLASAuffZpLJSPclhZXFkOvWF6iB9UYrcJ5RdU3Sc4rR-WfE3pGXnd72YSB5iKlTc_qn4eYv_TWJ7UE')"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100 truncate">Dr. Sarah Jenkins</h3>
+<span class="text-[10px] font-semibold text-slate-400 uppercase">9:12 AM</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-1">Can we reschedule the board meeting?</p>
+</div>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<div class="relative">
+<div class="size-14 rounded-full bg-slate-200 overflow-hidden bg-cover bg-center" data-alt="Young medical staff member headshot" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBSaxPKmN0x5zWJ50KPlQodp4qKS1_DR5Au5x--_lfYu4Rk9YQaLTYtwpxR8Yu4drtCAjcs9EhfJvDclyUWRa5oAJlQHKCnDoEMnyjgYZ1_ozVAYbFGa1JtnwHoYPia-mxsoNOkYEwBvMnFA9FOuRF1yPAst2fIq5vpGoqai2mRYQT7qoW66c6fEo4G52oGFi1vVRWVcPuCs9sVb8sMOMW__Q57gbAq67La4geBszoPOCqzzfoWAugg9RP8nUxVjdwKrVM-_r4p6Uvr')"></div>
+<div class="absolute bottom-0 right-0 size-3.5 bg-green-500 border-2 border-background-light dark:border-background-dark rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100 truncate">Nurse Michael Chen</h3>
+<span class="text-[10px] font-semibold text-slate-400 uppercase">8:30 AM</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-sm font-medium text-slate-900 dark:text-slate-200 line-clamp-1">Patient in Ward 4 requires immediate review.</p>
+<span class="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">5</span>
+</div>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer opacity-80">
+<div class="relative">
+<div class="size-14 rounded-full bg-slate-200 overflow-hidden bg-cover bg-center" data-alt="Staff member professional portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBnSZxoXvERgBeRCivoC86-wX3xknhriaHdbH-o82W_FsZ8CHVdhxY-7PxE705SqlxWynn12WFLimkVIV4rC7b-d2yCbXGYukV13-OzruI_Ah_t2QmYy2F7uBfHonDTeeC7M-vjB89NKDjnDLnjEMHzMTJlwRNoY6na75l47ZpRRx0ePgRxvAtgW8XSxAGL1l7Iw5CnVLJ8LEHplVzhd2YK25GzY6s6wgc0-_uWn8b3t3mRO6VhqHAUFzEOXHuBRSu68YM_68TQbsnM')"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100 truncate">Lab Admin Elena</h3>
+<span class="text-[10px] font-semibold text-slate-400 uppercase">Yesterday</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-sm text-slate-400 dark:text-slate-500 line-clamp-1">The pathology reports have been uploaded.</p>
+</div>
+</div>
+</div>
+<!-- Chat Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer opacity-80">
+<div class="relative">
+<div class="size-14 rounded-full bg-slate-200 overflow-hidden bg-cover bg-center" data-alt="Doctor in scrubs professional portrait" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDt8n_tbYy3_UdgLdOJZk_X0wFoVW8TW5GSyIRDWrL7rcIlAI_t5ULF_7o4D_OycLah1DXW8sVc5ROKGfqxaCOI5g-omfaNSF6gy_ker4pCfw1qrabd0YVdPpGvBw0723B4I5VZrtd5ia_x2S1EdGBoXBshJixu1PQXgOOOy_1FaNBBGS3JaPDGg3fpy7h1J8RxmrWcUaOliub3W0iqOebyDWtcmwCJbg8ElXOnYDShfk53O6DuSIltAqF8e19g13bZJapQqsyWo_Jn')"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100 truncate">Dr. James Wilson</h3>
+<span class="text-[10px] font-semibold text-slate-400 uppercase">Yesterday</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-sm text-slate-400 dark:text-slate-500 line-clamp-1">Thanks for the referral on the ortho case.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Bottom Navigation -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] glass-nav rounded-full px-6 py-3 shadow-xl z-50">
+<nav class="flex justify-between items-center">
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[26px]">group</span>
+<span class="text-[10px] font-bold">Patients</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary transition-colors" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-[26px] fill-[1]">chat</span>
+<div class="absolute -top-1 -right-1 size-2 bg-red-500 rounded-full border border-white"></div>
+</div>
+<span class="text-[10px] font-bold">Messages</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[26px]">account_circle</span>
+<span class="text-[10px] font-bold">Profile</span>
+</a>
+</nav>
+</div>
+</div>
+</body></html>

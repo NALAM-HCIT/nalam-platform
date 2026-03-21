@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: linear-gradient(to bottom, #e2e8f0, #e2e8f0 50%, transparent 50%, transparent);
+            background-size: 100% 8px;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-32">
+<!-- Header Section -->
+<header class="sticky top-0 z-20 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 pt-8 pb-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-12 rounded-full border-2 border-primary/20 p-0.5">
+<div class="w-full h-full rounded-full bg-slate-200 bg-cover bg-center" data-alt="Professional portrait of a female doctor in a white coat" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDtkHGIvHk5ooqba9LOJuY2E1dovqd3DHDxPWMP5FZyogCnB9L9KsxKQezriRYMd_jlZbsYDNq--IsfR6ZfDG-EoVEzWebwg8JwqVqA0Pdy9Y9J725JXoVCtTLgAeoiBElOoYaUOZAe0YDn-CsS4m-Km29_nn_Z0eRl0Q3z8mVgXA3We9RPiTHt0IBQWwQtYFMmYuYCd950XFpX53NO3Ql6LGi5BbXOz-n78jd2aJ5FwZmytCURt16EsH1ZW7q-M27RSO4B0VXeWNct')"></div>
+</div>
+<div>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400">Good Morning,</p>
+<h1 class="text-xl font-bold tracking-tight">Dr. Sarah 👋</h1>
+</div>
+</div>
+<button class="size-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 relative">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300">notifications</span>
+<span class="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
+</button>
+</div>
+</header>
+<main class="px-6">
+<!-- Main Stats -->
+<div class="flex gap-4 mt-4 overflow-x-auto pb-2 no-scrollbar">
+<div class="min-w-[140px] bg-gradient-to-br from-primary to-blue-600 rounded-3xl p-4 text-white shadow-lg shadow-primary/20">
+<p class="text-[10px] font-bold opacity-80 uppercase tracking-wider">Total Patients</p>
+<p class="text-2xl font-bold mt-1">24</p>
+</div>
+<div class="min-w-[140px] bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm border border-slate-100 dark:border-slate-700">
+<p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Remaining</p>
+<p class="text-2xl font-bold mt-1 text-slate-900 dark:text-slate-100">12</p>
+</div>
+</div>
+<!-- Quick Stats Grid -->
+<div class="grid grid-cols-2 gap-3 mt-4">
+<div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 p-3 rounded-2xl flex items-center gap-3">
+<div class="size-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
+<span class="material-symbols-outlined text-xl">description</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-amber-800/60 dark:text-amber-200/60 uppercase">Reports</p>
+<p class="text-sm font-bold text-amber-900 dark:text-amber-100">08 Pending</p>
+</div>
+</div>
+<div class="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 p-3 rounded-2xl flex items-center gap-3">
+<div class="size-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+<span class="material-symbols-outlined text-xl">priority_high</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-rose-800/60 dark:text-rose-200/60 uppercase">Urgent</p>
+<p class="text-sm font-bold text-rose-900 dark:text-rose-100">03 Tasks</p>
+</div>
+</div>
+<div class="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 p-3 rounded-2xl flex items-center gap-3">
+<div class="size-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+<span class="material-symbols-outlined text-xl">mail</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-indigo-800/60 dark:text-indigo-200/60 uppercase">Messages</p>
+<p class="text-sm font-bold text-indigo-900 dark:text-indigo-100">12 New</p>
+</div>
+</div>
+<div class="bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/30 p-3 rounded-2xl flex items-center gap-3">
+<div class="size-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600">
+<span class="material-symbols-outlined text-xl">lab_research</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-teal-800/60 dark:text-teal-200/60 uppercase">Lab</p>
+<p class="text-sm font-bold text-teal-900 dark:text-teal-100">05 Results</p>
+</div>
+</div>
+</div>
+<!-- Schedule Section -->
+<div class="mt-8 flex items-center justify-between mb-6">
+<h2 class="text-lg font-bold">Today's Schedule</h2>
+<div class="flex items-center gap-1 text-primary text-sm font-semibold">
+<span>View All</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+<!-- Timeline -->
+<div class="relative pl-8 space-y-8 timeline-line">
+<!-- Appointment 1: In-Person (IN-PROGRESS) -->
+<div class="relative">
+<div class="absolute -left-8 mt-1.5 size-6 rounded-full border-4 border-background-light dark:border-background-dark bg-primary flex items-center justify-center z-10">
+<div class="size-2 rounded-full bg-white animate-pulse"></div>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="text-sm font-bold text-primary">09:00 AM</span>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">IN-PROGRESS</span>
+</div>
+<div class="glass-card bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 p-4 rounded-[24px] shadow-sm relative overflow-hidden">
+<div class="flex items-start justify-between relative z-10">
+<div class="flex gap-3">
+<div class="size-10 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm bg-cover" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuXjXf3s5rK7T7Q8L6V5G1z5X6Y7Z8A9B0C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z')">JD</div>
+<div>
+<h3 class="font-bold text-blue-900 dark:text-blue-100 text-base">John Doe</h3>
+<p class="text-blue-700/70 dark:text-blue-300/70 text-xs font-medium">In-Person • Room 302</p>
+</div>
+</div>
+<div class="bg-blue-500 text-white size-9 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20">
+<span class="material-symbols-outlined text-lg">person</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-4 relative z-10">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-blue-500">schedule</span>
+<span class="text-xs font-semibold text-blue-700/80 dark:text-blue-300/80">90 mins</span>
+</div>
+<div class="h-1 flex-1 bg-blue-100 dark:bg-blue-800/30 rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 rounded-full w-[65%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Appointment 2: Ward Rounds -->
+<div class="relative">
+<div class="absolute -left-8 mt-1.5 size-6 rounded-full border-4 border-background-light dark:border-background-dark bg-emerald-500 flex items-center justify-center z-10">
+<div class="size-2 rounded-full bg-white"></div>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-sm font-bold text-slate-400">11:00 AM</span>
+<div class="glass-card bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 p-4 rounded-[24px] shadow-sm">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="size-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+<span class="material-symbols-outlined">apartment</span>
+</div>
+<div>
+<h3 class="font-bold text-emerald-900 dark:text-emerald-100 text-base">Ward Rounds</h3>
+<p class="text-emerald-700/70 dark:text-emerald-300/70 text-xs font-medium">General Ward • Block B</p>
+</div>
+</div>
+<div class="bg-emerald-500 text-white size-9 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/20">
+<span class="material-symbols-outlined text-lg">local_hospital</span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-base text-emerald-500">schedule</span>
+<span class="text-xs font-semibold text-emerald-700/80 dark:text-emerald-300/80">11:00 AM - 12:30 PM (90m)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Appointment 3: Video Consult -->
+<div class="relative">
+<div class="absolute -left-8 mt-1.5 size-6 rounded-full border-4 border-background-light dark:border-background-dark bg-purple-500 flex items-center justify-center z-10">
+<div class="size-2 rounded-full bg-white"></div>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-sm font-bold text-slate-400">02:00 PM</span>
+<div class="glass-card bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30 p-4 rounded-[24px] shadow-sm">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="size-10 rounded-xl bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm bg-cover" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuXjXf3s5rK7T7Q8L6V5G1z5X6Y7Z8A9B0C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z')">JS</div>
+<div>
+<h3 class="font-bold text-purple-900 dark:text-purple-100 text-base">Jane Smith</h3>
+<p class="text-purple-700/70 dark:text-purple-300/70 text-xs font-medium">Video Consultation</p>
+</div>
+</div>
+<div class="bg-purple-500 text-white size-9 rounded-xl flex items-center justify-center shadow-md shadow-purple-500/20">
+<span class="material-symbols-outlined text-lg">videocam</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-purple-500">schedule</span>
+<span class="text-xs font-semibold text-purple-700/80 dark:text-purple-300/80">30 mins</span>
+</div>
+<button class="bg-purple-600 text-white px-5 py-2 rounded-full text-xs font-bold shadow-lg shadow-purple-600/20 active:scale-95 transition-transform">Join Call</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Emergency Slot -->
+<div class="relative">
+<div class="absolute -left-8 mt-1.5 size-6 rounded-full border-4 border-background-light dark:border-background-dark bg-slate-400 flex items-center justify-center z-10">
+<div class="size-2 rounded-full bg-white"></div>
+</div>
+<div class="flex flex-col gap-3 pb-24">
+<span class="text-sm font-bold text-slate-400">04:00 PM</span>
+<div class="glass-card bg-white/40 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 p-4 rounded-[24px] shadow-sm">
+<div class="flex flex-row gap-4 items-center">
+<div class="size-14 rounded-2xl bg-slate-100 dark:bg-slate-700 bg-cover bg-center shrink-0 shadow-inner" data-alt="Close up of a medical stethoscope and calendar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD1nn7-pKGTtQpKDQI_uAO_FYZe6UMuIZ5HHW2GI115B055C45k4O4cXS7-5OuftJuGhYLt9iA1IzDCCqLM86bYvmcTPOauC1JB14lSqdO-VjW4wwVi0IitUn6uRMlfww40MIdji0iTwQ12C_9pOYBfRqRgkleUuloxMXajtN2aM_efdx45rts6vyJ9_1pymuIjzp7HNqSOsiIM9r4KVHKcLUjtvLDvOlE-j3xcaAzy6XtuopcBWFbJxMN0UbTuFFd8CPTR9r-XDJ1i')"></div>
+<div class="flex flex-col gap-0.5 overflow-hidden">
+<h3 class="font-bold text-slate-900 dark:text-slate-100 truncate text-sm">Emergency Meeting</h3>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Conference Room B • 60m</p>
+<button class="mt-1.5 text-primary text-[11px] font-bold text-left flex items-center gap-0.5">
+                                View Details <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-28 right-6 size-14 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 z-40 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- Floating Bottom Navigation -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-md z-50">
+<nav class="glass-nav rounded-full px-4 py-3 flex items-center justify-between shadow-xl shadow-slate-200/50 dark:shadow-black/50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-1">calendar_today</span>
+<span class="text-[10px] font-bold">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-bold">Patients</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="text-[10px] font-bold">Messages</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">import_contacts</span>
+<span class="text-[10px] font-bold">Directory</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-bold">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>

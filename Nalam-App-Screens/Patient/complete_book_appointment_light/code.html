@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Arun Priya Multispeciality Hospital - Book Appointment</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1A73E8",
+                        "background-light": "#F8FAFC",
+                        "text-dark": "#0B1B3D",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.75rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "1.5rem",
+                        "3xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-text-dark min-h-screen pb-32">
+<!-- Header Section -->
+<header class="sticky top-0 z-20 bg-background-light/90 backdrop-blur-md px-5 pt-6 pb-4">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-4">
+<button class="p-2 -ml-2 rounded-full hover:bg-slate-200/50 transition-colors">
+<span class="material-symbols-outlined text-2xl text-text-dark">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-text-dark">Book Appointment</h1>
+</div>
+<button class="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-sm relative border border-slate-100">
+<span class="material-symbols-outlined text-text-dark">notifications</span>
+<span class="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full border-2 border-white"></span>
+</button>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-11 pr-4 py-3.5 bg-white border-none rounded-2xl focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400 text-sm shadow-sm" placeholder="Search doctors or specialties" type="text"/>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-3 mt-5 overflow-x-auto no-scrollbar">
+<button class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-full text-sm font-semibold whitespace-nowrap shadow-md shadow-primary/20">
+                Availability <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-white text-text-dark rounded-full text-sm font-semibold whitespace-nowrap border border-slate-100 shadow-sm">
+                Specialty <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-white text-text-dark rounded-full text-sm font-semibold whitespace-nowrap border border-slate-100 shadow-sm">
+                Distance <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</header>
+<main class="px-5 py-2 space-y-5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-xl font-bold text-text-dark">Top Specialists</h2>
+<button class="text-primary text-sm font-bold">See All</button>
+</div>
+<!-- Doctor Card 1 -->
+<div class="bg-white p-5 rounded-[24px] flex flex-col gap-5 card-shadow border border-slate-50">
+<div class="flex gap-4">
+<div class="relative">
+<img alt="Dr. Aruna Reddy" class="w-[84px] h-[84px] rounded-2xl object-cover bg-slate-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhtSd53jmg23fQRSclvIxRgD6heMJeaifdOTu-esOwEytsZe84DEnjkE8XqG7azSdDBI_l73QNCgQNl9ebp3ISWdx6kcBjHCS-umqS6ANhoxSA3k-yOKVowBdS3YEGR_jQVvL4NftcldchZdBGhihGuYECCTwKrFNOTLoWo5NnftbOyZ--Xu-Kb0ShqJphWcCQO-bujZcbaPm5Tunf1x4B0p0ezpnH4Dh0SgYvD8ro61x2h7C-c0MzHwxr_L-2ZQ2aqTxHm4x4IDTJ"/>
+<div class="absolute bottom-1 right-1 bg-[#22C55E] w-3.5 h-3.5 rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-lg text-text-dark">Dr. Aruna Reddy</h3>
+<p class="text-primary text-sm font-bold">Cardiologist</p>
+</div>
+<div class="flex items-center gap-1.5 bg-[#FFF9E6] px-2.5 py-1 rounded-full border border-[#FFD700]/20">
+<span class="material-symbols-outlined text-[#EAB308] text-sm fill-1">star</span>
+<span class="text-xs font-bold text-[#854D0E]">4.9</span>
+</div>
+</div>
+<div class="flex items-center gap-4 text-slate-500">
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">work_history</span>
+<span>12 Years Exp.</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span>2.4 km</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-50">
+<div class="flex flex-col">
+<span class="text-slate-400 text-[10px] uppercase font-bold tracking-[0.1em]">Consultation Fee</span>
+<span class="text-xl font-extrabold text-text-dark">₹800</span>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-primary/25">
+                    Book Now
+                </button>
+</div>
+</div>
+<!-- Doctor Card 2 -->
+<div class="bg-white p-5 rounded-[24px] flex flex-col gap-5 card-shadow border border-slate-50">
+<div class="flex gap-4">
+<div class="relative">
+<img alt="Dr. Sarah Johnson" class="w-[84px] h-[84px] rounded-2xl object-cover bg-slate-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZqL7bBSrPWoRSfhH4GPWZhqW9QM0fLmSCE5UggDndHrGAFAX8ldrqCoYjIDRDIfxR4iVCnwKVoNr0gQJ7Zg0DA8MGEzG8qRds629FfUjFOgu7HAD3KMvJvrSwuVlbopuQSnlnY6oGhEYNqeRDPHHGD3XKLzEVbBGPdAUY_A9ckACwMBGdG5Fse1zWbOTjouAyTrHMNknNANTaQCeGbUatrUMD77J_QAWwOLwW7t54m09vTq0DM72ZwXsVtF0kcpe-stlfXu4nsTzX"/>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-lg text-text-dark">Dr. Sarah Johnson</h3>
+<p class="text-primary text-sm font-bold">Neurologist</p>
+</div>
+<div class="flex items-center gap-1.5 bg-[#FFF9E6] px-2.5 py-1 rounded-full border border-[#FFD700]/20">
+<span class="material-symbols-outlined text-[#EAB308] text-sm fill-1">star</span>
+<span class="text-xs font-bold text-[#854D0E]">4.8</span>
+</div>
+</div>
+<div class="flex items-center gap-4 text-slate-500">
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">work_history</span>
+<span>8 Years Exp.</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span>1.1 km</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-50">
+<div class="flex flex-col">
+<span class="text-slate-400 text-[10px] uppercase font-bold tracking-[0.1em]">Consultation Fee</span>
+<span class="text-xl font-extrabold text-text-dark">₹650</span>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-primary/25">
+                    Book Now
+                </button>
+</div>
+</div>
+<!-- Doctor Card 3 -->
+<div class="bg-white p-5 rounded-[24px] flex flex-col gap-5 card-shadow border border-slate-50">
+<div class="flex gap-4">
+<div class="relative">
+<img alt="Dr. James Wilson" class="w-[84px] h-[84px] rounded-2xl object-cover bg-slate-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBEcMhkKjUMpbeJgwF0RavBa3Ek5wPkSW9mA6pfftg6qyEtJIe5PYP8wg-4htW2NGIUQzWY8s_wJShBpzBcjYdtKgvKHGN-feGljX_vW3-eslNx7tKfiOkw3aX0EpcSDbzC7moOJPOmmKvOl7iXZgT3FnwTVp2Zsvix9WIgOhZwnCwVFuvIvs3ndYAbTxtOW1vZT4GVTNviIJShMkBG5UkvOLp0BzIDZo6TuqJoObiButsCV4ohMN4dMIDz6Ei6sHDw21dc1Ii-8h3"/>
+<div class="absolute bottom-1 right-1 bg-[#22C55E] w-3.5 h-3.5 rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-lg text-text-dark">Dr. James Wilson</h3>
+<p class="text-primary text-sm font-bold">Orthopedic</p>
+</div>
+<div class="flex items-center gap-1.5 bg-[#FFF9E6] px-2.5 py-1 rounded-full border border-[#FFD700]/20">
+<span class="material-symbols-outlined text-[#EAB308] text-sm fill-1">star</span>
+<span class="text-xs font-bold text-[#854D0E]">4.7</span>
+</div>
+</div>
+<div class="flex items-center gap-4 text-slate-500">
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">work_history</span>
+<span>15 Years Exp.</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span>3.8 km</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-50">
+<div class="flex flex-col">
+<span class="text-slate-400 text-[10px] uppercase font-bold tracking-[0.1em]">Consultation Fee</span>
+<span class="text-xl font-extrabold text-text-dark">₹1000</span>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-primary/25">
+                    Book Now
+                </button>
+</div>
+</div>
+<!-- Doctor Card 4 -->
+<div class="bg-white p-5 rounded-[24px] flex flex-col gap-5 card-shadow border border-slate-50">
+<div class="flex gap-4">
+<div class="relative">
+<img alt="Dr. Elena Gomez" class="w-[84px] h-[84px] rounded-2xl object-cover bg-slate-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWcZUH49QJEii4oxoqs35Ptl-Qky5_y9B-lN4nrt-x6tC_7hezehoPxYzJC4IGtlkQYBePvVVzYYGcp6Kn5xdEKhwKvH_HWTl_mPIMUdEyzDlQDaaxOkHRiQi6T0G4CCZ_VavmlDHCHOwrdjVu6q3Auq2TO58b7xzvaBeUVbb0pwRZcXTojH0bLpO9ABGgnKU2mN2gX8kPRQfAQL8TnxasSPBmSPpXSCS5X_PTfyKQSuUD6KAgY2R_p-cdZK1wZI3JnF-u3H4FEG6T"/>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-bold text-lg text-text-dark">Dr. Elena Gomez</h3>
+<p class="text-primary text-sm font-bold">Pediatrician</p>
+</div>
+<div class="flex items-center gap-1.5 bg-[#FFF9E6] px-2.5 py-1 rounded-full border border-[#FFD700]/20">
+<span class="material-symbols-outlined text-[#EAB308] text-sm fill-1">star</span>
+<span class="text-xs font-bold text-[#854D0E]">5.0</span>
+</div>
+</div>
+<div class="flex items-center gap-4 text-slate-500">
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">work_history</span>
+<span>6 Years Exp.</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-medium">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span>0.5 km</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-50">
+<div class="flex flex-col">
+<span class="text-slate-400 text-[10px] uppercase font-bold tracking-[0.1em]">Consultation Fee</span>
+<span class="text-xl font-extrabold text-text-dark">₹500</span>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-3 rounded-full font-bold text-sm transition-all shadow-lg shadow-primary/25">
+                    Book Now
+                </button>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-[2rem] bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-white/50 dark:border-slate-800 shadow-[0_-4px_20px_rgba(26,115,232,0.1)]">
+<div class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30 rounded-full px-4 py-1 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Pharmacy</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

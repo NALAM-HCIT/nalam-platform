@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1A73E8",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#111821",
+                        "success": "#22C55E",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem", // 24px per request
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Update Successful - Nalam Hospital</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light font-display text-slate-900 min-h-screen flex flex-col">
+<!-- Header -->
+<header class="sticky top-0 z-10 bg-background-light/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+<div class="w-10 h-10 flex items-center justify-start">
+<button class="text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+</div>
+<h1 class="text-lg font-bold text-slate-900">Update Successful</h1>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</header>
+<main class="flex-1 px-6 pt-8 pb-32 max-w-md mx-auto w-full flex flex-col items-center">
+<!-- Success Animation/Icon Area -->
+<div class="relative flex items-center justify-center mb-8">
+<div class="absolute w-32 h-32 bg-success/10 rounded-full scale-125 blur-xl"></div>
+<div class="relative w-24 h-24 bg-success/20 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+<span class="material-symbols-outlined text-success text-6xl font-bold" style="font-variation-settings: 'FILL' 1, 'wght' 700;">check_circle</span>
+</div>
+</div>
+<!-- Success Message -->
+<div class="text-center mb-10">
+<h2 class="text-2xl font-bold text-slate-900 mb-2">Success!</h2>
+<p class="text-slate-500 text-base">Your appointment has been successfully updated.</p>
+</div>
+<!-- Details Card -->
+<div class="w-full bg-white rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 mb-10 border border-slate-100">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-14 h-14 rounded-full bg-slate-100 overflow-hidden shrink-0">
+<img alt="Dr. Aruna Devi Portrait" class="w-full h-full object-cover" data-alt="Portrait of a female doctor in professional attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrR_k6TxOSq7ekLqxKEAxrvG2fi6aqxqw5shkCD7WkoGlpr6AGQSPUHj76A6agoXA-6V0yiBce609Z8h_5g_-aKmLOWm622ed9Nen60t5iosMNOYgf5CnH1_C5yFGkiUs2jkawCNNkIwjNDZV5Gt1-KdAhw8guG0QCAMYy4YCHM5Gy7xk2dk6GNymIk216e98xl-8BTvWaZEpZqRPAkndG0VCY4tw3DTNYhEVN4dqafNbtfw6dkGOw1OYD8Bo1Y8JI18DBKdtXm_-W"/>
+</div>
+<div>
+<h3 class="font-bold text-lg text-slate-900">Dr. Aruna Devi</h3>
+<p class="text-primary text-sm font-medium">Cardiologist</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-slate-400 text-xl">calendar_today</span>
+<div>
+<p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Date &amp; Time</p>
+<p class="text-slate-700 font-medium">Oct 24, 2023, 11:00 AM</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-slate-400 text-xl">video_chat</span>
+<div>
+<p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Consultation Type</p>
+<p class="text-slate-700 font-medium">In-Person Visit</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="w-full space-y-3">
+<button class="w-full bg-primary text-white font-bold h-14 rounded-full shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-[0.98]">
+                Go to Dashboard
+            </button>
+<button class="w-full bg-white text-primary border-2 border-primary font-bold h-14 rounded-full hover:bg-primary/5 transition-all active:scale-[0.98]">
+                View All Bookings
+            </button>
+</div>
+</main>
+<!-- Floating Glassmorphism Bottom Nav -->
+<div class="fixed bottom-6 left-6 right-6 z-50">
+<nav class="bg-white/80 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-full px-6 py-3 flex justify-between items-center max-w-md mx-auto">
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">house</span>
+<span class="text-[10px] font-semibold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span class="text-[10px] font-semibold">Bookings</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">description</span>
+<span class="text-[10px] font-semibold">Records</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="text-[10px] font-semibold">Profile</span>
+</a>
+</nav>
+</div>
+<!-- Background Decoration -->
+<div class="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none overflow-hidden">
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute top-1/2 -left-24 w-64 h-64 bg-success/5 rounded-full blur-3xl"></div>
+</div>
+</body></html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nalam Hospital Staff Directory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-nav {
+            background: rgba(17, 24, 33, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+<header class="p-4 flex items-center justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-10">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight">Staff Directory</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+</button>
+</header>
+<div class="px-4 py-2">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-slate-400">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border-none rounded-xl shadow-sm focus:ring-2 focus:ring-primary/50 text-sm" placeholder="Search by name or department" type="text"/>
+</div>
+</div>
+<div class="flex gap-2 p-4 overflow-x-auto no-scrollbar">
+<button class="px-5 py-2 bg-primary text-white rounded-full text-sm font-semibold shrink-0">All</button>
+<button class="px-5 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">Cardiology</button>
+<button class="px-5 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">Oncology</button>
+<button class="px-5 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">Nursing</button>
+</div>
+<main class="flex-1 px-4 space-y-6">
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cardiology</h2>
+<span class="text-xs font-medium text-primary">12 Members</span>
+</div>
+<div class="space-y-3">
+<div class="bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3">
+<img class="w-14 h-14 rounded-xl object-cover" data-alt="Male doctor with stethoscope smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGF4vMIOKfP6PWSBL8Syz6X6e2e-uEzJrDB1bjSpwdysgoH80bbCgPPglkbuzBb7nU0qd1wqVkhLl7ChDDAPs-aqmJnp2Ge31FQ9D9KlLV1BQcZNTOWXB8-PBXdq6nbytYRg6P2KchaPhnytawjnwlF8PsKDU12RvFQ_JV7X9u4cnGwOa_nLu63n7oQeIOgrjwzmvSoNdRnwYSnhv6WhFmnbaWI9aNiVE6Zrf_14UXZ5PQd_1Iw0uvQdYOUn7_z-xGhWGWjGlfZTSF"/>
+<div class="flex-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Dr. Arul Mozhi</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Senior Cardiologist</p>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3">
+<img class="w-14 h-14 rounded-xl object-cover" data-alt="Female doctor in professional medical attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAh9hA-bX7AD9V9tUW7AwIbHthDovqEw2tcZfDgLHzYfZR-ZNeZdQBH1WVmJ-3px501qhpp3x0ehvgi0GhC7qvi2osCNYmFXRu7ZhozIe1PF0kENSEe2mBosowot2V7d-QSSi5NMakpotd96t3WsMOqqdTEsK_4wvtNEVPvdpm4Vwc0NIvWylrKD2fr8Hw4OmrppLPsOCAjQVqYX94FX0pK4ZMglaQnFM_MaMdBz-p3h5gHV_s6qZK58Saotl567OyHtSOCC4rx1sMQ"/>
+<div class="flex-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Dr. Priya Sharma</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Interventional Cardiology</p>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Nursing Staff</h2>
+<span class="text-xs font-medium text-primary">48 Members</span>
+</div>
+<div class="space-y-3">
+<div class="bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3">
+<img class="w-14 h-14 rounded-xl object-cover" data-alt="Professional nurse in medical uniform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbllyyV2MobWvQ2WBoh2T7VDuqFyT43Y8jImuz1QET7rdsoJFskWlZXMgJHi0e_g6MYKqNGc8pzGRmyBbMlRG64Ad9cSsR9w8qP1kf5hRG-vRwdcUvSehwRn13tdCbdGCFklFDeFePTPlbKY7WwupRS-ULyaBO17vVC70a-NCPaziyCD3IkNy9R5DSl6ye5QweGq74tLbySWcnAZvZ3eLNtXcdh-b0hzBr77Xc62QWUydrT6z2pFdyhnbllNE08oeWW1vWl70BGjw-"/>
+<div class="flex-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Kavitha Rajan</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Head Nurse - ICU</p>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Administration</h2>
+<span class="text-xs font-medium text-primary">8 Members</span>
+</div>
+<div class="space-y-3 opacity-80">
+<div class="bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3">
+<div class="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Meera Iyer</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Hospital Administrator</p>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] glass-nav rounded-full shadow-2xl p-2 z-50">
+<div class="flex items-center justify-between px-2">
+<a class="flex flex-col items-center justify-center w-16 h-14 rounded-full text-slate-400 transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 transition-all" href="#">
+<span class="material-symbols-outlined">contact_page</span>
+<span class="text-[10px] font-medium mt-1">Directory</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 rounded-full text-slate-400 transition-all" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-[10px] font-medium mt-1">Patients</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 rounded-full text-slate-400 transition-all" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-medium mt-1">Profile</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

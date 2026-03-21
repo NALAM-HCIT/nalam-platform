@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Active Consultation - Nalam Hospital</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Geometric Font (Outfit) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            nalam: {
+              blue: '#1E3A8A', // Solid Deep Blue
+              lightGrey: '#F8FAFC', // Updated background per request
+              darkNavy: '#0F172A', // Deep readable navy for text
+              accentRed: '#EF4444',
+            }
+          },
+          borderRadius: {
+            'card': '24px',
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-animations">
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .mic-pulse {
+      animation: pulse-red 2s infinite;
+    }
+    .sparkline-path {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: dash 3s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: 0; }
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-nalam-lightGrey font-sans min-h-screen pb-10 text-nalam-darkNavy">
+<!-- BEGIN: Mobile Dashboard Layout -->
+<main class="flex flex-col gap-4 p-4">
+<!-- BEGIN: Top Section - Video Call -->
+<section class="w-full" data-purpose="tele-consult-video">
+<div class="relative aspect-[3/4] w-full bg-slate-200 rounded-card overflow-hidden shadow-sm border border-slate-200">
+<!-- Main Patient/Doctor View -->
+<img alt="Doctor Feed" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcjiFTLsw9Z13tNhO3o-B6PjFYi5s-a9_yQJvAWjvm9WcElRpW6BgLZaPArNHJDPziZ8WH6bRHqXjMc9Y87yLzYn4ErAxr5FQ6jIc3xpgKcCFufdjcr0wfETkDytllDMaVpApT9n0o2WlrKROA-9Sx0VrrDg4bR-OM5eA3n2HF3AyMuLW2bLcDMmJa4sgMduIGGqTYUtnvj7lQFiTV45kMKGSJoWxGbL4ZTA4TjHjs3gpKmumFhOHiz8_PwD8DPFt3GGOncyvEDbKT"/>
+<!-- Picture in Picture (Self View) -->
+<div class="absolute top-4 right-4 w-32 h-24 bg-slate-700 rounded-xl border-2 border-white/20 overflow-hidden shadow-lg">
+<img alt="Self View" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwQlPt_HA63uNGJMBs8RLjmqWnCBvCji7uFzzchNZWSfH8TxiTR0B-L_aEIiY37TUyohDU5JGfvIpDkhCpZbsqtLjRGFx9I06nFo9YVhEunzthwbRstmRkGmvzThLtPYsq01t_fjgFcHooVbTxKOZHPxmx7_x7ni4nxT3FnonL3kGPnGtMF1gB_Fnjc9JoM1wCvWlYJdCCmil-aXSCGIlwaQ9FDKoZgayd_JsNp5KKzwYOmcllJO68wO9TWnALMz09nOKtxhDlE_MJ"/>
+</div>
+<!-- Consultation Timer Overlay -->
+<div class="absolute top-4 left-4 bg-black/40 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2">
+<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+        00:14:22
+      </div>
+<!-- Video Call Controls -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white/10 backdrop-blur-lg p-2.5 rounded-full border border-white/20">
+<button class="p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<button class="p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<button class="p-3 bg-nalam-accentRed hover:bg-red-600 rounded-full text-white transition-colors px-6 font-bold text-sm">
+          End Call
+        </button>
+</div>
+</div>
+</section>
+<!-- END: Top Section -->
+<!-- BEGIN: Live Vitals - Horizontally Scrollable -->
+<section class="w-full" data-purpose="live-vitals">
+<h3 class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2 px-1">Live Wearable Vitals</h3>
+<div class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar -mx-4 px-4">
+<!-- Heart Rate -->
+<div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm min-w-[140px] flex-shrink-0">
+<p class="text-[10px] text-red-600 font-bold mb-1">Heart Rate</p>
+<div class="flex items-end gap-1">
+<span class="text-xl font-bold text-nalam-darkNavy">72</span>
+<span class="text-[10px] text-slate-500 mb-1">bpm</span>
+</div>
+<svg class="w-full h-6 mt-1" viewbox="0 0 100 20">
+<path class="sparkline-path" d="M0 15 L10 12 L20 18 L30 5 L40 15 L50 10 L60 18 L70 5 L80 12 L90 10 L100 15" fill="none" stroke="#EF4444" stroke-width="2"></path>
+</svg>
+</div>
+<!-- SpO2 -->
+<div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm min-w-[140px] flex-shrink-0">
+<p class="text-[10px] text-blue-600 font-bold mb-1">SpO2</p>
+<div class="flex items-end gap-1">
+<span class="text-xl font-bold text-nalam-darkNavy">98</span>
+<span class="text-[10px] text-slate-500 mb-1">%</span>
+</div>
+<svg class="w-full h-6 mt-1" viewbox="0 0 100 20">
+<path class="sparkline-path" d="M0 10 L25 10 L50 12 L75 10 L100 11" fill="none" stroke="#3B82F6" stroke-width="2"></path>
+</svg>
+</div>
+<!-- Blood Pressure -->
+<div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm min-w-[140px] flex-shrink-0">
+<p class="text-[10px] text-emerald-600 font-bold mb-1">Blood Pressure</p>
+<div class="flex items-end gap-1">
+<span class="text-xl font-bold text-nalam-darkNavy">120/80</span>
+</div>
+<p class="text-[9px] text-slate-400 mt-2">Sync: 2m ago</p>
+</div>
+</div>
+</section>
+<!-- END: Live Vitals -->
+<!-- BEGIN: Lab Reports -->
+<section class="bg-white p-5 rounded-card shadow-sm border border-slate-200">
+<h3 class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-4">Recent Lab Reports</h3>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 active:bg-slate-200 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div>
+<p class="text-sm font-semibold text-nalam-darkNavy">Full Blood Count</p>
+<p class="text-[10px] text-slate-500">Oct 24, 2023</p>
+</div>
+</div>
+<span class="text-blue-600 text-[10px] font-bold">VIEW</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 active:bg-slate-200 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
+<svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div>
+<p class="text-sm font-semibold text-nalam-darkNavy">Lipid Profile</p>
+<p class="text-[10px] text-slate-500">Sep 12, 2023</p>
+</div>
+</div>
+<span class="text-blue-600 text-[10px] font-bold">VIEW</span>
+</div>
+</div>
+</section>
+<!-- END: Lab Reports -->
+<!-- BEGIN: Chief Complaint & Dictation -->
+<section class="bg-white p-5 rounded-card shadow-sm border border-slate-200">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Chief Complaint</h3>
+<button class="flex items-center gap-2 bg-nalam-accentRed text-white px-4 py-2 rounded-full text-[10px] font-bold mic-pulse active:scale-95 transition-all" id="dictateBtn">
+<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        DICTATE
+      </button>
+</div>
+<textarea class="w-full border-slate-200 bg-slate-50 rounded-2xl p-4 text-sm text-nalam-darkNavy min-h-[120px] focus:ring-nalam-blue focus:border-nalam-blue border outline-none placeholder:text-slate-400" id="chiefComplaint" placeholder="Describe symptoms or dictated text..."></textarea>
+</section>
+<!-- END: Chief Complaint -->
+<!-- BEGIN: E-Prescription Tool -->
+<section class="bg-white p-5 rounded-card shadow-sm border border-slate-200">
+<h3 class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-4">E-Prescription Tool</h3>
+<div class="space-y-4">
+<div>
+<label class="block text-[10px] font-bold text-slate-500 mb-1 px-1">Medicine Name</label>
+<input class="w-full border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm text-nalam-darkNavy focus:ring-nalam-blue focus:border-nalam-blue border outline-none placeholder:text-slate-400" placeholder="e.g. Paracetamol" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block text-[10px] font-bold text-slate-500 mb-1 px-1">Dosage</label>
+<input class="w-full border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm text-nalam-darkNavy focus:ring-nalam-blue focus:border-nalam-blue border outline-none placeholder:text-slate-400" placeholder="e.g. 500mg" type="text"/>
+</div>
+<div>
+<label class="block text-[10px] font-bold text-slate-500 mb-1 px-1">Freq</label>
+<input class="w-full border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm text-nalam-darkNavy focus:ring-nalam-blue focus:border-nalam-blue border outline-none placeholder:text-slate-400" placeholder="1-0-1" type="text"/>
+</div>
+</div>
+<div>
+<label class="block text-[10px] font-bold text-slate-500 mb-1 px-1">Duration &amp; Frequency</label>
+<input class="w-full border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm text-nalam-darkNavy focus:ring-nalam-blue focus:border-nalam-blue border outline-none placeholder:text-slate-400" placeholder="e.g. 5 Days, after meals" type="text"/>
+</div>
+<button class="w-full bg-nalam-blue hover:bg-blue-800 active:scale-[0.98] text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-900/10 transition-all mt-2 uppercase text-xs tracking-widest">
+        Issue E-Prescription
+      </button>
+</div>
+</section>
+<!-- END: E-Prescription Tool -->
+</main>
+<!-- END: Mobile Dashboard Layout -->
+<script data-purpose="ux-interactivity">
+    // Mocking the dictation button click
+    const dictateBtn = document.getElementById('dictateBtn');
+    const textArea = document.getElementById('chiefComplaint');
+    
+    dictateBtn.addEventListener('click', () => {
+      dictateBtn.innerText = "LISTENING...";
+      setTimeout(() => {
+        textArea.value += "Patient reports persistent headache and mild fatigue for the past 3 days. ";
+        dictateBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+          DICTATE
+        `;
+      }, 1500);
+    });
+  </script>
+</body></html>

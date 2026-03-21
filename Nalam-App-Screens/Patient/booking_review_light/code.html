@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>Review Appointment</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-md mx-auto bg-white dark:bg-slate-900 min-h-screen shadow-2xl overflow-hidden flex flex-col">
+<!-- TopAppBar Navigation -->
+<div class="flex items-center p-4 pb-2 justify-between sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
+<div class="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center justify-start cursor-pointer">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-12">Review &amp; Confirm</h2>
+</div>
+<!-- Progress Indicator -->
+<div class="flex flex-col gap-3 p-4">
+<div class="flex gap-6 justify-between items-center">
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium">Step 3 of 3</p>
+<p class="text-primary text-sm font-bold">100%</p>
+</div>
+<div class="rounded-full bg-slate-200 dark:bg-slate-800 h-2 w-full overflow-hidden">
+<div class="h-full rounded-full bg-primary" style="width: 100%;"></div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto pb-32">
+<!-- Doctor Summary Card (Glassmorphism inspired) -->
+<div class="p-4">
+<div class="flex flex-col rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/50">
+<div class="relative h-48 w-full bg-center bg-no-repeat bg-cover" data-alt="Professional female doctor in clinical setting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB9l4TSMZ1I8PNI37IOw10cY90Pi2nJeGj4SmcBbDaieOhTC6ENANP8dqdHPF0JJ0LuLLnIXUbZIm_K3TOELkY38j2xqXiPDRTF6U2TIqQu9eqZs9y1XVQcFUF2b6EzJeXOnXsoKe8UwycfKHd2KxGlimXaS_-5gHC83pLt-ad8sKSrfUOdQGH8_i7ptqeuHcfvTMdTvCP-abOJaaehMYwGV1BmL12x7c628Jv79gKBXDftveSMNwILBl5aBLg2goBDXP-c9y99Dj2X");'>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4">
+<span class="px-2 py-1 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-md">Verified Specialist</span>
+</div>
+</div>
+<div class="flex flex-col p-4 gap-2">
+<p class="text-primary text-xs font-bold uppercase tracking-widest">Doctor Details</p>
+<h3 class="text-slate-900 dark:text-white text-xl font-bold">Dr. Sarah Jenkins</h3>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">medical_services</span>
+                            Senior Cardiologist
+                        </p>
+<div class="mt-2 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl">videocam</span>
+</div>
+<p class="text-slate-700 dark:text-slate-300 text-sm">Online Video Consultation</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl">calendar_today</span>
+</div>
+<p class="text-slate-700 dark:text-slate-300 text-sm">Oct 24, 2023 | 10:00 AM - 10:30 AM</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Patient Details Section -->
+<div class="px-4 py-2">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold">Patient Details</h3>
+<button class="text-primary text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">edit</span>
+                        Edit
+                    </button>
+</div>
+<div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14 ring-2 ring-primary/20" data-alt="Profile portrait of a smiling man" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAPc-GWVXHUdhJ-96HGAhZ7Dmk5FreT1MCXmuipn4H_OIFAhsHi-mrUai6cachh4FvR-Uvw-vf3JSGDU0iJYW3p0bI165N6we0Mrr3V4kEKMfwn22yLpL8gEEznlX00ZZvXF1z2IjWqrR6turdDKHBB7pJURHM48FrBqlZCHgR1ClJLq5wZrRSwaz_lf8vDjmK0iO4rPK-uJu3gJnqzpi93b6QXiGlkVmuwqpMxmhZeeOeC4kgZwgKsW6RWm5Cxx1ZYF6GRqYdaQBBv");'></div>
+<div class="flex flex-col justify-center">
+<p class="text-slate-900 dark:text-white text-base font-bold">John Doe</p>
+<p class="text-slate-600 dark:text-slate-400 text-sm">Age: 32 | Gender: Male</p>
+</div>
+</div>
+</div>
+<!-- Payment Summary Section -->
+<div class="px-4 py-6">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold mb-3">Payment Summary</h3>
+<div class="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+<div class="flex justify-between items-center text-sm">
+<span class="text-slate-600 dark:text-slate-400">Consultation Fee</span>
+<span class="text-slate-900 dark:text-white font-medium">$120.00</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-slate-600 dark:text-slate-400">Platform Taxes (5%)</span>
+<span class="text-slate-900 dark:text-white font-medium">$6.00</span>
+</div>
+<div class="h-px bg-slate-200 dark:bg-slate-700 my-1"></div>
+<div class="flex justify-between items-center text-base">
+<span class="text-slate-900 dark:text-white font-bold">Total Payable</span>
+<span class="text-primary font-bold text-lg">$126.00</span>
+</div>
+</div>
+<div class="mt-4 flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400 italic">
+<span class="material-symbols-outlined text-sm shrink-0">info</span>
+<p>By clicking 'Pay &amp; Confirm Booking', you agree to our Terms of Service and Cancellation Policy.</p>
+</div>
+</div>
+</div>
+<!-- Sticky Footer CTA -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+<span>Pay &amp; Confirm Booking</span>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</body></html>

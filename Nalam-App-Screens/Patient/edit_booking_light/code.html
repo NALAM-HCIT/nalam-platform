@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nalam Hospital - Edit Booking</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a73e8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-md mx-auto min-h-screen flex flex-col relative pb-24">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 pt-6 pb-2">
+<div class="flex items-center justify-between mb-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold flex-1 text-center pr-10">Edit Booking</h1>
+</div>
+<!-- Progress Bar -->
+<div class="px-2 pb-4">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm font-medium text-slate-600 dark:text-slate-400">Modification Progress</span>
+<span class="text-sm font-bold text-primary">Step 2 of 3</span>
+</div>
+<div class="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3 rounded-full"></div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-4 space-y-6">
+<!-- Current Booking Card -->
+<section>
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 px-2">Current Selection</h2>
+<div class="bg-white dark:bg-slate-900 rounded p-4 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center gap-4">
+<div class="w-20 h-20 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="Professional portrait of a female cardiologist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBi9WFm6fygEXsl3iPeLjUglTN0yMOFJIcFDHO9Bqx0-9kkea2zHdE6H8mkfS9D4E914LwOcN5Udvo2cZ6cIrKFqer76LfngpHt3s5uJvejuN3a5Ic9R93Z-l70a_uiOUYVvWrh1RRnS24QhORzVNOnsx5YT1zVT3vlJC1ifREIvDn0As_ric4PRP8PlryLRut37oI3lifno1Dxy_blobB4IzrvRgo1vvf__EV1J6GoQkwIvmO97ZQ4AtxKAi2fNGdKHD9VrppMe1zz"/>
+</div>
+<div class="flex-1">
+<h3 class="text-lg font-bold">Dr. Aruna Devi</h3>
+<p class="text-primary text-sm font-medium">Cardiologist</p>
+<div class="flex items-center gap-1 mt-1 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="text-xs">Nalam Hospital, Wing A</span>
+</div>
+</div>
+<button class="bg-slate-50 dark:bg-slate-800 p-2 rounded-full text-primary hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">sync_alt</span>
+</button>
+</div>
+</section>
+<!-- Consultation Type Toggle -->
+<section class="space-y-3">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2">Consultation Type</h2>
+<div class="grid grid-cols-2 gap-3 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full">
+<button class="flex items-center justify-center gap-2 py-2.5 rounded-full bg-white dark:bg-slate-700 shadow-sm text-primary font-semibold">
+<span class="material-symbols-outlined text-xl">person</span>
+<span>In-Person</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-2.5 rounded-full text-slate-600 dark:text-slate-400 font-medium">
+<span class="material-symbols-outlined text-xl">videocam</span>
+<span>Online</span>
+</button>
+</div>
+</section>
+<!-- Reschedule Section (Calendar) -->
+<section class="space-y-4">
+<div class="flex items-center justify-between px-2">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reschedule Date</h2>
+<span class="text-xs font-bold text-primary">October 2023</span>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="grid grid-cols-7 gap-1 text-center mb-2">
+<span class="text-[10px] font-bold text-slate-400 uppercase">S</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase">M</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase">T</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase">W</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase">T</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase">F</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase">S</span>
+</div>
+<div class="grid grid-cols-7 gap-1">
+<div class="h-10 flex items-center justify-center text-slate-300">28</div>
+<div class="h-10 flex items-center justify-center text-slate-300">29</div>
+<div class="h-10 flex items-center justify-center text-slate-300">30</div>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">1</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">2</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">3</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">4</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-bold bg-primary text-white shadow-lg shadow-primary/30">5</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">6</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">7</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">8</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">9</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">10</button>
+<button class="h-10 rounded-full flex items-center justify-center text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">11</button>
+</div>
+</div>
+</section>
+<!-- Time Slots -->
+<section class="space-y-3">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2">Select Time</h2>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium hover:border-primary transition-colors">09:00 AM</button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium hover:border-primary transition-colors">10:30 AM</button>
+<button class="px-4 py-2 rounded-full bg-primary/10 border border-primary text-primary text-sm font-bold">11:00 AM</button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium hover:border-primary transition-colors">02:30 PM</button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium hover:border-primary transition-colors">04:00 PM</button>
+</div>
+</section>
+<!-- Change Doctor Action -->
+<button class="w-full flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/20 text-primary font-semibold group hover:bg-primary/10 transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">person_search</span>
+<span>Change Consultant Doctor</span>
+</div>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">chevron_right</span>
+</button>
+</main>
+<!-- Bottom Action Button -->
+<footer class="fixed bottom-0 left-0 right-0 p-4 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md max-w-md mx-auto">
+<button class="w-full bg-primary text-white py-4 rounded-full font-bold text-lg shadow-xl shadow-primary/25 active:scale-[0.98] transition-all">
+                Confirm Changes
+            </button>
+</footer>
+</div>
+</body></html>

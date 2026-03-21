@@ -1,0 +1,101 @@
+======================================================
+PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
+======================================================
+
+1. PROJECT OVERVIEW
+------------------------------------------------------
+* App Purpose: Nalam - A multi-tenant telemedicine platform (SaaS) for hospitals.
+* Web Portal: React/Next.js (Hospital Registration Only) - Hosted on Vercel.
+* Mobile App: React Native / Expo (Patient & Doctor interaction).
+* Backend API: ASP.NET Core 9.0 (Minimal APIs) - Hosted on Render (Free Tier).
+* Database: PostgreSQL - Managed by Supabase (Free Tier).
+* Storage: Cloudinary (for Hospital Logos, Licenses, and Medical Records).
+* OTP Provider: Pay4SMS API.
+
+2. HARD RULES FOR AI (DO NOT IGNORE)
+------------------------------------------------------
+* RULE 1: Multi-Tenancy - Every table must have a 'HospitalID' to ensure data isolation.
+* RULE 2: Authentication - Mobile app uses Mobile Number + OTP ONLY. No passwords/Employee IDs.
+* RULE 3: Role-Based Access Control (RBAC) - Roles: Patient, Doctor, Hospital Admin, Staff (Pharmacist/Receptionist).
+* RULE 4: Image Handling - Store URLs only in DB; actual files go to Cloudinary.
+* RULE 5: Infrastructure - Keep code compatible with Docker for Render deployment.
+* RULE 6: Defense-in-Depth - 4-layer tenant isolation: JWT Claims → TenantMiddleware → EF Core Global Query Filters → PostgreSQL RLS.
+* RULE 7: Never accept hospital_id from request body — always extract from JWT.
+
+3. DEVELOPMENT CHECKLIST (CURRENT STATE)
+------------------------------------------------------
+* [x] Phase 1: Tech Stack Selection & Architecture - COMPLETED
+* [x] Phase 2A: Backend Project Setup (ASP.NET Core 9.0) - COMPLETED
+* [x] Phase 2B: Entity Models & DbContext (6 tables) - COMPLETED
+* [x] Phase 2C: DTOs (Auth, Admin, Hospital) - COMPLETED
+* [x] Phase 2D: Services (JwtService, OtpService, AuditService) - COMPLETED
+* [x] Phase 2E: TenantMiddleware (RLS support) - COMPLETED
+* [x] Phase 2F: API Endpoints (Auth, Admin, Hospital) - COMPLETED
+* [x] Phase 2G: Program.cs (DI, JWT, CORS, Rate Limiting) - COMPLETED
+* [x] Phase 2H: Dockerfile & Configuration - COMPLETED
+* [x] Phase 2I: Build Verification (0 errors, 0 warnings) - COMPLETED
+* [x] Phase 2J: EF Core Migration (InitialCreate) - COMPLETED
+* [x] Phase 2K: Supabase DB Connection configured - COMPLETED
+* [x] Phase 2L: Manual Execution of Schema & RLS Scripts in Supabase - COMPLETED
+* [x] Phase 3: Hospital Web Registration Flow (Vercel -> Render API) - COMPLETED
+* [x] Phase 4: Mobile App Integration (Connect Admin screens to APIs) - COMPLETED
+  * [x] Removed Employee ID mockup login
+  * [x] Created Axios interceptor and connected AuthStore to secure endpoints
+  * [x] Connected Admin Dashboard, Users, Settings, and Profile to backend APIs
+* [ ] Phase 5: Jitsi Video Integration (Azure 'nalam-meet' VM) - NOT STARTED
+* [ ] Phase 6: Cloudinary Integration for Document Uploads - NOT STARTED
+
+4. CURRENT DATABASE SCHEMA SNAPSHOT
+------------------------------------------------------
+* hospitals: [id (PK/UUID), name, license_no, address, city, state, phone, email, logo_url, status, created_at]
+* users: [id (PK/UUID), hospital_id (FK), full_name, mobile_number, email, role, department, employee_id, profile_photo_url, status, is_verified, created_at, last_login]
+* otp_verifications: [id (PK/UUID), user_id (FK), mobile_number, otp_code, is_used, attempt_count, last_attempt_at, expires_at, created_at]
+* departments: [id (PK/UUID), hospital_id (FK), name, is_active]
+* hospital_settings: [id (PK/UUID), hospital_id (FK), key, value, updated_at]
+* audit_logs: [id (PK/UUID), hospital_id (FK), user_id (FK), action, category, severity, details, created_at]
+
+5. COMPLETED API ROUTES
+------------------------------------------------------
+* POST /api/auth/send-otp          — Send OTP via Pay4SMS (rate-limited: 5/min)
+* POST /api/auth/verify-otp        — Verify OTP → JWT (max 5 attempts, then lock)
+* POST /api/hospitals/register     — Register hospital + auto-create admin user
+* GET  /api/admin/users            — List users (search, filter, pagination)
+* POST /api/admin/users            — Create new user
+* GET  /api/admin/users/{id}       — Get user details
+* PUT  /api/admin/users/{id}       — Update user info
+* PATCH /api/admin/users/{id}/status — Activate/deactivate user
+* PATCH /api/admin/users/{id}/role  — Change user role
+* DELETE /api/admin/users/{id}     — Remove user
+* GET  /api/admin/dashboard        — Dashboard stats
+* GET  /api/admin/activity         — Audit log feed (with severity)
+* GET  /api/admin/settings         — Get hospital settings
+* PUT  /api/admin/settings         — Update hospital settings
+* GET  /api/admin/profile          — Get admin profile
+* PUT  /api/admin/profile          — Update admin profile
+
+6. INSTALLED PACKAGES (NalamApi)
+------------------------------------------------------
+* Npgsql.EntityFrameworkCore.PostgreSQL 9.0.4
+* Microsoft.AspNetCore.Authentication.JwtBearer 9.0.3
+* Microsoft.EntityFrameworkCore.Design 9.0.1
+* System.IdentityModel.Tokens.Jwt 8.6.1
+* System.Threading.RateLimiting 10.0.5
+
+7. PROJECT FOLDER STRUCTURE
+------------------------------------------------------
+NalamApi/
+├── Program.cs
+├── appsettings.json
+├── appsettings.Development.json
+├── Dockerfile
+├── .env.example
+├── Data/NalamDbContext.cs
+├── Entities/ (Hospital, User, OtpVerification, Department, HospitalSetting, AuditLog)
+├── DTOs/Auth/ DTOs/Admin/ DTOs/Hospital/
+├── Endpoints/ (AuthEndpoints, AdminEndpoints, HospitalEndpoints)
+├── Services/ (JwtService, OtpService, AuditService)
+└── Middleware/ (TenantMiddleware)
+
+======================================================
+END OF PROJECT STATE. AWAITING USER PROMPT.
+======================================================

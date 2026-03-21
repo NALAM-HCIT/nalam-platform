@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"const pkg = require\\(''/Volumes/BSB/Nalam-app/node_modules/react-native-svg/package.json''\\); console.log\\(''version:'', pkg.version\\); console.log\\(''react-native:'', pkg[''react-native'']\\)\")",
+      "Bash(watchman watch-del:*)",
+      "Bash(watchman watch-project:*)",
+      "Bash(npx expo:*)",
+      "Bash(cat /Volumes/BSB/Nalam-app/app/patient/\\\\\\(tabs\\\\\\)/pharmacy.tsx)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")"
+    ]
+  }
+}

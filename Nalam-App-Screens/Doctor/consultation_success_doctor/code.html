@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1A73E8",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1.5rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen pb-32">
+<!-- Header Section -->
+<header class="flex items-center p-6 justify-between max-w-md mx-auto">
+<button class="size-12 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold flex-1 text-center pr-12">Consultation Status</h2>
+</header>
+<main class="max-w-md mx-auto px-6">
+<!-- Success State -->
+<div class="flex flex-col items-center py-8 text-center">
+<div class="size-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-emerald-500 text-5xl font-bold">check_circle</span>
+</div>
+<h1 class="text-slate-900 dark:text-slate-100 text-2xl font-bold tracking-tight mb-2">Consultation Finalized</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-[280px]">
+                The medical record for John Doe has been successfully synced with the Nalam Hospital database.
+            </p>
+</div>
+<!-- Notification Summary Card -->
+<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 mb-8">
+<div class="flex items-start gap-4">
+<div class="size-12 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">description</span>
+</div>
+<div class="flex-1">
+<h3 class="text-slate-900 dark:text-slate-100 font-bold text-base mb-1">Summary &amp; E-Prescription</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm mb-4">Sent to John Doe • Today, 10:30 AM</p>
+<button class="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-700 rounded-full text-slate-700 dark:text-slate-200 text-sm font-semibold transition-colors hover:bg-slate-100">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                        View Sent Document
+                    </button>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700 flex items-center justify-between text-xs text-slate-400">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">verified_user</span>
+                    Encrypted PDF
+                </span>
+<span>2.4 MB</span>
+</div>
+</div>
+<!-- Next Steps Section -->
+<div class="space-y-4">
+<h4 class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider px-2">Next Steps</h4>
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-full flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all">
+<span class="material-symbols-outlined">event_repeat</span>
+                Schedule Follow-up
+            </button>
+<button class="w-full border-2 border-primary/20 hover:border-primary/40 text-primary font-bold h-14 rounded-full flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined">timeline</span>
+                View Updated Patient Timeline
+            </button>
+<button class="w-full border-2 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold h-14 rounded-full flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined">dashboard</span>
+                Return to Dashboard
+            </button>
+</div>
+</main>
+<!-- Floating Glassmorphism Bottom Nav -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-md h-20 rounded-full glass-nav flex items-center justify-around px-4 shadow-2xl z-50">
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Patients</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Messages</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Directory</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Profile</span>
+</a>
+</nav>
+</body></html>

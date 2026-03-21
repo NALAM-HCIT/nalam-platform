@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pharmacy Cart - Arun Priya Multispeciality Hospital</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-low": "rgba(255, 255, 255, 0.4)",
+              "surface-container": "rgba(255, 255, 255, 0.7)",
+              "surface-bright": "#FFFFFF",
+              "surface": "#F0F7FF",
+              "on-secondary-fixed": "#0B1B3D",
+              "on-secondary-container": "#0B1B3D",
+              "on-primary": "#FFFFFF",
+              "background": "#FFFFFF",
+              "tertiary-fixed-dim": "#BAE6FD",
+              "primary-fixed-dim": "#BFDBFE",
+              "outline": "#BFDBFE",
+              "on-primary-fixed": "#1A73E8",
+              "secondary-fixed-dim": "#C7D2FE",
+              "on-secondary-fixed-variant": "#1E1B4B",
+              "tertiary-container": "#BAE6FD",
+              "on-primary-fixed-variant": "#172554",
+              "tertiary": "#38BDF8",
+              "primary": "#1A73E8",
+              "inverse-primary": "#D1E4FF",
+              "on-tertiary-fixed": "#0369A1",
+              "surface-container-highest": "rgba(255, 255, 255, 0.95)",
+              "secondary-container": "#E0E7FF",
+              "outline-variant": "#E2E8F0",
+              "on-secondary": "#FFFFFF",
+              "error": "#DC2626",
+              "tertiary-fixed": "#E0F2FE",
+              "surface-container-high": "rgba(255, 255, 255, 0.85)",
+              "on-primary-container": "#FFFFFF",
+              "inverse-surface": "#0B1B3D",
+              "secondary": "#0B1B3D",
+              "on-background": "#0B1B3D",
+              "secondary-fixed": "#E0E7FF",
+              "primary-fixed": "#DBEAFE",
+              "on-error": "#FFFFFF",
+              "on-tertiary": "#FFFFFF",
+              "on-tertiary-fixed-variant": "#082F49",
+              "surface-variant": "#F1F5F9",
+              "on-error-container": "#991B1B",
+              "surface-container-lowest": "#FFFFFF",
+              "on-surface": "#0B1B3D",
+              "error-container": "#FEE2E2",
+              "on-surface-variant": "#64748B",
+              "surface-dim": "#E0E9F5",
+              "primary-container": "#257df1",
+              "on-tertiary-container": "#0369A1",
+              "inverse-on-surface": "#F0F7FF",
+              "surface-tint": "#1A73E8"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background: radial-gradient(circle at top right, #F0F7FF 0%, #FFFFFF 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(255, 255, 255, 0.5);
+        }
+        .btn-gradient {
+            background: linear-gradient(180deg, #257DF1 0%, #1A73E8 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(26, 115, 232, 0.25);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="pb-32">
+<header class="fixed top-0 w-full z-50 bg-blue-50/70 backdrop-blur-xl shadow-2xl shadow-blue-900/5 h-16 flex items-center justify-between px-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-700" data-icon="healing">healing</span>
+<h1 class="font-inter font-extrabold tracking-tight text-lg text-blue-700">Pharmacy Cart</h1>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 rounded-full glass-card flex items-center justify-center hover:bg-white/50 transition-all cursor-pointer">
+<span class="material-symbols-outlined text-slate-500" data-icon="notifications">notifications</span>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto space-y-8">
+<section class="space-y-4">
+<div class="flex items-end justify-between">
+<div>
+<span class="font-inter text-[14px] font-light tracking-widest uppercase text-slate-500 mb-1 block">Active Prescription</span>
+<h2 class="text-2xl font-extrabold tracking-tight text-on-surface">Prescribed Medicines Added</h2>
+</div>
+</div>
+<div class="glass-card p-6 rounded-lg shadow-2xl shadow-blue-900/5 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="person">person</span>
+</div>
+<div>
+<p class="font-semibold text-on-surface">Dr. Aruna Devi</p>
+<p class="text-sm text-on-surface-variant">Consultation: Oct 24, 2023</p>
+</div>
+</div>
+</section>
+<section class="space-y-4">
+<div class="glass-card rounded-lg overflow-hidden divide-y divide-white/50">
+<div class="p-6 flex items-start gap-4">
+<div class="w-16 h-16 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="medication">medication</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg text-on-surface">Amlodipine 5mg</h3>
+<button class="text-error hover:scale-110 transition-transform p-1">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<p class="text-on-surface-variant text-sm mt-1">14 Days, 1 tablet daily (Morning)</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-3 bg-white/50 rounded-full p-1 border border-outline">
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<span class="font-bold text-on-surface px-2">1</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<span class="font-extrabold text-lg text-on-surface">₹120.00</span>
+</div>
+</div>
+</div>
+<div class="p-6 flex items-start gap-4">
+<div class="w-16 h-16 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="pill">pill</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h3 class="font-bold text-lg text-on-surface">Neurobion Forte</h3>
+<button class="text-error hover:scale-110 transition-transform p-1">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<p class="text-on-surface-variant text-sm mt-1">30 Days, 1 tablet daily (After food)</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-3 bg-white/50 rounded-full p-1 border border-outline">
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<span class="font-bold text-on-surface px-2">1</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+<span class="font-extrabold text-lg text-on-surface">₹85.00</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="space-y-6">
+<div class="glass-card p-8 rounded-lg shadow-2xl shadow-blue-900/5">
+<h3 class="text-xl font-extrabold text-on-surface mb-6 tracking-tight">Order Summary</h3>
+<div class="space-y-4">
+<div class="flex justify-between text-on-surface-variant">
+<span>Subtotal</span>
+<span class="font-medium">₹205.00</span>
+</div>
+<div class="flex justify-between text-on-surface-variant">
+<span>Delivery Fee</span>
+<span class="font-medium">₹30.00</span>
+</div>
+<div class="h-px bg-outline-variant my-2"></div>
+<div class="flex justify-between text-xl font-extrabold text-on-surface">
+<span>Total</span>
+<span class="text-primary">₹235.00</span>
+</div>
+</div>
+<button class="w-full mt-8 py-4 rounded-full text-white font-bold text-lg btn-gradient active:scale-95 transition-all">
+                    Proceed to Checkout
+                </button>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 w-full rounded-t-[2rem] z-50 bg-white/80 backdrop-blur-lg border-t border-white/50 shadow-[0_-4px_20px_rgba(26,115,232,0.1)] flex justify-around items-end px-4 pb-4 pt-2">
+<div class="flex flex-col items-center justify-center text-slate-400 p-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="grid_view">grid_view</span>
+<span class="font-inter text-[10px] font-light tracking-widest uppercase mt-1">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 p-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="event_upcoming">event_upcoming</span>
+<span class="font-inter text-[10px] font-light tracking-widest uppercase mt-1">Bookings</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 p-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="description">description</span>
+<span class="font-inter text-[10px] font-light tracking-widest uppercase mt-1">Records</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-blue-600 text-white rounded-full p-3 mb-1 shadow-lg shadow-blue-200 scale-110">
+<span class="material-symbols-outlined text-2xl" data-icon="medication" style="font-variation-settings: 'FILL' 1;">medication</span>
+<span class="font-inter text-[10px] font-light tracking-widest uppercase mt-1">Pharmacy</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 p-2 hover:text-blue-500 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="font-inter text-[10px] font-light tracking-widest uppercase mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

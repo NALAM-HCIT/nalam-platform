@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Emergency SOS - Nalam Hospital</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1c74e9", // Vivid blue from THEME_23
+                        "background-light": "#F8FAFC",
+                        "text-dark": "#0B1B3D",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.75rem", // ROUND_TWELVE (12px)
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .bg-vivid-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #1c74e9 100%);
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-text-dark min-h-screen flex flex-col">
+<!-- Header -->
+<header class="flex items-center bg-white/70 p-4 justify-between sticky top-0 z-50 backdrop-blur-md border-b border-slate-200/50">
+<div class="text-text-dark flex size-10 shrink-0 items-center justify-center bg-white shadow-sm border border-slate-200 rounded-full cursor-pointer">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-text-dark text-lg font-bold leading-tight tracking-tight flex-1 text-center">Emergency SOS</h2>
+<div class="flex w-10 items-center justify-end">
+<button class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-slate-200 text-text-dark">
+<span class="material-symbols-outlined">info</span>
+</button>
+</div>
+</header>
+<main class="flex-1 px-4 pb-24 overflow-y-auto">
+<!-- Status Indicator -->
+<div class="text-center py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary animate-pulse mb-2">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</span>
+<span class="text-xs font-bold uppercase tracking-widest">Emergency Mode Active</span>
+</div>
+<h1 class="text-text-dark text-3xl font-extrabold leading-tight">Nalam Hospital Dispatch</h1>
+<p class="text-slate-500 text-sm mt-1">Help is available 24/7. Connecting you to the nearest trauma center.</p>
+</div>
+<!-- Main SOS Button Area -->
+<div class="flex flex-col items-center justify-center py-8">
+<div class="relative flex items-center justify-center">
+<!-- Ripple Layers -->
+<div class="absolute w-64 h-64 rounded-full bg-primary/5"></div>
+<div class="absolute w-56 h-56 rounded-full bg-primary/10"></div>
+<div class="absolute w-48 h-48 rounded-full bg-primary/20"></div>
+<!-- The Primary Action Button -->
+<button class="relative w-40 h-40 rounded-full bg-vivid-gradient shadow-2xl shadow-primary/40 flex flex-col items-center justify-center text-white border-8 border-white group">
+<span class="material-symbols-outlined text-5xl mb-1 group-active:scale-95 transition-transform">call</span>
+<span class="text-xs font-black uppercase tracking-tighter text-center leading-none px-4">Hold to Call<br/>Emergency</span>
+</button>
+</div>
+</div>
+<!-- Location Snippet -->
+<div class="mt-8 rounded-xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+<div class="relative h-32 w-full bg-slate-100">
+<img alt="Map view showing current location" class="w-full h-full object-cover opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIZWK_DsyzPQmOfkDmUqm7inHTV5tZHkc6j5qN2B8nS7yGjmndJKzLTrKtSHF9quHCdXNaC_6K5M_2kBbcxAGE1k2MSGup-FzVaCKM3TEthGfOEL7_8OdnCUERO8DlciYzo6SzmfIELIWy_LhJ-8CfJ3FRG_Fbvscfa0SeowBfXjFzwaE7jcsaoWWElXoisd5RP9woyQRXT3uGCCluazEaZmc0Mqmlvx9555tQTUytexctYt6OxxBS1vxSryUw5EwhOQzQv3XyVV56"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-4xl drop-shadow-md">location_on</span>
+</div>
+<div class="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg text-[10px] font-medium flex items-center justify-between shadow-sm">
+<span class="truncate text-text-dark">Current Location: Apollo Street, Block 4, T-Nagar</span>
+<span class="text-primary font-bold">GPS High Precision</span>
+</div>
+</div>
+</div>
+<!-- Emergency Contacts -->
+<div class="mt-6">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-text-dark font-bold">Emergency Contacts</h3>
+<span class="text-xs text-primary font-semibold cursor-pointer">Notify All</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div>
+<p class="font-bold text-sm text-text-dark">Dr. Sarah Johnson</p>
+<p class="text-xs text-slate-500">Primary Physician</p>
+</div>
+</div>
+<button class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined">phone</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+<span class="material-symbols-outlined">family_restroom</span>
+</div>
+<div>
+<p class="font-bold text-sm text-text-dark">Ravi Kumar</p>
+<p class="text-xs text-slate-500">Spouse</p>
+</div>
+</div>
+<button class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined">phone</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Vital Stats Overlay for Responders -->
+<div class="mt-8 p-5 rounded-xl bg-white border-2 border-primary/20 shadow-lg shadow-primary/5">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">medical_information</span>
+<h3 class="text-text-dark font-bold uppercase tracking-wide text-sm">First Responder Info</h3>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
+<p class="text-[10px] uppercase text-slate-500 font-bold">Blood Type</p>
+<p class="text-xl font-black text-primary">O-Positive</p>
+</div>
+<div class="p-3 rounded-lg bg-slate-50 border border-slate-100">
+<p class="text-[10px] uppercase text-slate-500 font-bold">Allergies</p>
+<p class="text-sm font-bold text-text-dark">Penicillin, Latex</p>
+</div>
+<div class="p-3 rounded-lg bg-slate-50 border border-slate-100 col-span-2">
+<p class="text-[10px] uppercase text-slate-500 font-bold">Recent History</p>
+<p class="text-xs font-medium text-text-dark">Cardiac Stent Procedure (Mar 2024)</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 px-4 py-2 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">ecg</span>
+<span class="text-[10px] font-medium">Health</span>
+</a>
+<div class="relative -top-6">
+<div class="bg-vivid-gradient size-14 rounded-full flex items-center justify-center text-white shadow-xl shadow-primary/40 border-4 border-background-light">
+<span class="material-symbols-outlined text-3xl">emergency</span>
+</div>
+<span class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-primary">SOS</span>
+</div>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="text-[10px] font-medium">Chat</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</nav>
+</body></html>

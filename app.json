@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "Arun Priya Hospital",
+    "slug": "arunpriya-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo_arunpriya.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/logo_arunpriya_dark.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF",
+      "dark": {
+        "image": "./assets/logo_arunpriya_white.png",
+        "backgroundColor": "#0B1B3D"
+      }
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nalam.arunpriya",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Arun Priya Hospital uses your camera to scan documents and enable teleconsultation.",
+        "NSFaceIDUsageDescription": "Arun Priya Hospital uses Face ID to keep your health data secure.",
+        "NSLocalAuthenticationUsageDescription": "Arun Priya Hospital uses biometrics so only you can access your health records."
+      }
+    },
+    "android": {
+      "package": "com.nalam.arunpriya",
+      "splash": {
+        "image": "./assets/logo_arunpriya_dark.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF",
+        "dark": {
+          "image": "./assets/logo_arunpriya_white.png",
+          "backgroundColor": "#0B1B3D"
+        }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo_arunpriya.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-splash-screen",
+      "expo-secure-store",
+      "expo-local-authentication",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Arun Priya Hospital uses your camera to scan documents and for teleconsultation."
+        }
+      ],
+      "expo-router"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "nalam-app"
+      },
+      "hospitalId": "arunpriya"
+    },
+    "scheme": "nalam",
+    "sdkVersion": "55.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ]
+  }
+}

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#FFFFFF",
+              "on-secondary-container": "#0B1B3D",
+              "on-primary-container": "#FFFFFF",
+              "surface": "#F0F7FF",
+              "tertiary-fixed-dim": "#BAE6FD",
+              "surface-container-highest": "rgba(255, 255, 255, 0.95)",
+              "surface-tint": "#1A73E8",
+              "surface-container-high": "rgba(255, 255, 255, 0.85)",
+              "error": "#DC2626",
+              "surface-container-lowest": "#FFFFFF",
+              "on-primary": "#FFFFFF",
+              "on-tertiary": "#FFFFFF",
+              "primary-fixed-dim": "#BFDBFE",
+              "error-container": "#FEE2E2",
+              "surface-variant": "#F1F5F9",
+              "outline": "#BFDBFE",
+              "tertiary-container": "#BAE6FD",
+              "on-surface-variant": "#64748B",
+              "inverse-on-surface": "#F0F7FF",
+              "surface-bright": "#FFFFFF",
+              "on-surface": "#0B1B3D",
+              "surface-container": "rgba(255, 255, 255, 0.7)",
+              "on-background": "#0B1B3D",
+              "on-secondary-fixed-variant": "#1E1B4B",
+              "on-error": "#FFFFFF",
+              "on-secondary-fixed": "#0B1B3D",
+              "secondary-fixed-dim": "#C7D2FE",
+              "primary-fixed": "#DBEAFE",
+              "secondary": "#0B1B3D",
+              "surface-dim": "#E0E9F5",
+              "on-tertiary-fixed-variant": "#082F49",
+              "tertiary-fixed": "#E0F2FE",
+              "on-secondary": "#FFFFFF",
+              "outline-variant": "#E2E8F0",
+              "on-primary-fixed": "#1A73E8",
+              "surface-container-low": "rgba(255, 255, 255, 0.4)",
+              "inverse-primary": "#D1E4FF",
+              "secondary-fixed": "#E0E7FF",
+              "secondary-container": "#E0E7FF",
+              "primary-container": "#257df1",
+              "primary": "#1A73E8",
+              "on-error-container": "#991B1B",
+              "tertiary": "#38BDF8",
+              "on-tertiary-container": "#0369A1",
+              "on-primary-fixed-variant": "#172554",
+              "on-tertiary-fixed": "#0369A1",
+              "inverse-surface": "#0B1B3D"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .btn-gradient {
+        background: linear-gradient(180deg, #257DF1 0%, #1A73E8 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(26, 115, 232, 0.25);
+      }
+      .glass-panel {
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      body {
+        background: radial-gradient(circle at 0% 0%, #F0F7FF 0%, #FFFFFF 100%);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-background min-h-screen pb-24 md:pb-0 pt-20">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-lg flex items-center justify-between px-6 h-20 w-full no-border shadow-2xl shadow-blue-900/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-600 text-3xl" data-icon="local_hospital">local_hospital</span>
+<h1 class="font-inter font-extrabold tracking-tight text-2xl text-blue-700 tracking-tighter">Azure Admin</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex gap-6 items-center px-4">
+<span class="text-slate-500 font-medium hover:text-blue-500 transition-colors cursor-pointer">Dashboard</span>
+<span class="text-blue-700 font-semibold cursor-pointer">Users</span>
+<span class="text-slate-500 font-medium hover:text-blue-500 transition-colors cursor-pointer">Roles</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+<img alt="Admin Profile Photo" class="w-full h-full object-cover" data-alt="Professional male medical administrator portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4qjnz_Sa7m39OXhjldVmb4j0KxNXB1YyW0RBi5S83m459orBeABw6QOlELem07pHiCHeyTpX6rsfTKZ34Z-vMvsBR4R6t_OFlTj4oIJ16rOqbyFsDMADXQjq1sNI4FbtEPeCkrkPwNQJBI8prAvUGJJwp63nzW2S5VqvxmknSzRDaN9Q-7QR9PWJI0NXXn5KpU7cjJmrSosoA84Ys0UjmGrPaRABdTvN03Rfd2Zv9vGeEdJr_QBdmCsavD3dnZm-POskTxvivMvYf"/>
+</div>
+</div>
+</header>
+<main class="max-w-4xl mx-auto px-6 py-12">
+<!-- Breadcrumb / Back Navigation -->
+<div class="flex items-center gap-2 mb-8 text-on-surface-variant group cursor-pointer w-fit">
+<span class="material-symbols-outlined text-lg" data-icon="arrow_back">arrow_back</span>
+<span class="text-sm font-medium">Back to User Management</span>
+</div>
+<!-- Header Section -->
+<div class="mb-12">
+<h2 class="text-5xl font-extrabold tracking-tight text-on-surface mb-2">Create New User</h2>
+<p class="text-lg text-on-surface-variant font-light tracking-wide">Register a new healthcare professional for Arun Priya Hospital.</p>
+</div>
+<!-- Form Layout: Bento Style -->
+<form class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Personal Information Card -->
+<div class="md:col-span-8 glass-panel bg-white/70 p-8 rounded-lg shadow-2xl shadow-blue-900/5">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary" data-icon="person_add">person_add</span>
+<h3 class="text-xl font-semibold text-on-surface">Account Details</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="block text-sm font-light tracking-widest text-on-surface-variant uppercase">Full Name</label>
+<input class="w-full px-5 py-4 rounded-full border-outline bg-surface-bright focus:ring-2 focus:ring-primary focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="e.g. Dr. Sarah Connor" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-light tracking-widest text-on-surface-variant uppercase">Employee ID</label>
+<input class="w-full px-5 py-4 rounded-full border-outline bg-surface-bright focus:ring-2 focus:ring-primary focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="APH-2024-001" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-light tracking-widest text-on-surface-variant uppercase">Email</label>
+<input class="w-full px-5 py-4 rounded-full border-outline bg-surface-bright focus:ring-2 focus:ring-primary focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="sarah.c@arunpriya.com" type="email"/>
+</div>
+<div class="space-y-2">
+<label class="block text-sm font-light tracking-widest text-on-surface-variant uppercase">Phone Number</label>
+<input class="w-full px-5 py-4 rounded-full border-outline bg-surface-bright focus:ring-2 focus:ring-primary focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="+91 98765 43210" type="tel"/>
+</div>
+</div>
+</div>
+<!-- Role Selection Sidebar Card -->
+<div class="md:col-span-4 glass-panel bg-blue-50/40 p-8 rounded-lg shadow-2xl shadow-blue-900/5 h-full">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary" data-icon="badge">badge</span>
+<h3 class="text-xl font-semibold text-on-surface">Select Role(s)</h3>
+</div>
+<div class="space-y-4">
+<label class="flex items-center gap-4 p-4 rounded-lg bg-white/60 hover:bg-white cursor-pointer transition-colors group">
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="text-md font-medium text-on-surface">Admin</span>
+<span class="text-xs text-on-surface-variant">Full system access</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg bg-white/60 hover:bg-white cursor-pointer transition-colors group">
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="text-md font-medium text-on-surface">Doctor</span>
+<span class="text-xs text-on-surface-variant">Clinical charts &amp; prescriptions</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg bg-white/60 hover:bg-white cursor-pointer transition-colors group">
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="text-md font-medium text-on-surface">Pharmacist</span>
+<span class="text-xs text-on-surface-variant">Inventory &amp; dispensing</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg bg-white/60 hover:bg-white cursor-pointer transition-colors group">
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="text-md font-medium text-on-surface">Receptionist</span>
+<span class="text-xs text-on-surface-variant">Appointments &amp; billing</span>
+</div>
+</label>
+<label class="flex items-center gap-4 p-4 rounded-lg bg-white/60 hover:bg-white cursor-pointer transition-colors group">
+<input class="w-5 h-5 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<div class="flex flex-col">
+<span class="text-md font-medium text-on-surface">Nurse</span>
+<span class="text-xs text-on-surface-variant">Vitals &amp; nursing care</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Action Section -->
+<div class="md:col-span-12 flex justify-end items-center gap-6 mt-4">
+<button class="px-8 py-4 rounded-full text-slate-500 font-medium hover:bg-slate-100 transition-colors" type="button">Discard</button>
+<button class="btn-gradient px-12 py-4 rounded-full text-white font-bold text-lg active:scale-95 duration-200" type="submit">Create User</button>
+</div>
+</form>
+<!-- Aesthetic Focal Point: Soft Blur -->
+<div class="fixed -bottom-20 -right-20 w-96 h-96 bg-blue-100/50 rounded-full blur-[120px] -z-10"></div>
+<div class="fixed top-40 -left-20 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -z-10"></div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 backdrop-blur-xl rounded-t-[24px] shadow-[0_-4px_20px_rgba(26,115,232,0.1)] z-50">
+<div class="flex flex-col items-center justify-center text-slate-400 px-4 py-2">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-blue-600 text-white rounded-full px-5 py-2 shadow-lg shadow-blue-500/30 active:scale-90 duration-300">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Users</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 px-4 py-2">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Roles</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 px-4 py-2">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-inter text-[12px] font-light tracking-wide">Profile</span>
+</div>
+</nav>
+</body></html>

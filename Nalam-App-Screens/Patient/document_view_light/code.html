@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nalam Hospital - Blood Test Report</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a73e8",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Header Section -->
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-300">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Blood Test Report</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Toggle Fullscreen">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-300">fullscreen</span>
+</button><button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-300">download</span>
+</button>
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-300">share</span>
+</button>
+</div>
+</header>
+<!-- Main Content: Document Viewer -->
+<main class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center gap-6">
+<!-- Document Card -->
+<div class="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-lg shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
+<!-- PDF Preview Header -->
+<div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="bg-red-100 dark:bg-red-900/30 p-2 rounded">
+<span class="material-symbols-outlined text-red-600 text-sm">picture_as_pdf</span>
+</div>
+<div>
+<p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Document ID: CBC-99203</p>
+<p class="text-sm font-bold">Comprehensive Blood Count</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs text-slate-400">Generated on</p>
+<p class="text-sm font-medium">Oct 24, 2023</p>
+</div>
+</div>
+<!-- Report Content -->
+<div class="p-8 space-y-8 min-h-[600px]">
+<!-- Hospital Letterhead -->
+<div class="flex justify-between items-start border-b pb-6 border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-2">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-lg">local_hospital</span>
+</div>
+<span class="text-lg font-bold tracking-tight">Arun Priya Multispeciality <span class="text-primary">Hospital</span></span>
+</div>
+<div class="text-right text-xs text-slate-500 leading-relaxed">
+                        123 Healthcare Blvd, Medical District<br/>
+                        Chennai, Tamil Nadu - 600001<br/>
+                        Contact: +91 44 2345 6789
+                    </div>
+</div>
+<!-- Patient Info -->
+<div class="grid grid-cols-2 gap-4 text-sm bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl">
+<div>
+<p class="text-slate-400 text-xs">Patient Name</p>
+<p class="font-bold">Jane Doe</p>
+</div>
+<div>
+<p class="text-slate-400 text-xs">Age / Gender</p>
+<p class="font-bold">28 Y / Female</p>
+</div>
+<div>
+<p class="text-slate-400 text-xs">Referred By</p>
+<p class="font-bold">Dr. Anirudh Sharma</p>
+</div>
+<div>
+<p class="text-slate-400 text-xs">Sample Type</p>
+<p class="font-bold">EDTA Whole Blood</p>
+</div>
+</div>
+<!-- Test Results Table -->
+<div class="space-y-4">
+<h3 class="font-bold border-l-4 border-primary pl-3">Hematology Report</h3>
+<table class="w-full text-sm">
+<thead class="text-slate-400 border-b border-slate-100 dark:border-slate-800">
+<tr>
+<th class="text-left py-2 font-medium">Test Description</th>
+<th class="text-right py-2 font-medium">Result</th>
+<th class="text-right py-2 font-medium">Reference Range</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50 dark:divide-slate-800">
+<tr>
+<td class="py-3">Hemoglobin (Hb)</td>
+<td class="py-3 text-right font-bold text-primary">14.2 g/dL</td>
+<td class="py-3 text-right text-slate-500">12.0 - 15.5</td>
+</tr>
+<tr>
+<td class="py-3">Total WBC Count</td>
+<td class="py-3 text-right font-bold text-primary">6.5 x 10^9/L</td>
+<td class="py-3 text-right text-slate-500">4.5 - 11.0</td>
+</tr>
+<tr>
+<td class="py-3">Platelet Count</td>
+<td class="py-3 text-right font-bold text-primary">245 x 10^3/µL</td>
+<td class="py-3 text-right text-slate-500">150 - 450</td>
+</tr>
+<tr>
+<td class="py-3">RBC Count</td>
+<td class="py-3 text-right font-bold text-primary">4.8 million/µL</td>
+<td class="py-3 text-right text-slate-500">3.8 - 5.1</td>
+</tr>
+<tr>
+<td class="py-3">Packed Cell Volume (PCV)</td>
+<td class="py-3 text-right font-bold text-primary">42.1 %</td>
+<td class="py-3 text-right text-slate-500">36.0 - 46.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Doctor's Note -->
+<div class="bg-primary/5 dark:bg-primary/10 p-4 rounded-xl border border-primary/10">
+<p class="text-xs font-bold text-primary uppercase mb-1">Clinical Impression</p>
+<p class="text-sm leading-relaxed">All parameters are within normal physiological ranges. No significant hematological abnormalities detected at this time. Clinical correlation is advised.</p>
+</div>
+<!-- Signature Area -->
+<div class="pt-8 flex justify-end">
+<div class="text-center w-48">
+<div class="h-12 flex items-center justify-center">
+<img alt="Doctor Signature" class="opacity-80 dark:invert" data-alt="Stylized digital signature of a medical professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbors5ExdGnjzDQzKXiw3nfQK4dG-IjkTKCVpYS7tef0ZJsYIsZQ4Mrbi5mJ-5VRjMrWhv1PWyUVnypWszFHV-AE9GEOvi6BH2Rs4Kdh-GsRwPIbAFEYM4JrR8I5u3t7abhBxGPyXkUS-jInKKbmzMEpk7vVH3v9EddWH0pdmqLBiGLI0b-H9yv4Mg7kM04JmUEid9osiL9RXaHTqUwIT-TU8JNw27sHCb9uyMUXzOqMkC87SSASpqYOt1eoKburLickGGafRro0t7"/>
+</div>
+<div class="border-t border-slate-300 dark:border-slate-700 mt-2 pt-2">
+<p class="text-sm font-bold">Dr. S. K. Nair</p>
+<p class="text-xs text-slate-500">Chief Pathologist</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination / Zoom Controls (Modern Subtle UI) -->
+<div class="flex items-center gap-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl px-5 py-2.5 rounded-full shadow-xl border border-white/40 dark:border-slate-700/40 mb-24 sticky bottom-4">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-primary">
+<span class="material-symbols-outlined">zoom_out</span>
+</button>
+<span class="text-xs font-bold text-slate-600 dark:text-slate-300 min-w-[40px] text-center">100%</span>
+<button class="flex items-center justify-center size-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-primary">
+<span class="material-symbols-outlined">zoom_in</span>
+</button>
+</div>
+<div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div><button class="flex items-center justify-center size-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-primary" title="Fullscreen Mode">
+<span class="material-symbols-outlined">fullscreen</span>
+</button>
+<div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Page 1 of 1</span>
+</div>
+</main>
+<!-- Floating Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-[2rem] bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-white/50 dark:border-slate-800 shadow-[0_-4px_20px_rgba(26,115,232,0.1)]">
+<div class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30 rounded-full px-4 py-1 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Pharmacy</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-blue-500 transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-[10px] font-light tracking-[0.05em] uppercase">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

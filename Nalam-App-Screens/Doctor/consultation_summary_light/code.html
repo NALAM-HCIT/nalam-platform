@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1A73E8",
+                        "midnight": "#0B1B3D",
+                        "background-light": "#F8FAFC",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem", // 24px
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Consultation Summary - Nalam Hospital</title>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-midnight min-h-screen pb-24">
+<!-- Header Component -->
+<header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-10 rounded-full bg-slate-100 text-midnight">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Consultation Summary</h1>
+</div>
+<button class="text-primary font-bold text-sm">Edit</button>
+</header>
+<main class="p-4 space-y-4">
+<!-- Patient Info Card -->
+<div class="bg-white rounded-lg p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex items-center gap-4">
+<div class="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden border-2 border-white shadow-sm">
+<img alt="John Doe profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1qPHF6ganmk720b5tQRK0zl91I6c5dVC2dOWdDfSc2kNV42qjjU06G8A2RPyqzgj3sU7Cc746ZP4hwg0gPrCmE9hww5G2F5u0L3QvNeiQv5xKOu_4PRzFdogMJXXN47duyeejDvFBMiZywjuH3KGI7nyCAMG_-0r-IFGY0wDSLeExj2aDdE1dylez5J-keUS4daPdXZsVQYO59PVelPha_MaMckZRN8Q-v3oJzWbEZ-v6gYqjK1eVMeGuGxNG7Isjs5_Nd5ey0LRy"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h2 class="text-lg font-bold">John Doe</h2>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider">Active</span>
+</div>
+<p class="text-slate-500 text-sm font-medium">ID: #NAL-88291</p>
+<div class="flex items-center gap-1 mt-1 text-slate-400">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="text-xs">Session: 15:30 mins</span>
+</div>
+</div>
+</div>
+<!-- Clinical Notes Section -->
+<section class="space-y-3">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Clinical Notes</h3>
+<div class="bg-white rounded-lg p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 space-y-5">
+<div>
+<label class="text-[10px] font-bold text-primary mb-2 block uppercase tracking-widest">Chief Complaint</label>
+<p class="text-midnight leading-relaxed font-medium italic">
+                        "Patient reports persistent headaches and fatigue for the past 3 days. Pain is localized in the frontal lobe area."
+                    </p>
+</div>
+<div class="pt-5 border-t border-slate-50">
+<label class="text-[10px] font-bold text-primary mb-2 block uppercase tracking-widest">Observations</label>
+<ul class="list-disc list-inside text-midnight font-medium space-y-2">
+<li>Elevated blood pressure (145/95)</li>
+<li>Mild dehydration noted</li>
+<li>Pupillary reflex is normal</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Final Diagnosis Section -->
+<section class="space-y-3">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Final Diagnosis</h3>
+<div class="bg-white rounded-lg p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100">
+<textarea class="w-full bg-slate-50 border-slate-200 rounded-xl p-4 text-midnight font-medium focus:ring-primary focus:border-primary placeholder-slate-400" placeholder="Enter primary diagnosis here..." rows="2">Primary Hypertension and Tension-type Headache</textarea>
+</div>
+</section>
+<!-- Prescribed Medications List -->
+<section class="space-y-3">
+<div class="flex justify-between items-center px-1">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Prescribed Medications</h3>
+<button class="text-primary text-xs font-bold flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm">add</span> Add
+                </button>
+</div>
+<div class="space-y-3">
+<!-- Med 1 -->
+<div class="flex items-center justify-between bg-white p-4 rounded-lg shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)] border border-slate-100">
+<div class="flex items-center gap-4">
+<div class="size-11 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">medication</span>
+</div>
+<div>
+<p class="font-bold text-midnight">Metformin</p>
+<p class="text-xs text-slate-500 font-medium">500mg • Once daily (Morning)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+<!-- Med 2 -->
+<div class="flex items-center justify-between bg-white p-4 rounded-lg shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)] border border-slate-100">
+<div class="flex items-center gap-4">
+<div class="size-11 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">pill</span>
+</div>
+<div>
+<p class="font-bold text-midnight">Lisinopril</p>
+<p class="text-xs text-slate-500 font-medium">10mg • Twice daily (Morning/Night)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Action Buttons -->
+<div class="pt-8 space-y-4 pb-12">
+<button class="w-full py-4 bg-primary text-white font-bold rounded-full shadow-lg shadow-primary/25 flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors">
+<span>Finalize &amp; Send</span>
+<span class="material-symbols-outlined text-xl">send</span>
+</button>
+<button class="w-full py-4 bg-white text-midnight font-bold rounded-full border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors">
+                Save as Draft
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation Component -->
+<nav class="fixed bottom-0 left-0 right-0 glass-nav border-t border-slate-200 px-4 py-3 flex justify-around items-center z-20">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-1 text-2xl">group</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Patients</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined text-2xl">calendar_today</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Schedule</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined text-2xl">description</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Reports</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined text-2xl">person_outline</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Profile</span>
+</a>
+</nav>
+</body></html>

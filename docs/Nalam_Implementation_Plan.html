@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nalam Backend — Implementation Plan</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1a1a2e;
+    background: #ffffff;
+    padding: 40px 60px;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0d1b3e;
+    margin-bottom: 8px;
+    border-bottom: 3px solid #1A73E8;
+    padding-bottom: 12px;
+  }
+
+  h1 + p { color: #64748b; font-size: 13px; margin-bottom: 30px; }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A73E8;
+    margin-top: 36px;
+    margin-bottom: 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+
+  p { margin-bottom: 12px; }
+
+  .mermaid {
+    text-align: center;
+    margin: 24px 0;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+
+  th {
+    background: #1A73E8;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  tr:nth-child(even) { background: #f8fafc; }
+
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #e11d48;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 18px 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  pre code {
+    background: none;
+    color: #e2e8f0;
+    padding: 0;
+  }
+
+  .alert {
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: 13px;
+    border-left: 4px solid;
+  }
+
+  .alert-important {
+    background: #eff6ff;
+    border-color: #1A73E8;
+    color: #1e40af;
+  }
+
+  .alert-warning {
+    background: #fffbeb;
+    border-color: #f59e0b;
+    color: #92400e;
+  }
+
+  .alert strong { display: block; margin-bottom: 4px; }
+
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 30px 0;
+  }
+
+  .page-break { page-break-before: always; }
+
+  .section-label {
+    display: inline-block;
+    background: #1A73E8;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-modify { background: #fef3c7; color: #92400e; }
+
+  @media print {
+    body { padding: 20px 30px; }
+    .mermaid { break-inside: avoid; }
+    table { break-inside: avoid; }
+    h2 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Nalam Backend — Implementation Plan (Admin Role)</h1>
+<p>A multi-tenant telemedicine backend for Nalam. Hospitals register via a web portal, and the registered mobile number becomes the admin. All authentication is mobile OTP only (via Pay4SMS). Admin manages users, settings, and dashboard from the React Native mobile app.</p>
+
+<hr>
+
+<h2>Architecture Overview</h2>
+
+<div class="mermaid">
+graph LR
+    subgraph "Frontend"
+        A["Next.js Web Portal<br/>(Hospital Registration)"]
+        B["React Native App<br/>(Admin / Doctor / Patient)"]
+    end
+    subgraph "Backend (Render)"
+        C["ASP.NET Core API<br/>(Minimal APIs)"]
+    end
+    subgraph "Services"
+        D["Supabase PostgreSQL"]
+        E["Pay4SMS (OTP)"]
+        F["Cloudinary (Files)"]
+    end
+    A -->|POST /api/hospitals/register| C
+    B -->|REST APIs + JWT| C
+    C --> D
+    C --> E
+    C --> F
+</div>
+
+<hr>
+
+<h2>Database Schema (Multi-Tenant)</h2>
+
+<div class="alert alert-important">
+  <strong>⚠️ IMPORTANT</strong>
+  Every data table has a <code>hospital_id</code> foreign key to ensure complete tenant isolation.
+</div>
+
+<div class="mermaid">
+erDiagram
+    hospitals ||--o{ users : "has"
+    hospitals ||--o{ departments : "has"
+    hospitals ||--o{ hospital_settings : "has"
+    users ||--o{ otp_verifications : "receives"
+    users ||--o{ audit_logs : "generates"
+
+    hospitals {
+        uuid id PK
+        varchar name
+        varchar license_no
+        varchar address
+        varchar city
+        varchar state
+        varchar phone
+        varchar email
+        varchar logo_url
+        varchar status
+        timestamp created_at
+    }
+
+    users {
+        uuid id PK
+        uuid hospital_id FK
+        varchar full_name
+        varchar mobile_number
+        varchar email
+        varchar role
+        varchar department
+        varchar employee_id
+        varchar profile_photo_url
+        varchar status
+        boolean is_verified
+        timestamp created_at
+        timestamp last_login
+    }
+
+    otp_verifications {
+        uuid id PK
+        uuid user_id FK
+        varchar mobile_number
+        varchar otp_code
+        boolean is_used
+        timestamp expires_at
+        timestamp created_at
+    }
+
+    departments {
+        uuid id PK
+        uuid hospital_id FK
+        varchar name
+        boolean is_active
+    }
+
+    hospital_settings {
+        uuid id PK
+        uuid hospital_id FK
+        varchar key
+        text value
+        timestamp updated_at
+    }
+
+    audit_logs {
+        uuid id PK
+        uuid hospital_id FK
+        uuid user_id FK
+        varchar action
+        varchar category
+        text details
+        timestamp created_at
+    }
+</div>
+
+<div class="page-break"></div>
+
+<h2>ASP.NET Core Project Structure</h2>
+
+<pre><code>NalamApi/
+├── Program.cs                    # App entry, DI, middleware
+├── appsettings.json              # Config (DB connection, JWT, Pay4SMS)
+├── Dockerfile
+├── Data/
+│   ├── NalamDbContext.cs
+│   └── Migrations/
+├── Entities/                     # EF Core models
+│   ├── Hospital.cs
+│   ├── User.cs
+│   ├── OtpVerification.cs
+│   ├── Department.cs
+│   ├── HospitalSetting.cs
+│   └── AuditLog.cs
+├── DTOs/                         # Request/Response models
+│   ├── Auth/
+│   ├── Admin/
+│   └── Hospital/
+├── Endpoints/                    # Minimal API route groups
+│   ├── AuthEndpoints.cs
+│   ├── AdminEndpoints.cs
+│   └── HospitalEndpoints.cs
+├── Services/
+│   ├── OtpService.cs             # Pay4SMS integration
+│   ├── JwtService.cs             # Token generation/validation
+│   └── CloudinaryService.cs
+└── Middleware/
+    └── TenantMiddleware.cs       # Extracts HospitalID from JWT</code></pre>
+
+<hr>
+
+<h2>API Endpoints</h2>
+
+<h3>Authentication</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><code>POST</code></td><td><code>/api/auth/send-otp</code></td><td>Send OTP to mobile via Pay4SMS</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/auth/verify-otp</code></td><td>Verify OTP → return JWT (with role + hospital_id)</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/auth/refresh</code></td><td>Refresh expired access token</td></tr>
+</table>
+
+<h3>Hospital Registration (Public — from web portal)</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><code>POST</code></td><td><code>/api/hospitals/register</code></td><td>Register hospital + auto-create admin user</td></tr>
+</table>
+
+<h3>Admin — User Management (Requires <code>admin</code> role)</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><code>GET</code></td><td><code>/api/admin/users</code></td><td>List users (search, filter by role/status)</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/admin/users</code></td><td>Create new user (doctor, pharmacist, etc.)</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/admin/users/{id}</code></td><td>Get single user details</td></tr>
+  <tr><td><code>PUT</code></td><td><code>/api/admin/users/{id}</code></td><td>Update user info</td></tr>
+  <tr><td><code>PATCH</code></td><td><code>/api/admin/users/{id}/status</code></td><td>Activate / deactivate user</td></tr>
+  <tr><td><code>PATCH</code></td><td><code>/api/admin/users/{id}/role</code></td><td>Change user role</td></tr>
+  <tr><td><code>DELETE</code></td><td><code>/api/admin/users/{id}</code></td><td>Remove user</td></tr>
+</table>
+
+<h3>Admin — Dashboard & Settings</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td><code>GET</code></td><td><code>/api/admin/dashboard</code></td><td>Stats (total users, active staff, etc.)</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/admin/activity</code></td><td>Recent activity feed</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/admin/settings</code></td><td>Get hospital settings</td></tr>
+  <tr><td><code>PUT</code></td><td><code>/api/admin/settings</code></td><td>Update hospital settings</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/admin/profile</code></td><td>Get admin's own profile</td></tr>
+  <tr><td><code>PUT</code></td><td><code>/api/admin/profile</code></td><td>Update admin's own profile</td></tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Authentication Flow</h2>
+
+<div class="mermaid">
+sequenceDiagram
+    participant App as Mobile App
+    participant API as ASP.NET Core API
+    participant SMS as Pay4SMS
+    participant DB as Supabase PostgreSQL
+
+    App->>API: POST /api/auth/send-otp {mobile: "+919876543210"}
+    API->>DB: Find user by mobile_number
+    alt User exists
+        API->>API: Generate 6-digit OTP
+        API->>DB: Store OTP (expires in 5 min)
+        API->>SMS: Send OTP via Pay4SMS
+        SMS-->>App: SMS delivered
+        API-->>App: {success: true, message: "OTP sent"}
+    else User not found
+        API-->>App: {success: false, message: "Not registered"}
+    end
+
+    App->>API: POST /api/auth/verify-otp {mobile, otp}
+    API->>DB: Validate OTP (not expired, not used)
+    alt Valid
+        API->>DB: Mark OTP as used, update last_login
+        API-->>App: {token, refreshToken, user: {name, role, hospitalId}}
+    else Invalid
+        API-->>App: {success: false, message: "Invalid OTP"}
+    end
+</div>
+
+<hr>
+
+<h2>Hospital Registration Flow</h2>
+
+<div class="mermaid">
+sequenceDiagram
+    participant Web as Next.js Portal
+    participant API as ASP.NET Core API
+    participant DB as Supabase PostgreSQL
+
+    Web->>API: POST /api/hospitals/register
+    Note right of Web: {name, licenseNo, address,<br/>city, phone, email, adminMobile}
+    API->>DB: Create Hospital (status: "active")
+    API->>DB: Create User (role: "admin", mobile: adminMobile, is_verified: true)
+    API->>DB: Create default departments
+    API-->>Web: {success: true, hospitalId}
+    Note right of Web: Admin can now open mobile<br/>app and login with OTP
+</div>
+
+<hr>
+
+<h2>Proposed Changes</h2>
+
+<h3><span class="badge badge-new">NEW</span> NalamApi/ — ASP.NET Core Project</h3>
+<ul>
+  <li>Full project with Entity Framework Core + Npgsql for Supabase PostgreSQL</li>
+  <li>JWT authentication with role-based authorization</li>
+  <li>Pay4SMS OTP service integration</li>
+  <li>Multi-tenant data isolation via <code>hospital_id</code> in JWT claims</li>
+  <li>Dockerfile for Render deployment</li>
+</ul>
+
+<h3><span class="badge badge-modify">MODIFY</span> Mobile App Screens</h3>
+<ul>
+  <li><strong>login.tsx</strong> — Remove Employee ID login, keep OTP only, connect to real API</li>
+  <li><strong>otp.tsx</strong> — Connect to verify-otp endpoint, store JWT in secure store</li>
+  <li><strong>authStore.ts</strong> — Add token, refreshToken, hospitalId to state</li>
+  <li><strong>Dashboard, Users, Settings, Profile</strong> — Replace mock data with real API calls</li>
+</ul>
+
+<h3><span class="badge badge-new">NEW</span> services/api.ts</h3>
+<ul>
+  <li>Axios instance with JWT interceptor & base URL config</li>
+  <li>Auto-refresh token on 401 responses</li>
+</ul>
+
+<hr>
+
+<h2>Verification Plan</h2>
+
+<h3>Automated — API Testing</h3>
+<ol>
+  <li><strong>Hospital Registration:</strong> POST /api/hospitals/register → verify hospital + admin user in DB</li>
+  <li><strong>Send OTP:</strong> POST /api/auth/send-otp → verify OTP generated (logged to console without Pay4SMS key)</li>
+  <li><strong>Verify OTP:</strong> POST /api/auth/verify-otp → verify JWT returned with correct claims</li>
+  <li><strong>List Users:</strong> GET /api/admin/users with JWT → verify tenant isolation</li>
+  <li><strong>Create User:</strong> POST /api/admin/users → verify correct hospitalId assignment</li>
+  <li><strong>Dashboard Stats:</strong> GET /api/admin/dashboard → verify counts match DB</li>
+</ol>
+
+<h3>Manual — Mobile App Testing</h3>
+<ol>
+  <li>Admin login → OTP → dashboard with real data</li>
+  <li>Users tab → real user list → create user → verify appears</li>
+  <li>Settings → update hospital name → verify persists after restart</li>
+</ol>
+
+<br>
+<div style="text-align: center; color: #94a3b8; font-size: 11px; margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+  Nalam Implementation Plan v1.0 • Generated March 21, 2026 • Confidential
+</div>
+
+<script>
+  mermaid.initialize({ 
+    startOnLoad: true, 
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#EFF6FF',
+      primaryTextColor: '#1A73E8',
+      primaryBorderColor: '#1A73E8',
+      lineColor: '#64748B',
+      secondaryColor: '#F8FAFC',
+      tertiaryColor: '#F1F5F9',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '13px'
+    }
+  });
+</script>
+</body>
+</html>
