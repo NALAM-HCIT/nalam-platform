@@ -27,6 +27,8 @@ if (rawConnectionString.StartsWith("postgresql://") || rawConnectionString.Start
         rawConnectionString,
         @"postgres(?:ql)?://(?<user>[^:]+):(?<pass>[^@]+)@(?<host>[^:]+):(?<port>\d+)/(?<db>[^?]+)");
     
+    var rawDbUrl = rawConnectionString;
+    
     if (match.Success)
     {
         connectionString = $"Host={match.Groups["host"].Value};Port={match.Groups["port"].Value};Database={match.Groups["db"].Value};Username={match.Groups["user"].Value};Password={match.Groups["pass"].Value};Ssl Mode=Require;Trust Server Certificate=true;Pooling=false;Max Auto Prepare=0;";
@@ -193,6 +195,28 @@ app.MapGet("/", () => Results.Ok(new
     status = "running",
     timestamp = DateTime.UtcNow
 }));
+
+// DEBUG ENDPOINT - Safe dump of connection string details to diagnose XX000 error
+app.MapGet("/api/_debug/db-config", () => {
+    var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "Not set";
+    var safeUrl = System.Text.RegularExpressions.Regex.Replace(rawUrl, @"(?<=:)[^@:]+(?=@)", "********");
+    
+    var m = System.Text.RegularExpressions.Regex.Match(
+        rawUrl,
+        @"postgres(?:ql)?://(?<user>[^:]+):(?<pass>[^@]+)@(?<host>[^:]+):(?<port>\d+)/(?<db>[^?]+)");
+        
+    return Results.Ok(new {
+        raw_safe = safeUrl,
+        parsed_user = m.Success ? m.Groups["user"].Value : null,
+        parsed_host = m.Success ? m.Groups["host"].Value : null,
+        parsed_port = m.Success ? m.Groups["port"].Value : null,
+        parsed_db = m.Success ? m.Groups["db"].Value : null,
+        regex_success = m.Success
+    });
+});
+
+// Auth
+app.MapPost("/api/auth/send-otp", AuthEndpoints.SendOtp).RequireRateLimiting("otp");
 
 // ═══════════════════════════════════════════════════════════
 //  AUTO-MIGRATE DATABASE ON STARTUP
