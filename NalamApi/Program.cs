@@ -14,9 +14,22 @@ var builder = WebApplication.CreateBuilder(args);
 //  DATABASE (Supabase PostgreSQL)
 // ═══════════════════════════════════════════════════════════
 
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DATABASE_URL or ConnectionStrings:DefaultConnection must be set.");
+
+// Convert PostgreSQL URI format (postgresql://user:pass@host:port/db) to Npgsql format
+string connectionString;
+if (rawConnectionString.StartsWith("postgresql://") || rawConnectionString.StartsWith("postgres://"))
+{
+    var uri = new Uri(rawConnectionString);
+    var password = Uri.UnescapeDataString(uri.UserInfo.Split(':')[1]);
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={password};Ssl Mode=Require;Trust Server Certificate=true;";
+}
+else
+{
+    connectionString = rawConnectionString;
+}
 
 builder.Services.AddDbContext<NalamDbContext>(options =>
     options.UseNpgsql(connectionString));
