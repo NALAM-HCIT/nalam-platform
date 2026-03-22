@@ -151,6 +151,23 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler(exceptionHandlerApp =>
+{
+    exceptionHandlerApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        Console.WriteLine($"[CRITICAL ERROR] {exception?.Message}\n{exception?.StackTrace}");
+        await context.Response.WriteAsJsonAsync(new 
+        { 
+            success = false, 
+            message = "An internal server error occurred.", 
+            error = exception?.Message 
+        });
+    });
+});
+
 // Middleware pipeline (order matters!)
 app.UseCors("AllowNalamClients");
 app.UseRateLimiter();
