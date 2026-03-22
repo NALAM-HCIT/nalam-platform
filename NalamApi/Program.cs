@@ -123,12 +123,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowNalamClients", policy =>
     {
         policy.WithOrigins(
-                builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-                ?? ["http://localhost:3000", "http://localhost:8081", "http://localhost:19006",
-                    "https://nalamapp-webportal.vercel.app"])
+                "http://localhost:3000",
+                "http://localhost:8081",
+                "http://localhost:19006",
+                "https://nalamapp-webportal.vercel.app")
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyMethod();
     });
 });
 
