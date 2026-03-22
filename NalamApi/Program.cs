@@ -25,7 +25,7 @@ if (rawConnectionString.StartsWith("postgresql://") || rawConnectionString.Start
     // Use regex to safely parse — handles special chars like & in passwords
     var match = System.Text.RegularExpressions.Regex.Match(
         rawConnectionString,
-        @"postgres(?:ql)?://(?<user>[^:]+):(?<pass>[^@]+)@(?<host>[^:]+):(?<port>\d+)/(?<db>.+)");
+        @"postgres(?:ql)?://(?<user>[^:]+):(?<pass>[^@]+)@(?<host>[^:]+):(?<port>\d+)/(?<db>[^?]+)");
     
     if (match.Success)
     {
