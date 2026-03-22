@@ -22,9 +22,19 @@ var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
 string connectionString;
 if (rawConnectionString.StartsWith("postgresql://") || rawConnectionString.StartsWith("postgres://"))
 {
-    var uri = new Uri(rawConnectionString);
-    var password = Uri.UnescapeDataString(uri.UserInfo.Split(':')[1]);
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={password};Ssl Mode=Require;Trust Server Certificate=true;";
+    // Use regex to safely parse — handles special chars like & in passwords
+    var match = System.Text.RegularExpressions.Regex.Match(
+        rawConnectionString,
+        @"postgres(?:ql)?://(?<user>[^:]+):(?<pass>[^@]+)@(?<host>[^:]+):(?<port>\d+)/(?<db>.+)");
+    
+    if (match.Success)
+    {
+        connectionString = $"Host={match.Groups["host"].Value};Port={match.Groups["port"].Value};Database={match.Groups["db"].Value};Username={match.Groups["user"].Value};Password={match.Groups["pass"].Value};Ssl Mode=Require;Trust Server Certificate=true;";
+    }
+    else
+    {
+        throw new InvalidOperationException($"Cannot parse DATABASE_URL. Expected format: postgresql://user:pass@host:port/db");
+    }
 }
 else
 {
