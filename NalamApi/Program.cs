@@ -163,7 +163,9 @@ app.UseExceptionHandler(exceptionHandlerApp =>
         { 
             success = false, 
             message = "An internal server error occurred.", 
-            error = exception?.Message 
+            error = exception?.Message,
+            innerError = exception?.InnerException?.Message,
+            stackTrace = exception?.StackTrace
         });
     });
 });
