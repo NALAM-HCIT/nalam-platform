@@ -215,8 +215,6 @@ app.MapGet("/api/_debug/db-config", () => {
     });
 });
 
-// Auth
-app.MapPost("/api/auth/send-otp", AuthEndpoints.SendOtp).RequireRateLimiting("otp");
 
 // ═══════════════════════════════════════════════════════════
 //  AUTO-MIGRATE DATABASE ON STARTUP
