@@ -29,7 +29,7 @@ if (rawConnectionString.StartsWith("postgresql://") || rawConnectionString.Start
     
     if (match.Success)
     {
-        connectionString = $"Host={match.Groups["host"].Value};Port={match.Groups["port"].Value};Database={match.Groups["db"].Value};Username={match.Groups["user"].Value};Password={match.Groups["pass"].Value};Ssl Mode=Require;Trust Server Certificate=true;";
+        connectionString = $"Host={match.Groups["host"].Value};Port={match.Groups["port"].Value};Database={match.Groups["db"].Value};Username={match.Groups["user"].Value};Password={match.Groups["pass"].Value};Ssl Mode=Require;Trust Server Certificate=true;Pooling=false;Max Auto Prepare=0;";
     }
     else
     {
