@@ -22,12 +22,12 @@ public class TenantMiddleware
     {
         var hospitalId = context.User?.FindFirst("hospitalId")?.Value;
 
-        if (!string.IsNullOrEmpty(hospitalId))
+        if (!string.IsNullOrEmpty(hospitalId) && Guid.TryParse(hospitalId, out _))
         {
             // Set PostgreSQL session variable for RLS policies
-            // Using parameterized approach to prevent SQL injection
+            // SET doesn't support parameterized queries in PG, so we validate the GUID format above
             await db.Database.ExecuteSqlRawAsync(
-                "SET app.current_hospital_id = {0}", hospitalId);
+                $"SET app.current_hospital_id = '{hospitalId}'");
         }
 
         await _next(context);
