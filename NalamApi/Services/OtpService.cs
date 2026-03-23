@@ -60,7 +60,7 @@ public class OtpService
                       $"&sender={senderId}" +
                       $"&message={message}" +
                       $"&number={mobileNumber}" +
-                      $"&templateid={templateId}";
+                      $"&templateid={HttpUtility.UrlEncode(templateId.Replace("{otp}", otp))}";
 
             var response = await _httpClient.GetAsync(url);
             var result = await response.Content.ReadAsStringAsync();
