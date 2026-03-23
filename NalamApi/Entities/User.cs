@@ -61,4 +61,6 @@ public class User
 
     public ICollection<OtpVerification> OtpVerifications { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
+    public DoctorProfile? DoctorProfile { get; set; }
+    public ICollection<Appointment> PatientAppointments { get; set; } = [];
 }

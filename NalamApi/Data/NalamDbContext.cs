@@ -25,6 +25,9 @@ public class NalamDbContext : DbContext
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<HospitalSetting> HospitalSettings => Set<HospitalSetting>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<DoctorProfile> DoctorProfiles => Set<DoctorProfile>();
+    public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +68,15 @@ public class NalamDbContext : DbContext
 
             modelBuilder.Entity<AuditLog>()
                 .HasQueryFilter(a => a.HospitalId == tenantId);
+
+            modelBuilder.Entity<DoctorProfile>()
+                .HasQueryFilter(dp => dp.HospitalId == tenantId);
+
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasQueryFilter(ds => ds.HospitalId == tenantId);
+
+            modelBuilder.Entity<Appointment>()
+                .HasQueryFilter(ap => ap.HospitalId == tenantId);
         }
 
         // ── Relationships ───────────────────────────────────────────
@@ -103,5 +115,67 @@ public class NalamDbContext : DbContext
             .WithMany(u => u.AuditLogs)
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // ── DoctorProfile ─────────────────────────────────────────
+        modelBuilder.Entity<DoctorProfile>()
+            .HasOne(dp => dp.Hospital)
+            .WithMany(h => h.DoctorProfiles)
+            .HasForeignKey(dp => dp.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DoctorProfile>()
+            .HasOne(dp => dp.User)
+            .WithOne(u => u.DoctorProfile)
+            .HasForeignKey<DoctorProfile>(dp => dp.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DoctorProfile>()
+            .HasIndex(dp => new { dp.HospitalId, dp.UserId })
+            .IsUnique()
+            .HasDatabaseName("ix_doctor_profiles_hospital_user");
+
+        // ── DoctorSchedule ────────────────────────────────────────
+        modelBuilder.Entity<DoctorSchedule>()
+            .HasOne(ds => ds.Hospital)
+            .WithMany(h => h.DoctorSchedules)
+            .HasForeignKey(ds => ds.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DoctorSchedule>()
+            .HasOne(ds => ds.DoctorProfile)
+            .WithMany(dp => dp.Schedules)
+            .HasForeignKey(ds => ds.DoctorProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ── Appointment ───────────────────────────────────────────
+        modelBuilder.Entity<Appointment>()
+            .HasOne(a => a.Hospital)
+            .WithMany(h => h.Appointments)
+            .HasForeignKey(a => a.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Appointment>()
+            .HasOne(a => a.Patient)
+            .WithMany(u => u.PatientAppointments)
+            .HasForeignKey(a => a.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Appointment>()
+            .HasOne(a => a.DoctorProfile)
+            .WithMany(dp => dp.Appointments)
+            .HasForeignKey(a => a.DoctorProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Prevent double-booking (unique slot per doctor per date, excluding cancelled)
+        modelBuilder.Entity<Appointment>()
+            .HasIndex(a => new { a.HospitalId, a.DoctorProfileId, a.ScheduleDate, a.StartTime })
+            .HasFilter("status != 'cancelled'")
+            .IsUnique()
+            .HasDatabaseName("ix_appointments_no_double_booking");
+
+        modelBuilder.Entity<Appointment>()
+            .HasIndex(a => a.BookingReference)
+            .IsUnique()
+            .HasDatabaseName("ix_appointments_booking_reference");
     }
 }

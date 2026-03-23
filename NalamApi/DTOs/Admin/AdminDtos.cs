@@ -74,6 +74,69 @@ public record SettingsResponse(
     List<SettingDto> Settings
 );
 
+// ── Doctor Profile Management ────────────────────────────
+
+public record CreateDoctorProfileRequest(
+    Guid UserId,
+    string Specialty,
+    int ExperienceYears,
+    decimal ConsultationFee,
+    bool AvailableForVideo,
+    bool AvailableForInPerson,
+    string? Languages,
+    string? Bio
+);
+
+public record UpdateDoctorProfileRequest(
+    string? Specialty,
+    int? ExperienceYears,
+    decimal? ConsultationFee,
+    bool? AvailableForVideo,
+    bool? AvailableForInPerson,
+    string? Languages,
+    string? Bio,
+    bool? IsAcceptingAppointments
+);
+
+public record DoctorProfileResponse(
+    Guid Id,
+    Guid UserId,
+    string DoctorName,
+    string Specialty,
+    int ExperienceYears,
+    decimal ConsultationFee,
+    bool AvailableForVideo,
+    bool AvailableForInPerson,
+    string? Languages,
+    decimal? Rating,
+    int ReviewCount,
+    string? Bio,
+    bool IsAcceptingAppointments,
+    DateTime CreatedAt,
+    List<DoctorScheduleResponse> Schedules
+);
+
+// ── Doctor Schedule Management ───────────────────────────
+
+public record CreateDoctorScheduleRequest(
+    Guid DoctorProfileId,
+    int DayOfWeek,        // 0=Sunday, 6=Saturday
+    string StartTime,     // "09:00"
+    string EndTime,       // "12:00"
+    int SlotDurationMinutes,  // 30
+    string ConsultationType   // "video", "in-person", "both"
+);
+
+public record DoctorScheduleResponse(
+    Guid Id,
+    int DayOfWeek,
+    string StartTime,
+    string EndTime,
+    int SlotDurationMinutes,
+    string ConsultationType,
+    bool IsActive
+);
+
 // ── Profile ──────────────────────────────────────────────
 
 public record UpdateProfileRequest(

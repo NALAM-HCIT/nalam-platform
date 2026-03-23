@@ -20,6 +20,7 @@ public static class AuthEndpoints
 
         group.MapPost("/send-otp", SendOtp);
         group.MapPost("/verify-otp", VerifyOtp);
+        group.MapPost("/patient-register", PatientRegister);
     }
 
     /// <summary>
@@ -46,7 +47,8 @@ public static class AuthEndpoints
 
         if (user == null)
         {
-            return Results.Ok(new AuthResponse(false, "Mobile number not registered. Contact your hospital administrator."));
+            // For patients: signal that they need to register first
+            return Results.Ok(new AuthResponse(false, "Mobile number not registered.", IsNewUser: true));
         }
 
         if (user.Hospital.Status != "active")
@@ -195,5 +197,77 @@ public static class AuthEndpoints
                 user.Id, user.FullName, user.MobileNumber,
                 user.Role, user.HospitalId, user.Hospital.Name)
         ));
+    }
+
+    /// <summary>
+    /// POST /api/auth/patient-register
+    /// Self-signup for patients: creates a new patient user and sends OTP in one step.
+    /// Care providers (doctor/pharmacist/receptionist/admin) must be created by hospital admin.
+    /// </summary>
+    private static async Task<IResult> PatientRegister(
+        PatientRegisterRequest request,
+        NalamDbContext db,
+        OtpService otpService,
+        ILogger<Program> logger)
+    {
+        if (string.IsNullOrWhiteSpace(request.MobileNumber))
+            return Results.BadRequest(new AuthResponse(false, "Mobile number is required."));
+        if (string.IsNullOrWhiteSpace(request.FullName))
+            return Results.BadRequest(new AuthResponse(false, "Full name is required."));
+
+        var mobile = request.MobileNumber.Trim().Replace(" ", "");
+
+        // Verify hospital exists and is active
+        var hospital = await db.Hospitals
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(h => h.Id == request.HospitalId && h.Status == "active");
+
+        if (hospital == null)
+            return Results.BadRequest(new AuthResponse(false, "Hospital not found or inactive."));
+
+        // Check if user already exists in this hospital
+        var existingUser = await db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.MobileNumber == mobile && u.HospitalId == request.HospitalId);
+
+        if (existingUser != null)
+            return Results.Conflict(new AuthResponse(false, "Mobile number already registered. Please use Login."));
+
+        // Create patient user
+        var user = new User
+        {
+            HospitalId = request.HospitalId,
+            FullName = request.FullName.Trim(),
+            MobileNumber = mobile,
+            Role = "patient",
+            Status = "active",
+            IsVerified = false
+        };
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        // Generate and send OTP
+        var otpCode = otpService.GenerateOtp();
+        var otpRecord = new OtpVerification
+        {
+            UserId = user.Id,
+            MobileNumber = mobile,
+            OtpCode = otpCode,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            AttemptCount = 0
+        };
+
+        db.OtpVerifications.Add(otpRecord);
+        await db.SaveChangesAsync();
+
+        var sent = await otpService.SendOtpAsync(mobile, otpCode);
+
+        if (!sent)
+            return Results.Ok(new AuthResponse(false, "Account created but failed to send OTP. Please try Login."));
+
+        logger.LogInformation("Patient registered: {Mobile} for hospital {HospitalId}", mobile, request.HospitalId);
+
+        return Results.Ok(new AuthResponse(true, "Registration successful. OTP sent."));
     }
 }

@@ -85,6 +85,9 @@ builder.Services.AddAuthorization(options =>
 
     options.AddPolicy("StaffAccess", policy =>
         policy.RequireClaim("role", "admin", "doctor", "pharmacist", "receptionist"));
+
+    options.AddPolicy("PatientOnly", policy =>
+        policy.RequireClaim("role", "patient"));
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -186,6 +189,8 @@ app.UseMiddleware<TenantMiddleware>();  // Defense Layer 2: inject hospital_id i
 app.MapAuthEndpoints();
 app.MapHospitalEndpoints();
 app.MapAdminEndpoints();
+app.MapAppointmentEndpoints();
+app.MapReceptionistEndpoints();
 
 // Health check
 app.MapGet("/", () => Results.Ok(new

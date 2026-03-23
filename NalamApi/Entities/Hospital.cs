@@ -54,4 +54,7 @@ public class Hospital
     public ICollection<Department> Departments { get; set; } = [];
     public ICollection<HospitalSetting> Settings { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
+    public ICollection<DoctorProfile> DoctorProfiles { get; set; } = [];
+    public ICollection<DoctorSchedule> DoctorSchedules { get; set; } = [];
+    public ICollection<Appointment> Appointments { get; set; } = [];
 }

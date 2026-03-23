@@ -58,6 +58,7 @@ public static class HospitalEndpoints
 
         // Check if hospital name already exists (optional business rule)
         var existingHospital = await db.Hospitals
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(h => h.Name.ToLower() == request.Name.Trim().ToLower());
 
         if (existingHospital != null)
