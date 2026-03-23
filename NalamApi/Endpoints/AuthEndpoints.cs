@@ -12,6 +12,18 @@ namespace NalamApi.Endpoints;
 /// </summary>
 public static class AuthEndpoints
 {
+    /// <summary>
+    /// Normalize mobile number: strip spaces, +91/91 prefix → always 10-digit.
+    /// Handles: "+919876543210", "919876543210", "9876543210", "+91 98765 43210"
+    /// </summary>
+    public static string NormalizeMobile(string raw)
+    {
+        var m = raw.Trim().Replace(" ", "").Replace("-", "");
+        if (m.StartsWith("+91")) m = m[3..];
+        else if (m.StartsWith("91") && m.Length == 12) m = m[2..];
+        return m;
+    }
+
     public static void MapAuthEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/auth")
@@ -36,8 +48,8 @@ public static class AuthEndpoints
         if (string.IsNullOrWhiteSpace(request.MobileNumber))
             return Results.BadRequest(new AuthResponse(false, "Mobile number is required."));
 
-        // Clean mobile number (remove spaces, ensure format)
-        var mobile = request.MobileNumber.Trim().Replace(" ", "");
+        // Clean mobile number (remove spaces, strip +91/91 prefix → always store 10-digit)
+        var mobile = NormalizeMobile(request.MobileNumber);
 
         // Find user by mobile — using IgnoreQueryFilters since user isn't authenticated yet
         var user = await db.Users
@@ -108,7 +120,7 @@ public static class AuthEndpoints
         if (string.IsNullOrWhiteSpace(request.MobileNumber) || string.IsNullOrWhiteSpace(request.OtpCode))
             return Results.BadRequest(new AuthResponse(false, "Mobile number and OTP are required."));
 
-        var mobile = request.MobileNumber.Trim().Replace(" ", "");
+        var mobile = NormalizeMobile(request.MobileNumber);
 
         // Find the latest unused OTP for this mobile
         var otpRecord = await db.OtpVerifications
@@ -215,7 +227,7 @@ public static class AuthEndpoints
         if (string.IsNullOrWhiteSpace(request.FullName))
             return Results.BadRequest(new AuthResponse(false, "Full name is required."));
 
-        var mobile = request.MobileNumber.Trim().Replace(" ", "");
+        var mobile = NormalizeMobile(request.MobileNumber);
 
         // Verify hospital exists and is active
         var hospital = await db.Hospitals

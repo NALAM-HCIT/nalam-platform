@@ -43,7 +43,7 @@ public static class HospitalEndpoints
         if (string.IsNullOrWhiteSpace(request.AdminName))
             return Results.BadRequest(new RegisterHospitalResponse(false, "Admin name is required."));
 
-        var adminMobile = request.AdminMobile.Trim().Replace(" ", "");
+        var adminMobile = AuthEndpoints.NormalizeMobile(request.AdminMobile);
 
         // Check if admin mobile is already registered
         var existingUser = await db.Users

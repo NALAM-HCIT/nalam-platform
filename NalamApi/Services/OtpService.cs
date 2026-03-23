@@ -52,6 +52,8 @@ public class OtpService
         try
         {
             // Pay4SMS API integration (ABHA verification format)
+            // Ensure 91-prefixed number for SMS gateway
+            var smsNumber = mobileNumber.StartsWith("91") ? mobileNumber : $"91{mobileNumber}";
             var message = HttpUtility.UrlEncode($"Your Nalam ABHA verification one time password is {otp} - NALAMHCIT");
 
             var url = $"http://pay4sms.in/sendsms/" +
@@ -59,7 +61,7 @@ public class OtpService
                       $"&credit=4" +
                       $"&sender={senderId}" +
                       $"&message={message}" +
-                      $"&number={mobileNumber}" +
+                      $"&number={smsNumber}" +
                       $"&templateid={HttpUtility.UrlEncode(templateId.Replace("{otp}", otp))}";
 
             var response = await _httpClient.GetAsync(url);
