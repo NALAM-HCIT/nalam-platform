@@ -6,8 +6,12 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 ------------------------------------------------------
 * App Purpose: Nalam - A multi-tenant telemedicine platform (SaaS) for hospitals.
 * Web Portal: React/Next.js (Hospital Registration Only) - Hosted on Vercel.
+  - Live URL: https://nalamapp-webportal.vercel.app
+  - Repo: https://github.com/NALAM-HCIT/nalamapp-webportal
 * Mobile App: React Native / Expo (Patient & Doctor interaction).
 * Backend API: ASP.NET Core 9.0 (Minimal APIs) - Hosted on Render (Free Tier).
+  - Live URL: https://nalam-api.onrender.com/api
+  - Repo: https://github.com/NALAM-HCIT/nalam-platform
 * Database: PostgreSQL - Managed by Supabase (Free Tier).
 * Storage: Cloudinary (for Hospital Logos, Licenses, and Medical Records).
 * OTP Provider: Pay4SMS API.
@@ -20,7 +24,10 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * RULE 4: Image Handling - Store URLs only in DB; actual files go to Cloudinary.
 * RULE 5: Infrastructure - Keep code compatible with Docker for Render deployment.
 * RULE 6: Defense-in-Depth - 4-layer tenant isolation: JWT Claims → TenantMiddleware → EF Core Global Query Filters → PostgreSQL RLS.
-* RULE 7: Never accept hospital_id from request body — always extract from JWT.
+* RULE 7: Never accept hospital_id from request body — always extract from JWT (except patient-register which is pre-auth).
+* RULE 8: Auth Flow Split:
+  - PATIENTS: Self-signup allowed. Any person can enter mobile number → if new, provide name → auto-create patient user → OTP login.
+  - CARE PROVIDERS (Doctor, Pharmacist, Receptionist, Admin): Must be pre-created by hospital admin via Admin > Users. Cannot self-register.
 
 3. DEVELOPMENT CHECKLIST (CURRENT STATE)
 ------------------------------------------------------
@@ -42,8 +49,98 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] Removed Employee ID mockup login
   * [x] Created Axios interceptor and connected AuthStore to secure endpoints
   * [x] Connected Admin Dashboard, Users, Settings, and Profile to backend APIs
-* [ ] Phase 5: Jitsi Video Integration (Azure 'nalam-meet' VM) - NOT STARTED
-* [ ] Phase 6: Cloudinary Integration for Document Uploads - NOT STARTED
+* [x] Phase 4.5: Global Backend Deployment (Render URL Configured) - COMPLETED
+* [x] Phase 4.6: Web Portal Deployment (Vercel: nalamapp-webportal.vercel.app) - COMPLETED
+* [x] Phase 4.7: Live Database Configuration & CORS Fix (Supabase IPv4 Pooler) - COMPLETED
+* [x] Phase 4.8: Database Migration Applied to Supabase - COMPLETED
+  * [x] EF Core idempotent migration script generated (migrate.sql)
+  * [x] InitialCreate migration applied (hospitals, users, otp_verifications, departments, hospital_settings, audit_logs + indexes)
+  * [x] AddAppointmentBooking migration applied (doctor_profiles, doctor_schedules, appointments + indexes + double-booking prevention)
+* [x] Phase 5: Patient Appointment Booking Flow (End-to-End) - COMPLETED
+  * [x] Backend: DoctorProfile, DoctorSchedule, Appointment entities with EF Core
+  * [x] Backend: AppointmentEndpoints (8 endpoints - list doctors, availability, book, list, view, reschedule, cancel, status change)
+  * [x] Backend: AdminEndpoints extended with doctor profile & schedule CRUD (6 endpoints)
+  * [x] Backend: Seed data endpoint (POST /api/admin/seed-doctors) for quick testing
+  * [x] Backend: EF Core migration (AddAppointmentBooking) created
+  * [x] Backend: PatientOnly authorization policy added
+  * [x] Backend: Double-booking prevention via partial unique index
+  * [x] Backend: Fee snapshot + pricing breakdown (GST 5% + ₹49 platform fee + coupon support)
+  * [x] Backend: Booking reference generation (NLM-{year}-{sequential})
+  * [x] Mobile: appointmentService.ts (TypeScript service layer with all API calls)
+  * [x] Mobile: consultation-type.tsx rewritten (API-driven doctor list, debounced search, specialty filter)
+  * [x] Mobile: slot-selection.tsx rewritten (API-driven availability, date picker, time slot groups)
+  * [x] Mobile: booking-review.tsx connected to createAppointment API with loading/error states
+  * [x] Mobile: booking-confirmation.tsx displays real booking reference from API
+  * [x] Mobile: bookings.tsx (tabs) rewritten with API-driven upcoming/past lists + cancel action
+  * [x] Mobile: Admin manage-doctors.tsx screen (create/delete profiles, add/delete schedules)
+  * [x] Mobile: Admin dashboard quick action wired to manage-doctors screen
+  * [x] Mobile: Admin layout registered manage-doctors stack screen
+* [x] Phase 5.5: Doctor Dashboard & Consultation Flow (API-Connected) - COMPLETED
+  * [x] Mobile: doctorService.ts (TypeScript service layer - getTodayAppointments, getUpcoming, getPast, changeStatus, getDetail)
+  * [x] Mobile: doctor/(tabs)/index.tsx rewritten - API-driven dashboard with stats, appointment cards, status actions, Start Consultation button
+  * [x] Mobile: doctor/(tabs)/patients.tsx rewritten - API-driven Upcoming/Past tabs, search, pull-to-refresh, status change actions
+  * [x] Mobile: doctor/active-consultation.tsx rewritten - receives appointment ID, fetches real patient data, chief complaint + observations + e-prescription form, session timer
+  * [x] Mobile: doctor/consultation-summary.tsx rewritten - receives clinical data via params, real patient info, diagnosis input, Finalize marks appointment completed via API
+  * [x] Mobile: doctor/consultation-success.tsx rewritten - displays real patient name/booking ref, session duration, navigates back to dashboard
+  * [x] Backend: AppointmentResponse extended with PatientName, PatientInitials, PatientId
+  * [x] Backend: GET /api/appointments supports date=today filter for doctor dashboard
+* [x] Phase 6: Receptionist Dashboard & Patient Flow (API-Connected) - COMPLETED
+  * [x] Backend: ReceptionistEndpoints (dashboard stats, today's queue, patient search, walk-in registration)
+  * [x] Backend: Appointment entity extended with 'arrived' and 'in_consultation' statuses
+  * [x] Backend: ChangeAppointmentStatus endpoint updated for new statuses
+  * [x] Mobile: services/receptionistService.ts (TypeScript service layer - getDashboard, getQueue, searchPatients, registerWalkIn, checkInPatient)
+  * [x] Mobile: receptionist/(tabs)/index.tsx - API-driven dashboard (live stats grid, upcoming queue, check-in actions)
+  * [x] Mobile: receptionist/(tabs)/appointments.tsx - API-driven live queue with status filters, search, check-in actions
+  * [x] Mobile: receptionist/(tabs)/patients.tsx - API-driven patient search & walk-in registration modal
+  * [x] Mobile: receptionist/patient-arrival.tsx - token assignment, vitals, room assignment, send-to-doctor flow
+  * [x] Mobile: stores/authStore.ts - added missing setRole method
+  * [x] Mobile: Fixed TS2702 Alert.AlertButton errors across 5 edit-profile screens
+  * [x] TypeScript build verification: 0 errors (npx tsc --noEmit)
+* [x] Phase 7: Pharmacist Dashboard & Order Management (API-Connected) - COMPLETED
+  * [x] Backend: PharmacistEndpoints (dashboard stats, prescriptions queue, dispense, reject)
+  * [x] Backend: Added prescription_status column to Appointment entity (null/pending/dispensed/rejected)
+  * [x] Backend: Auto-trigger in ChangeAppointmentStatus — sets prescription_status=pending on completion with notes
+  * [x] Mobile: services/pharmacistService.ts (TypeScript service layer - getDashboard, getPrescriptions, dispensePrescription, rejectPrescription)
+  * [x] Mobile: pharmacist/(tabs)/index.tsx - API-driven dashboard (live stats, pending prescriptions queue, review/dispense/reject)
+  * [x] Mobile: pharmacist/(tabs)/inventory.tsx - API-driven prescriptions list with filters, search, dispense/reject actions
+  * [x] Mobile: pharmacist/(tabs)/orders.tsx - API-driven processed orders (dispensed + rejected history)
+  * [x] Backend build: 0 errors, 0 warnings
+  * [x] TypeScript build: 0 errors (npx tsc --noEmit)
+* [x] Phase 8: Patient Remaining Screens (API-Connected) - COMPLETED
+  * [x] Backend: PatientEndpoints (consultation-history, prescriptions list, prescription detail, profile-stats)
+  * [x] Backend: Registered MapPatientEndpoints() in Program.cs
+  * [x] Mobile: services/patientService.ts (typed service layer for all 4 patient endpoints)
+  * [x] Mobile: patient/(tabs)/records.tsx — live consultation history from API (replaced mock data)
+  * [x] Mobile: patient/digital-prescription.tsx — fetches real prescription by appointmentId route param
+  * [x] Mobile: patient/(tabs)/profile.tsx — live profile stats (visits, Rx, appointments) from API
+  * [x] Deferred: pharmacy.tsx (needs inventory table), care-schedule.tsx (client-side only)
+  * [x] Backend build: 0 errors, 0 warnings
+  * [x] TypeScript build: 0 errors (npx tsc --noEmit)
+* [x] Phase 9: Doctor Remaining Screens (API-Connected) - COMPLETED
+  * [x] Backend: DoctorPortalEndpoints (directory, my-profile, patient-summary)
+  * [x] Backend: Registered MapDoctorPortalEndpoints() in Program.cs
+  * [x] Mobile: services/doctorPortalService.ts (typed service layer for all 3 endpoints)
+  * [x] Mobile: doctor/(tabs)/directory.tsx — live staff list from API grouped by role
+  * [x] Mobile: doctor/(tabs)/profile.tsx — live doctor profile + appointment stats from API
+  * [x] Mobile: doctor/patient-clinical-summary.tsx — live patient data by patientId
+  * [x] Deferred: messages.tsx (needs real messaging infrastructure)
+  * [x] Backend build: 0 errors, 0 warnings
+  * [x] TypeScript build: 0 errors (npx tsc --noEmit)
+* [x] Phase 10: Supabase Storage for Document Uploads - COMPLETED
+  * [x] Installed `@supabase/supabase-js` and `base64-arraybuffer` packages
+  * [x] services/supabase.ts — Supabase client config (configured with anon key)
+  * [x] services/uploadService.ts — Supabase Storage: profile photos, medical docs, prescriptions
+  * [x] nalam-uploads bucket created & public access enabled in Supabase Storage
+  * [x] hooks/useProfilePhoto.ts — shared hook (camera/gallery + Supabase upload + progress)
+  * [x] Integrated into patient/(tabs)/profile.tsx and doctor/(tabs)/profile.tsx
+  * [x] Removed Firebase dependency (no Blaze billing needed)
+  * [x] TypeScript build: 0 errors (npx tsc --noEmit)
+* [x] Phase 11: Agora Video Integration - COMPLETED
+  * [x] Mobile: services/agoraService.ts - Agora SDK integration (RTC Engine)
+  * [x] Mobile: patient/video-consultation.tsx - real Agora video call integration
+  * [x] Mobile: doctor/active-consultation.tsx - real Agora video call integration
+  * [x] Fixed channel name alignment (consultation_{id}) between roles
+  * [x] TypeScript build: 0 errors (npx tsc --noEmit)
 
 4. CURRENT DATABASE SCHEMA SNAPSHOT
 ------------------------------------------------------
@@ -53,6 +150,9 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * departments: [id (PK/UUID), hospital_id (FK), name, is_active]
 * hospital_settings: [id (PK/UUID), hospital_id (FK), key, value, updated_at]
 * audit_logs: [id (PK/UUID), hospital_id (FK), user_id (FK), action, category, severity, details, created_at]
+* doctor_profiles: [id (PK/UUID), hospital_id (FK), user_id (FK/unique), specialty, experience_years, consultation_fee, available_for_video, available_for_in_person, languages, rating, review_count, bio, is_accepting_appointments, created_at, updated_at]
+* doctor_schedules: [id (PK/UUID), hospital_id (FK), doctor_profile_id (FK), day_of_week (0-6), start_time, end_time, slot_duration_minutes, consultation_type, is_active]
+* appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, created_at, updated_at]
 
 5. COMPLETED API ROUTES
 ------------------------------------------------------
@@ -72,6 +172,36 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * PUT  /api/admin/settings         — Update hospital settings
 * GET  /api/admin/profile          — Get admin profile
 * PUT  /api/admin/profile          — Update admin profile
+* GET  /api/admin/doctor-profiles  — List all doctor profiles with schedules
+* POST /api/admin/doctor-profiles  — Create doctor profile for a doctor user
+* PUT  /api/admin/doctor-profiles/{id} — Update doctor profile
+* DELETE /api/admin/doctor-profiles/{id} — Delete doctor profile
+* POST /api/admin/doctor-schedules — Add schedule block for a doctor
+* DELETE /api/admin/doctor-schedules/{id} — Remove schedule block
+* POST /api/admin/seed-doctors     — Seed sample doctors, profiles & schedules
+* GET  /api/appointments/doctors   — List doctors with profiles (filterable)
+* GET  /api/appointments/doctors/{id}/availability — Available dates & time slots
+* POST /api/appointments           — Create appointment (with pricing)
+* GET  /api/appointments           — List appointments (upcoming/past, role-aware)
+* GET  /api/appointments/{id}      — Get appointment details
+* PUT  /api/appointments/{id}      — Reschedule appointment
+* PATCH /api/appointments/{id}/cancel — Cancel appointment
+* PATCH /api/appointments/{id}/status — Staff-only status change (now supports: arrived, in_consultation)
+* GET  /api/reception/dashboard    — Receptionist daily stats (total, waiting, in-consult, completed, upcoming)
+* GET  /api/reception/queue        — Today's appointments queue (filterable by status, searchable)
+* GET  /api/reception/patients     — Search patients by name or mobile within hospital
+* POST /api/reception/patients     — Register walk-in patient (creates user record)
+* GET  /api/pharmacy/dashboard     — Pharmacist daily stats (pending, dispensed, rejected, total)
+* GET  /api/pharmacy/prescriptions  — Today's prescription queue (filterable by status, searchable)
+* PATCH /api/pharmacy/prescriptions/{id}/dispense — Mark prescription as dispensed
+* PATCH /api/pharmacy/prescriptions/{id}/reject   — Reject prescription with reason
+* GET  /api/patient/consultation-history  — Patient's completed consultations (paginated)
+* GET  /api/patient/prescriptions          — Patient's prescription history
+* GET  /api/patient/prescriptions/{id}     — Detailed prescription view (doctor, hospital, notes)
+* GET  /api/patient/profile-stats          — Quick stats (visits, active Rx, total appointments)
+* GET  /api/doctor-portal/directory         — Hospital staff list grouped by role
+* GET  /api/doctor-portal/my-profile        — Doctor's own profile + appointment stats
+* GET  /api/doctor-portal/patient-summary/{id} — Patient summary with appointment history
 
 6. INSTALLED PACKAGES (NalamApi)
 ------------------------------------------------------
@@ -80,6 +210,13 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * Microsoft.EntityFrameworkCore.Design 9.0.1
 * System.IdentityModel.Tokens.Jwt 8.6.1
 * System.Threading.RateLimiting 10.0.5
+
+7.5. INSTALLED PACKAGES (Mobile App — Key)
+------------------------------------------------------
+* @supabase/supabase-js (Supabase client for Storage)
+* base64-arraybuffer (file encoding for upload)
+* react-native-agora (Agora RTC SDK)
+* expo-modules-core (Required for Agora)
 
 7. PROJECT FOLDER STRUCTURE
 ------------------------------------------------------
@@ -90,11 +227,56 @@ NalamApi/
 ├── Dockerfile
 ├── .env.example
 ├── Data/NalamDbContext.cs
-├── Entities/ (Hospital, User, OtpVerification, Department, HospitalSetting, AuditLog)
-├── DTOs/Auth/ DTOs/Admin/ DTOs/Hospital/
-├── Endpoints/ (AuthEndpoints, AdminEndpoints, HospitalEndpoints)
+├── Entities/ (Hospital, User, OtpVerification, Department, HospitalSetting, AuditLog, DoctorProfile, DoctorSchedule, Appointment)
+├── DTOs/Auth/ DTOs/Admin/ DTOs/Hospital/ DTOs/Appointment/
+├── Endpoints/ (AuthEndpoints, AdminEndpoints, HospitalEndpoints, AppointmentEndpoints, ReceptionistEndpoints, PharmacistEndpoints, PatientEndpoints, DoctorPortalEndpoints)
 ├── Services/ (JwtService, OtpService, AuditService)
 └── Middleware/ (TenantMiddleware)
+
+Mobile App Key Files (Appointment Flow):
+├── services/appointmentService.ts
+├── services/doctorService.ts
+├── app/patient/consultation-type.tsx
+├── app/patient/slot-selection.tsx
+├── app/patient/booking-review.tsx
+├── app/patient/booking-confirmation.tsx
+├── app/patient/(tabs)/bookings.tsx
+├── app/admin/manage-doctors.tsx
+├── app/doctor/(tabs)/index.tsx (API-driven dashboard)
+├── app/doctor/(tabs)/patients.tsx (API-driven appointments)
+├── app/doctor/active-consultation.tsx (consultation flow)
+├── app/doctor/consultation-summary.tsx (review & finalize)
+└── app/doctor/consultation-success.tsx (completion screen)
+
+Mobile App Key Files (Receptionist Flow):
+├── services/receptionistService.ts (API service layer)
+├── app/receptionist/(tabs)/index.tsx (API-driven dashboard)
+├── app/receptionist/(tabs)/appointments.tsx (live queue + check-in)
+├── app/receptionist/(tabs)/patients.tsx (search + walk-in registration)
+└── app/receptionist/patient-arrival.tsx (token + vitals + room assignment)
+
+Mobile App Key Files (Patient Screens — Phase 8):
+├── services/patientService.ts (API service layer)
+├── app/patient/(tabs)/records.tsx (live consultation history)
+├── app/patient/(tabs)/profile.tsx (live profile stats)
+└── app/patient/digital-prescription.tsx (live prescription detail)
+
+Mobile App Key Files (Doctor Portal — Phase 9):
+├── services/doctorPortalService.ts (API service layer)
+├── app/doctor/(tabs)/directory.tsx (live staff directory)
+├── app/doctor/(tabs)/profile.tsx (live doctor profile + stats)
+└── app/doctor/patient-clinical-summary.tsx (live patient summary)
+
+Mobile App Key Files (Agora Video — Phase 11):
+├── services/agoraService.ts (RTC engine management)
+├── app/patient/video-consultation.tsx (real video integration)
+└── app/doctor/active-consultation.tsx (real video integration)
+
+Mobile App Key Files (Pharmacist Flow):
+├── services/pharmacistService.ts (API service layer)
+├── app/pharmacist/(tabs)/index.tsx (API-driven dashboard)
+├── app/pharmacist/(tabs)/inventory.tsx (live prescriptions list)
+└── app/pharmacist/(tabs)/orders.tsx (processed orders history)
 
 ======================================================
 END OF PROJECT STATE. AWAITING USER PROMPT.

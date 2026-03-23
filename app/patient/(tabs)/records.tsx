@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
+import { patientService, ConsultationItem } from '@/services/patientService';
 import {
   Share2, Info, Filter, Heart, Droplets, Wind, Weight, Activity,
   TrendingUp, TrendingDown, ChevronRight, FileText, Download,
@@ -204,11 +205,7 @@ const MY_UPLOADS = [
   { name: 'Physiotherapy Progress Note', date: 'Feb 15, 2026', type: 'Specialist Report', pages: 3 },
 ];
 
-const RECENT_CONSULTATIONS = [
-  { doctor: 'Dr. Rajesh Kumar', specialty: 'Cardiologist', date: 'Sep 12, 2025', icon: Heart, bg: '#EEF2FF', color: '#4F46E5' },
-  { doctor: 'Dr. Shalini Singh', specialty: 'Dermatologist', date: 'Aug 30, 2025', icon: Sparkles, bg: '#F0F9FF', color: '#0369A1' },
-  { doctor: 'Dr. Aruna Devi', specialty: 'General Physician', date: 'Jul 15, 2025', icon: Stethoscope, bg: '#EEF4FF', color: '#1A73E8' },
-];
+// RECENT_CONSULTATIONS is now loaded from the API — see liveConsultations state below
 
 /* ───── Sub-components ───── */
 
@@ -505,6 +502,13 @@ export default function HealthScreen() {
   const router = useRouter();
   const [period, setPeriod] = useState<TimePeriod>('30 Days');
   const [recordsTab, setRecordsTab] = useState<'prescribed' | 'uploads'>('prescribed');
+  const [liveConsultations, setLiveConsultations] = useState<ConsultationItem[]>([]);
+
+  useEffect(() => {
+    patientService.getConsultationHistory(1, 10)
+      .then((res) => setLiveConsultations(res.consultations))
+      .catch((err) => console.error('Failed to load consultations:', err));
+  }, []);
 
   const barCount = useMemo(
     () => (period === '7 Days' ? 7 : period === '30 Days' ? 15 : period === '90 Days' ? 20 : 24),
@@ -620,15 +624,18 @@ export default function HealthScreen() {
     );
   }, []);
 
-  const handleConsultationTap = useCallback((item: typeof RECENT_CONSULTATIONS[0]) => {
+  const handleConsultationTap = useCallback((item: ConsultationItem) => {
     Alert.alert(
-      item.doctor,
-      `Specialty: ${item.specialty}\nDate: ${item.date}\n\nConsultation Notes:\n- Follow-up in 3 months\n- Continue current medications\n- Blood work ordered\n\nPrescription: Available`,
+      item.doctorName,
+      `Specialty: ${item.specialty}\nDate: ${item.scheduleDate}\nTime: ${item.time}\n\n${item.notes ? `Notes: ${item.notes}` : 'No notes recorded.'}`,
       [
         { text: 'OK' },
-        { text: 'View Prescription', onPress: () => Alert.alert('Prescription', `Opening prescription from ${item.doctor} (${item.date})...\n\n(PDF viewer would open in production)`) },
+        ...(item.hasPrescription ? [{
+          text: 'View Prescription',
+          onPress: () => router.push({ pathname: '/patient/digital-prescription' as any, params: { appointmentId: item.id } }),
+        }] : []),
         { text: 'Book Follow-up', onPress: () => router.push('/patient/consultation-type') },
-      ],
+      ] as any[],
     );
   }, [router]);
 
@@ -790,34 +797,43 @@ export default function HealthScreen() {
             <View className="px-6 mb-2">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-sm font-semibold text-midnight">Recent Consultations</Text>
-                <Pressable onPress={() => Alert.alert('All Consultations', 'Full consultation history would open here with:\n\n- Filter by doctor/specialty\n- Sort by date\n- Search by diagnosis\n\n(Full list view in production)')}>
+                <Pressable onPress={() => router.push('/patient/(tabs)/bookings' as any)}>
                   <Text className="text-xs font-semibold text-primary">View All</Text>
                 </Pressable>
               </View>
             </View>
 
-            <View className="mx-6 mb-4 bg-white rounded-2xl overflow-hidden" style={Shadows.card}>
-              {RECENT_CONSULTATIONS.map((item, idx) => {
-                const IconComp = item.icon;
-                return (
+            {liveConsultations.length === 0 ? (
+              <View className="mx-6 mb-4 bg-white rounded-2xl p-6 items-center" style={Shadows.card}>
+                <Stethoscope size={28} color="#CBD5E1" />
+                <Text className="text-slate-400 text-xs mt-2">No completed consultations yet</Text>
+              </View>
+            ) : (
+              <View className="mx-6 mb-4 bg-white rounded-2xl overflow-hidden" style={Shadows.card}>
+                {liveConsultations.slice(0, 5).map((item, idx) => (
                   <Pressable
-                    key={idx}
+                    key={item.id}
                     onPress={() => handleConsultationTap(item)}
                     className="px-4 py-3.5 flex-row items-center gap-3 active:bg-slate-50"
-                    style={idx < RECENT_CONSULTATIONS.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' } : undefined}
+                    style={idx < Math.min(liveConsultations.length, 5) - 1 ? { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' } : undefined}
                   >
-                    <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: item.bg }}>
-                      <IconComp size={16} color={item.color} />
+                    <View className="w-9 h-9 rounded-xl items-center justify-center bg-primary/10">
+                      <Stethoscope size={16} color={Colors.primary} />
                     </View>
                     <View className="flex-1">
-                      <Text className="font-bold text-xs text-midnight">{item.doctor}</Text>
-                      <Text className="text-[11px] text-slate-400">{item.specialty} - {item.date}</Text>
+                      <Text className="font-bold text-xs text-midnight">{item.doctorName}</Text>
+                      <Text className="text-[11px] text-slate-400">{item.specialty} - {item.scheduleDate}</Text>
                     </View>
+                    {item.hasPrescription && (
+                      <View className="px-2 py-0.5 rounded-full bg-emerald-50 mr-1">
+                        <Text className="text-[9px] font-bold text-emerald-600">Rx</Text>
+                      </View>
+                    )}
                     <ChevronRight size={14} color="#CBD5E1" />
                   </Pressable>
-                );
-              })}
-            </View>
+                ))}
+              </View>
+            )}
 
             {/* Annual Checkup Reminder */}
             <View className="mx-6 mb-4">

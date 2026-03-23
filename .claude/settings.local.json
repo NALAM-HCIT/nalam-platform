@@ -7,7 +7,9 @@
       "Bash(watchman watch-project:*)",
       "Bash(npx expo:*)",
       "Bash(cat /Volumes/BSB/Nalam-app/app/patient/\\\\\\(tabs\\\\\\)/pharmacy.tsx)",
-      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef:*)"
     ]
   }
 }

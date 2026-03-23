@@ -1,46 +1,46 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, TextInput } from 'react-native';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, Alert, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Calendar, Clock, User, Search, Plus, Phone } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
+import { receptionistService, QueuePatient } from '@/services/receptionistService';
 
-type AppointmentStatus = 'checked-in' | 'waiting' | 'upcoming';
+type AppointmentStatus = 'all' | 'pending' | 'confirmed' | 'arrived' | 'in_consultation' | 'completed';
 
-interface Appointment {
-  id: string;
-  patient: string;
-  doctor: string;
-  time: string;
-  status: AppointmentStatus;
-  phone: string;
-  age: number;
-  reason: string;
-}
-
-const initialAppointments: Appointment[] = [
-  { id: '1', patient: 'John Doe', doctor: 'Dr. Aruna Reddy', time: '10:00 AM', status: 'checked-in', phone: '+91 98765 43210', age: 32, reason: 'General checkup' },
-  { id: '2', patient: 'Jane Smith', doctor: 'Dr. Sarah Johnson', time: '10:15 AM', status: 'waiting', phone: '+91 98765 43211', age: 28, reason: 'Migraine consultation' },
-  { id: '3', patient: 'Robert Brown', doctor: 'Dr. Kumar Patel', time: '10:30 AM', status: 'upcoming', phone: '+91 98765 43212', age: 55, reason: 'Diabetes follow-up' },
-  { id: '4', patient: 'Emily Davis', doctor: 'Dr. Elena Gomez', time: '11:00 AM', status: 'upcoming', phone: '+91 98765 43213', age: 42, reason: 'Knee pain evaluation' },
-  { id: '5', patient: 'Michael Lee', doctor: 'Dr. Aruna Reddy', time: '11:30 AM', status: 'upcoming', phone: '+91 98765 43214', age: 36, reason: 'Skin allergy' },
-  { id: '6', patient: 'Priya Sharma', doctor: 'Dr. Kumar Patel', time: '12:00 PM', status: 'waiting', phone: '+91 98765 43215', age: 45, reason: 'Blood pressure check' },
-  { id: '7', patient: 'Anil Kapoor', doctor: 'Dr. Sarah Johnson', time: '12:30 PM', status: 'upcoming', phone: '+91 98765 43216', age: 50, reason: 'Post-surgery review' },
-];
-
-const filterTabs: { label: string; value: 'all' | AppointmentStatus }[] = [
+const filterTabs: { label: string; value: AppointmentStatus }[] = [
   { label: 'All', value: 'all' },
-  { label: 'Checked-In', value: 'checked-in' },
-  { label: 'Waiting', value: 'waiting' },
-  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Waiting', value: 'arrived' },
+  { label: 'In Consult', value: 'in_consultation' },
+  { label: 'Upcoming', value: 'confirmed' },
+  { label: 'Completed', value: 'completed' },
 ];
 
 export default function AppointmentsScreen() {
   const router = useRouter();
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
-  const [activeFilter, setActiveFilter] = useState<'all' | AppointmentStatus>('all');
+  const [appointments, setAppointments] = useState<QueuePatient[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<AppointmentStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const loadAppointments = async () => {
+    try {
+      const data = await receptionistService.getQueue();
+      setAppointments(data);
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to load live appointments for today.');
+    }
+  };
+
+  useEffect(() => { loadAppointments(); }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadAppointments();
+    setRefreshing(false);
+  }, []);
 
   const filteredAppointments = useMemo(() => {
     let result = appointments;
@@ -50,177 +50,73 @@ export default function AppointmentsScreen() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (a) => a.patient.toLowerCase().includes(q) || a.doctor.toLowerCase().includes(q)
+        (a) => a.patientName.toLowerCase().includes(q) 
+            || a.doctorName.toLowerCase().includes(q) 
+            || a.bookingReference.toLowerCase().includes(q)
       );
     }
     return result;
   }, [appointments, activeFilter, searchQuery]);
 
   const handleAddAppointment = () => {
-    Alert.alert(
-      'Add Appointment',
-      'Create a new appointment:',
-      [
+    Alert.alert('New Registration', 'Directing you to the patient lookup to register a walk-in.', [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Quick Book',
-          onPress: () => {
-            const newId = String(appointments.length + 1 + Math.floor(Math.random() * 1000));
-            const newApt: Appointment = {
-              id: newId,
-              patient: 'New Patient',
-              doctor: 'Dr. Aruna Reddy',
-              time: '03:00 PM',
-              status: 'upcoming',
-              phone: '+91 00000 00000',
-              age: 30,
-              reason: 'New consultation',
-            };
-            setAppointments((prev) => [...prev, newApt]);
-            Alert.alert('Appointment Created', `New appointment booked for 03:00 PM with Dr. Aruna Reddy.\n\nAppointment ID: APT-${newId}`);
-          },
-        },
-        {
-          text: 'From Patient List',
-          onPress: () => {
-            Alert.alert('Select Patient', 'Choose a patient to book for:\n\n1. John Doe\n2. Jane Smith\n3. Robert Brown\n4. Emily Davis', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Book for John Doe',
-                onPress: () => {
-                  const newId = String(appointments.length + 1 + Math.floor(Math.random() * 1000));
-                  setAppointments((prev) => [...prev, {
-                    id: newId,
-                    patient: 'John Doe',
-                    doctor: 'Dr. Elena Gomez',
-                    time: '04:00 PM',
-                    status: 'upcoming',
-                    phone: '+91 98765 43210',
-                    age: 32,
-                    reason: 'Follow-up visit',
-                  }]);
-                  Alert.alert('Booked', 'Appointment booked for John Doe at 04:00 PM with Dr. Elena Gomez.');
-                },
-              },
-            ]);
-          },
-        },
-      ]
-    );
+        { text: 'Go to Patients', onPress: () => router.push('/receptionist/(tabs)/patients') }
+    ]);
   };
 
-  const handleAppointmentPress = (apt: Appointment) => {
-    const detailText = `Patient: ${apt.patient}\nDoctor: ${apt.doctor}\nTime: ${apt.time}\nAge: ${apt.age}\nPhone: ${apt.phone}\nReason: ${apt.reason}\nStatus: ${apt.status.toUpperCase()}`;
+  const handleAppointmentPress = (apt: QueuePatient) => {
+    const detailText = `Ref: ${apt.bookingReference}\nPatient: ${apt.patientName}\nDoctor: ${apt.doctorName}\nTime: ${apt.time}\nType: ${apt.type}\nStatus: ${apt.status.toUpperCase()}`;
 
-    if (apt.status === 'upcoming') {
-      Alert.alert(apt.patient, detailText, [
+    if (apt.status === 'pending' || apt.status === 'confirmed') {
+      Alert.alert(apt.patientName, detailText, [
         { text: 'Dismiss' },
         {
           text: 'Call Patient',
-          onPress: () => Alert.alert('Calling', `Dialing ${apt.phone}...\n\nCall initiated to ${apt.patient}.`),
+          onPress: () => Alert.alert('Calling', `Dialing ${apt.patientMobile}...\n\nCall initiated to ${apt.patientName}.`),
         },
         {
           text: 'Check In',
-          onPress: () => {
-            router.push('/receptionist/patient-arrival');
-          },
-        },
-        {
-          text: 'Reschedule',
-          onPress: () => {
-            Alert.alert('Reschedule', `Reschedule ${apt.patient}'s appointment?`, [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Tomorrow',
-                onPress: () => Alert.alert('Rescheduled', `Moved to tomorrow at ${apt.time}. SMS sent to ${apt.patient}.`),
-              },
-              {
-                text: 'Next Week',
-                onPress: () => Alert.alert('Rescheduled', `Moved to next week at ${apt.time}. SMS sent to ${apt.patient}.`),
-              },
-            ]);
-          },
-        },
-        {
-          text: 'Cancel',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Confirm Cancel', `Cancel ${apt.patient}'s appointment?`, [
-              { text: 'No', style: 'cancel' },
-              {
-                text: 'Yes, Cancel',
-                style: 'destructive',
-                onPress: () => {
-                  setAppointments((prev) => prev.filter((a) => a.id !== apt.id));
-                  Alert.alert('Cancelled', `${apt.patient}'s appointment cancelled. Notification sent.`);
-                },
-              },
-            ]);
+          onPress: async () => {
+            if (apt.type === 'in-person') {
+              router.push({ pathname: '/receptionist/patient-arrival', params: { appointmentId: apt.id } });
+            } else {
+              try {
+                await receptionistService.checkInPatient(apt.id);
+                loadAppointments();
+                Alert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
+              } catch (e) {
+                Alert.alert('Error', 'Failed to check-in patient');
+              }
+            }
           },
         },
       ]);
-    } else if (apt.status === 'waiting') {
-      Alert.alert(apt.patient, detailText, [
+    } else if (apt.status === 'arrived') {
+      Alert.alert(apt.patientName, detailText, [
         { text: 'Dismiss' },
         {
-          text: 'Notify Doctor',
-          onPress: () => Alert.alert('Doctor Notified', `${apt.doctor} has been notified that ${apt.patient} is waiting.\n\nEstimated wait: 5 minutes.`),
-        },
-        {
-          text: 'Send to Room',
-          onPress: () => {
-            const room = Math.floor(Math.random() * 10) + 1;
-            setAppointments((prev) =>
-              prev.map((a) => (a.id === apt.id ? { ...a, status: 'checked-in' as AppointmentStatus } : a))
-            );
-            Alert.alert('Room Assigned', `${apt.patient} sent to Room ${room}.\n\n${apt.doctor} has been notified.`);
-          },
-        },
-        {
-          text: 'Cancel',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Confirm Cancel', `Cancel ${apt.patient}'s appointment while waiting?`, [
-              { text: 'No', style: 'cancel' },
-              {
-                text: 'Yes, Cancel',
-                style: 'destructive',
-                onPress: () => {
-                  setAppointments((prev) => prev.filter((a) => a.id !== apt.id));
-                  Alert.alert('Cancelled', `${apt.patient}'s appointment cancelled.`);
-                },
-              },
-            ]);
-          },
-        },
+          text: 'Inform Doctor',
+          onPress: () => Alert.alert('Sent', `${apt.doctorName} has been notified that ${apt.patientName} is waiting in the lobby.`),
+        }
       ]);
-    } else if (apt.status === 'checked-in') {
-      Alert.alert(apt.patient, detailText, [
-        { text: 'Dismiss' },
-        {
-          text: 'View Details',
-          onPress: () => Alert.alert('Patient Details', `Full Name: ${apt.patient}\nAge: ${apt.age}\nPhone: ${apt.phone}\nDoctor: ${apt.doctor}\nTime: ${apt.time}\nReason: ${apt.reason}\n\nVitals: Pending\nAllergies: None on record\nInsurance: Active`),
-        },
-        {
-          text: 'Send to Room',
-          onPress: () => {
-            const room = Math.floor(Math.random() * 10) + 1;
-            Alert.alert('Room Assigned', `${apt.patient} directed to Room ${room}.\n\n${apt.doctor} has been alerted.`);
-          },
-        },
-      ]);
+    } else {
+      Alert.alert(apt.patientName, detailText, [{ text: 'Dismiss' }]);
     }
   };
 
-  const statusLabel = (status: AppointmentStatus) => {
-    if (status === 'checked-in') return 'CHECKED IN';
-    if (status === 'waiting') return 'WAITING';
+  const statusLabel = (status: string) => {
+    if (status === 'arrived') return 'WAITING';
+    if (status === 'in_consultation') return 'IN CONSULT';
+    if (status === 'completed') return 'COMPLETED';
+    if (status === 'cancelled') return 'CANCELLED';
     return 'UPCOMING';
   };
 
-  const statusVariant = (status: AppointmentStatus) => {
-    if (status === 'checked-in') return 'success';
-    if (status === 'waiting') return 'warning';
+  const statusVariant = (status: string) => {
+    if (status === 'completed') return 'success';
+    if (status === 'arrived') return 'warning';
+    if (status === 'in_consultation') return 'error';
     return 'primary';
   };
 
@@ -230,7 +126,7 @@ export default function AppointmentsScreen() {
       <View className="px-6 pt-4 pb-2 flex-row items-center justify-between">
         <View>
           <Text className="text-2xl font-bold text-midnight tracking-tight">Today's Appointments</Text>
-          <Text className="text-slate-500 text-sm mt-1">{filteredAppointments.length} of {appointments.length} appointments</Text>
+          <Text className="text-slate-500 text-sm mt-1">{filteredAppointments.length} of {appointments.length} active appointments</Text>
         </View>
         <Pressable
           onPress={handleAddAppointment}
@@ -247,7 +143,7 @@ export default function AppointmentsScreen() {
           <Search size={18} color="#94A3B8" />
           <TextInput
             className="flex-1 ml-3 text-sm text-midnight"
-            placeholder="Search by patient or doctor..."
+            placeholder="Search by patient, doctor, or reference..."
             placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -285,7 +181,12 @@ export default function AppointmentsScreen() {
       </View>
 
       {/* Appointments List */}
-      <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        className="flex-1 px-6" 
+        contentContainerStyle={{ paddingBottom: 120 }} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1A73E8" />}
+      >
         {filteredAppointments.length === 0 ? (
           <View className="items-center justify-center py-16">
             <Calendar size={48} color="#CBD5E1" />
@@ -306,13 +207,13 @@ export default function AppointmentsScreen() {
                     <User size={18} color="#1A73E8" />
                   </View>
                   <View className="flex-1">
-                    <Text className="font-bold text-sm text-midnight">{apt.patient}</Text>
-                    <Text className="text-slate-500 text-xs">{apt.doctor}</Text>
+                    <Text className="font-bold text-sm text-midnight">{apt.patientName}</Text>
+                    <Text className="text-slate-500 text-xs">{apt.doctorName}</Text>
                     <View className="flex-row items-center gap-1 mt-1">
                       <Clock size={12} color="#94A3B8" />
                       <Text className="text-slate-400 text-xs">{apt.time}</Text>
                     </View>
-                    <Text className="text-slate-400 text-[10px] mt-0.5">{apt.reason}</Text>
+                    <Text className="text-slate-400 text-[10px] mt-0.5">{apt.type.toUpperCase()} • {apt.bookingReference}</Text>
                   </View>
                 </View>
                 <StatusChip

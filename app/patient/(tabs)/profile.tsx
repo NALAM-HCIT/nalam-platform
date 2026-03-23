@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image } from 'react-native';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Alert, Linking, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
+import { patientService } from '@/services/patientService';
+import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import {
   User, Heart, Shield, Bell, FileText, LogOut, ChevronRight,
   Camera, MapPin, Phone, Mail, Calendar, Briefcase, CreditCard,
@@ -26,12 +28,7 @@ const PATIENT_INFO = {
   emergencyPhone: '+91 98765 43210',
 };
 
-const QUICK_STATS = [
-  { label: 'Visits', value: '12', icon: Calendar, color: Colors.primary },
-  { label: 'Rx', value: '8', icon: FileText, color: '#8B5CF6' },
-  { label: 'Orders', value: '5', icon: Package, color: '#F59E0B' },
-  { label: 'Reports', value: '14', icon: Briefcase, color: '#059669' },
-];
+// QUICK_STATS are loaded from the API — see liveStats state in component
 
 interface MenuItem {
   icon: React.ElementType;
@@ -98,7 +95,7 @@ const QuickStatCard = React.memo(function QuickStatCard({
   stat,
   onPress,
 }: {
-  stat: typeof QUICK_STATS[0];
+  stat: { label: string; value: string; icon: React.ElementType; color: string };
   onPress: () => void;
 }) {
   const Icon = stat.icon;
@@ -163,7 +160,24 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { userName, phone, logout } = useAuthStore();
 
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { profileImage, uploading, uploadProgress, handleChangePhoto } = useProfilePhoto();
+  const [quickStats, setQuickStats] = useState([
+    { label: 'Visits', value: '—', icon: Calendar, color: Colors.primary },
+    { label: 'Rx', value: '—', icon: FileText, color: '#8B5CF6' },
+    { label: 'Appts', value: '—', icon: Package, color: '#F59E0B' },
+  ]);
+
+  useEffect(() => {
+    patientService.getProfileStats()
+      .then((stats) => {
+        setQuickStats([
+          { label: 'Visits', value: String(stats.totalVisits), icon: Calendar, color: Colors.primary },
+          { label: 'Rx', value: String(stats.activeRx), icon: FileText, color: '#8B5CF6' },
+          { label: 'Appts', value: String(stats.totalAppointments), icon: Package, color: '#F59E0B' },
+        ]);
+      })
+      .catch((err) => console.error('Failed to load profile stats:', err));
+  }, []);
 
   const displayName = userName || 'Patient';
   const initials = useMemo(() => {
@@ -193,43 +207,7 @@ export default function ProfileScreen() {
     router.push('/patient/edit-profile');
   }, [router]);
 
-  const pickImage = useCallback(async (useCamera: boolean) => {
-    const permissionResult = useCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings to update your profile picture.`);
-      return;
-    }
-
-    const result = useCamera
-      ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        });
-
-    if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
-      Alert.alert('Success', 'Profile photo updated!');
-    }
-  }, []);
-
-  const handleChangePhoto = useCallback(() => {
-    Alert.alert('Update Profile Photo', 'Choose a source for your new profile picture:', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Take Photo', onPress: () => pickImage(true) },
-      { text: 'Choose from Gallery', onPress: () => pickImage(false) },
-    ]);
-  }, [pickImage]);
+  // Image picker logic is now handled by useProfilePhoto hook
 
   const handleEmergencyContact = useCallback(() => {
     Alert.alert(
@@ -687,7 +665,7 @@ export default function ProfileScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row mx-6 mt-4 gap-2.5">
-          {QUICK_STATS.map((stat, idx) => (
+          {quickStats.map((stat, idx) => (
             <QuickStatCard key={idx} stat={stat} onPress={() => handleStatPress(stat.label)} />
           ))}
         </View>

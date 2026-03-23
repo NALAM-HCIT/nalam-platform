@@ -1,231 +1,222 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Image, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Shadows } from '@/constants/theme';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
-  Search,
-  Bell,
-  Clock,
-  Hospital,
-  ArrowDownUp,
+  View, Text, ScrollView, Pressable, TextInput,
+  Alert, ActivityIndicator, RefreshControl,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Shadows, Colors } from '@/constants/theme';
+import {
+  Search, Clock, Calendar, User, Video,
+  CheckCircle, XCircle, ChevronRight,
 } from 'lucide-react-native';
+import {
+  getUpcomingAppointments, getPastAppointments,
+  changeAppointmentStatus, DoctorAppointment,
+} from '@/services/doctorService';
 
-type PatientStatus = 'Stable' | 'Critical' | 'Observation';
-type SortOption = 'name' | 'status' | 'lastVisit';
+/* ───── Helpers ───── */
 
-interface Patient {
-  id: string;
-  name: string;
-  patientId: string;
-  location: string;
-  status: PatientStatus;
-  tags: string[];
-  lastVisit: string;
-  avatar: string;
-  phone: string;
+function formatTime(t: string): string {
+  const [hh, mm] = t.split(':');
+  const h = parseInt(hh, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${mm} ${ampm}`;
 }
 
-const patients: Patient[] = [
-  {
-    id: '1',
-    name: 'Sarah Jenkins',
-    patientId: '#PT-88210',
-    location: 'Room 402',
-    status: 'Stable',
-    tags: ['Post-op Recovery', 'Orthopedics'],
-    lastVisit: 'Last visit: 10:30 AM (Today)',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDVBWK1doKSO34AjVxEcEVhaN4262zfUymHQMypRZ7FEKkUZ5FOEdrycfOg-atEBqtvcz7V-yot7tj_DOF0qiz9w6te6pXw0kShtp0ahyKfS3fNn59x5PL-4vypOAgP37yq4mAgjhp819gOH6i8jLLh2pAlTFMOTzaA6kU56KveJsYJvpRVNYR0j5j4eHwyWAFvn-paf5ISnLjh2yPfwONiKYNDgwaFkuO3YtVLCSdRPB8oLN8HK7QeUR1jWYZHNLMbafGRJa0FwR_S',
-    phone: '+91 98765 43210',
-  },
-  {
-    id: '2',
-    name: 'Robert Vance',
-    patientId: '#PT-44912',
-    location: 'ICU Bed 12',
-    status: 'Critical',
-    tags: ['Cardiac Arrhythmia', 'Cardiology'],
-    lastVisit: 'Last visit: 09:15 AM (Today)',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD8g8rsH5jVahUnVPSUiJjParVEyKp_btCbp2kP3sQqhuzOKlAQrLW4-CRDX_8fbhdEC0_YH91xTgdOEQ7KJYGx0nVXmKCMywCyK2PodWxrXPiqnaCl8R7Y45yuCmMtYE2kBQQmmEsJkzEwXwvz8pcd-VryCoGkts4c_VGRstNl35f3kze2uhYd_CA0dPjPFh-xEZsLIXhIXpHdCHS80sCJuw4NvViKo7zylUQ6o-oDbi1i-3Tr9F_mixYeVe5QTiXLzCr1itefT9m3',
-    phone: '+91 98765 43211',
-  },
-  {
-    id: '3',
-    name: 'Elena Rodriguez',
-    patientId: '#PT-99302',
-    location: 'Out-patient',
-    status: 'Observation',
-    tags: ['Type II Diabetes', 'Endocrinology'],
-    lastVisit: 'Last visit: 08:45 AM (Today)',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDN4Uk9jVX3VDsiYMoZpSVj0F43SuUhNJwtOePWi-SlEzNIplBw1XA3qtIICE3kHOYL-lHisHhmvzpwt06if2hw1it_Fwkx4hUdbOO2vuLU8IHTJbH2pDUrGTx6Mlqi10SVLdgXgjbSkWOKoy2XYCkoK0SwHGkoqE6Mw8oGNjwVBh6pNjTXlVFJXaY_laOohV2vFuvswrchrVAeWxOyJW5VS__Hbh2s6UX549AcTi1f3PEYoD8iPM6pljiGqePUQHiSzprYMhVn7neQ',
-    phone: '+91 98765 43212',
-  },
-  {
-    id: '4',
-    name: 'Michael Cho',
-    patientId: '#PT-11204',
-    location: 'Room 205',
-    status: 'Stable',
-    tags: ['Bronchitis', 'Pulmonology'],
-    lastVisit: 'Last visit: 04:20 PM (Yesterday)',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGc9j11uwi6D0_KPClL2sd8WRJQUhNiicXuXpAASkRRJMNe1-02rpEqidUBrgpEy5qV_9zDleMTnpDIeoSHrZMHKLmW89CFQcihNLXk3Tc0kaiFNclOj-kEVVru_N6DxocJ3n8EP2oVQmS-iNDAd8Nd98vNR-tjFjKExlZhX4G_w_RxHi1nKrauaKF-eLdHZ2AKFRSjXpJ3cNmlFuBImljBlgsD257Vbrm8D6NACrHy9csrY8SAuyD8Lcdc-d6vulwOPMlprVZfFI7',
-    phone: '+91 98765 43213',
-  },
-];
+function formatDate(d: string): string {
+  const date = new Date(d + 'T00:00:00');
+  return date.toLocaleDateString('en-IN', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  });
+}
 
-const filters = ['All', 'In-Person', 'Video Consultations'];
-
-const statusConfig: Record<PatientStatus, { bg: string; text: string }> = {
-  Stable: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
-  Critical: { bg: 'bg-red-100', text: 'text-red-600' },
-  Observation: { bg: 'bg-amber-100', text: 'text-amber-600' },
+const STATUS_STYLES: Record<string, { bg: string; border: string; text: string; label: string }> = {
+  confirmed: { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8', label: 'CONFIRMED' },
+  pending:   { bg: '#FFFBEB', border: '#FDE68A', text: '#D97706', label: 'PENDING' },
+  completed: { bg: '#F0FDF4', border: '#BBF7D0', text: '#16A34A', label: 'COMPLETED' },
+  cancelled: { bg: '#FEF2F2', border: '#FECACA', text: '#DC2626', label: 'CANCELLED' },
+  no_show:   { bg: '#FFF7ED', border: '#FED7AA', text: '#EA580C', label: 'NO SHOW' },
 };
 
-const statusSortOrder: Record<PatientStatus, number> = {
-  Critical: 0,
-  Observation: 1,
-  Stable: 2,
-};
+const TABS = ['Upcoming', 'Past'] as const;
+type Tab = typeof TABS[number];
 
-export default function PatientsScreen() {
-  const router = useRouter();
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+/* ───── Appointment Card ───── */
 
-  const filtered = patients
-    .filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.patientId.toLowerCase().includes(search.toLowerCase()) ||
-      p.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'status':
-          return statusSortOrder[a.status] - statusSortOrder[b.status];
-        case 'lastVisit':
-          return a.lastVisit.includes('Today') && !b.lastVisit.includes('Today') ? -1 : 1;
-        default:
-          return 0;
-      }
-    });
+const AppointmentCard = React.memo(function AppointmentCard({
+  item, onStatusChange,
+}: {
+  item: DoctorAppointment;
+  onStatusChange: (id: string, status: string) => void;
+}) {
+  const isVideo = item.consultationType === 'video';
+  const style = STATUS_STYLES[item.status] || STATUS_STYLES.confirmed;
+  const isPast = item.status === 'completed' || item.status === 'cancelled' || item.status === 'no_show';
 
-  const handleSortPress = () => {
-    Alert.alert('Sort Patients By', 'Choose sorting option:', [
-      {
-        text: 'Name (A-Z)',
-        onPress: () => setSortBy('name'),
-      },
-      {
-        text: 'Status (Critical First)',
-        onPress: () => setSortBy('status'),
-      },
-      {
-        text: 'Last Visit (Recent First)',
-        onPress: () => setSortBy('lastVisit'),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
-  const handleBellPress = () => {
+  const handlePress = () => {
     Alert.alert(
-      'Notifications',
-      '3 new notifications:\n\n1. Lab results ready for Sarah Jenkins\n2. Robert Vance vitals update\n3. Elena Rodriguez appointment reminder',
-      [{ text: 'OK' }]
+      item.patientName || 'Patient',
+      `Booking: ${item.bookingReference}\nDate: ${formatDate(item.scheduleDate)}\nTime: ${formatTime(item.startTime)} – ${formatTime(item.endTime)}\nType: ${isVideo ? 'Video Consultation' : 'In-Person Visit'}\nStatus: ${item.status}\nFee: ₹${item.consultationFee}`,
+      [{ text: 'Close' }],
     );
   };
 
-  const handleLongPress = (patient: Patient) => {
-    Alert.alert(`Quick Actions - ${patient.name}`, `Patient ID: ${patient.patientId}`, [
-      {
-        text: 'Call Patient',
-        onPress: () =>
-          Alert.alert('Call Patient', `Calling ${patient.name} at ${patient.phone}...`, [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Call', onPress: () => Alert.alert('Calling...', `Dialing ${patient.phone}`) },
-          ]),
-      },
-      {
-        text: 'Send Message',
-        onPress: () =>
-          Alert.alert('Send Message', `Message will be sent to ${patient.name} via the hospital portal.`, [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Send', onPress: () => Alert.alert('Sent', 'Message delivered successfully.') },
-          ]),
-      },
-      {
-        text: 'View History',
-        onPress: () =>
-          Alert.alert(
-            `${patient.name} - History`,
-            `Patient: ${patient.patientId}\nLocation: ${patient.location}\nStatus: ${patient.status}\nConditions: ${patient.tags.join(', ')}\n\nRecent History:\n- Admission: 3 days ago\n- Last vitals: Normal range\n- Medications: On schedule\n- Next review: Tomorrow 9 AM`
-          ),
-      },
-      {
-        text: 'Emergency Flag',
-        style: 'destructive',
-        onPress: () =>
-          Alert.alert(
-            'Flag Emergency',
-            `Are you sure you want to flag ${patient.name} for emergency attention?`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Flag Emergency',
-                style: 'destructive',
-                onPress: () => Alert.alert('Emergency Flagged', `${patient.name} has been flagged. On-call team notified.`),
-              },
-            ]
-          ),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
+  return (
+    <Pressable
+      onPress={handlePress}
+      className="rounded-2xl p-4 border mb-3 active:opacity-80"
+      style={[{ backgroundColor: style.bg, borderColor: style.border }, Shadows.card]}
+    >
+      {/* Top row */}
+      <View className="flex-row items-start justify-between">
+        <View className="flex-row items-center gap-3 flex-1">
+          <View className="w-11 h-11 rounded-xl bg-white items-center justify-center">
+            <Text className="font-bold text-sm" style={{ color: style.text }}>
+              {item.patientInitials || '??'}
+            </Text>
+          </View>
+          <View className="flex-1">
+            <Text className="font-bold text-[15px] text-midnight">{item.patientName || 'Patient'}</Text>
+            <Text className="text-[11px] font-medium text-slate-400 mt-0.5">
+              {item.bookingReference}
+            </Text>
+          </View>
+        </View>
+        <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: style.text }}>
+          {isVideo ? <Video size={16} color="#FFF" /> : <User size={16} color="#FFF" />}
+        </View>
+      </View>
 
-  const handleViewCharts = (patient: Patient) => {
-    router.push({
-      pathname: '/doctor/patient-clinical-summary',
-      params: { id: patient.id },
-    });
-  };
+      {/* Date + time row */}
+      <View className="flex-row items-center justify-between mt-3 pt-3 border-t" style={{ borderTopColor: style.border }}>
+        <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-1.5">
+            <Calendar size={12} color={style.text} />
+            <Text className="text-xs font-semibold" style={{ color: style.text }}>
+              {formatDate(item.scheduleDate)}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <Clock size={12} color={style.text} />
+            <Text className="text-xs font-semibold" style={{ color: style.text }}>
+              {formatTime(item.startTime)} – {formatTime(item.endTime)}
+            </Text>
+          </View>
+        </View>
+        <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: style.text + '15' }}>
+          <Text className="text-[9px] font-bold" style={{ color: style.text }}>{style.label}</Text>
+        </View>
+      </View>
+
+      {/* Action buttons for active appointments */}
+      {!isPast && (
+        <View className="flex-row gap-2 mt-3">
+          <Pressable
+            onPress={() => onStatusChange(item.id, 'completed')}
+            className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-500"
+          >
+            <CheckCircle size={14} color="#FFF" />
+            <Text className="text-white text-xs font-bold">Complete</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onStatusChange(item.id, 'no_show')}
+            className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl bg-amber-500"
+          >
+            <XCircle size={14} color="#FFF" />
+            <Text className="text-white text-xs font-bold">No Show</Text>
+          </Pressable>
+        </View>
+      )}
+    </Pressable>
+  );
+});
+
+/* ───── Main Screen ───── */
+
+export default function PatientsScreen() {
+  const [activeTab, setActiveTab] = useState<Tab>('Upcoming');
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [upcoming, setUpcoming] = useState<DoctorAppointment[]>([]);
+  const [past, setPast] = useState<DoctorAppointment[]>([]);
+  const [upcomingTotal, setUpcomingTotal] = useState(0);
+  const [pastTotal, setPastTotal] = useState(0);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [upRes, pastRes] = await Promise.all([
+        getUpcomingAppointments(),
+        getPastAppointments(),
+      ]);
+      setUpcoming(upRes.appointments);
+      setUpcomingTotal(upRes.total);
+      setPast(pastRes.appointments);
+      setPastTotal(pastRes.total);
+    } catch (err) {
+      console.error('Failed to load appointments:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
+
+  const handleStatusChange = useCallback(
+    (id: string, newStatus: string) => {
+      const labels: Record<string, string> = { completed: 'Complete', no_show: 'No Show' };
+      Alert.alert(
+        `Mark as ${labels[newStatus]}?`,
+        'This action cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Confirm',
+            onPress: async () => {
+              try {
+                await changeAppointmentStatus(id, newStatus);
+                await fetchData();
+              } catch (err: any) {
+                Alert.alert('Error', err.response?.data?.error || 'Failed to update status.');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [fetchData],
+  );
+
+  const appointments = activeTab === 'Upcoming' ? upcoming : past;
+  const total = activeTab === 'Upcoming' ? upcomingTotal : pastTotal;
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return appointments;
+    const q = search.toLowerCase();
+    return appointments.filter(
+      (a) =>
+        (a.patientName || '').toLowerCase().includes(q) ||
+        a.bookingReference.toLowerCase().includes(q),
+    );
+  }, [appointments, search]);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
-      {/* Blocky Header */}
-      <View className="bg-primary/10 pt-6 pb-8 px-6 rounded-b-xl border-b border-primary/10">
-        <View className="flex-row items-center justify-between mb-6">
-          <View className="flex-row items-center gap-3">
-            <View className="bg-white p-2 rounded-xl shadow-sm" style={Shadows.card}>
-              <Hospital size={22} color="#1A73E8" />
-            </View>
-            <View>
-              <Text className="text-xl font-bold text-midnight tracking-tight">Active Patients</Text>
-              <Text className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Arun Priya Hospital</Text>
-            </View>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Pressable
-              onPress={handleBellPress}
-              className="w-10 h-10 rounded-full bg-white items-center justify-center"
-              style={Shadows.card}
-            >
-              <Bell size={20} color="#64748B" />
-              <View className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-            </Pressable>
-            <View className="w-10 h-10 rounded-full overflow-hidden border-2 border-white" style={Shadows.card}>
-              <Image
-                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCBi8O_-pwXr0Ls1oPUv_Mx2ps-4bNAw3siGUB8AD4y_qfK0JujjLZq12G53ISiicZVFdBUk-91xNEogr81KGcMI9FxEs_JLVwilufCgXiRPU8YbZEPt0jGBMy97tJ2LYpfNLFQ7iRTEyNS0GC5S5PIB8A1MRJ0_rWOKeFLC-4MAsoVfhrksaQOiRPDiSneHlkH6aFrG-WE67ePcr1xe6WqRvmOJHCPyZ-1UdY7jEJLPB9cwvuUMOiS4x9msQs-uStGwNHT2hyZUjka' }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </View>
-          </View>
-        </View>
+      {/* Header */}
+      <View className="bg-primary/10 pt-6 pb-6 px-6 border-b border-primary/10">
+        <Text className="text-xl font-bold text-midnight tracking-tight mb-1">Appointments</Text>
+        <Text className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-5">
+          Manage your schedule
+        </Text>
 
-        {/* Search Bar - Nested in Header */}
+        {/* Search */}
         <View className="relative">
           <View className="absolute left-4 top-0 bottom-0 justify-center z-10">
             <Search size={18} color="#94A3B8" />
@@ -233,7 +224,7 @@ export default function PatientsScreen() {
           <TextInput
             className="w-full bg-white rounded-2xl py-3.5 pl-12 pr-4 text-sm text-midnight"
             style={Shadows.card}
-            placeholder="Search patient name, ID or department..."
+            placeholder="Search patient name or booking ref..."
             placeholderTextColor="#94A3B8"
             value={search}
             onChangeText={setSearch}
@@ -241,133 +232,72 @@ export default function PatientsScreen() {
         </View>
       </View>
 
-      {/* Content Area */}
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="px-6">
-          {/* Filters */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mt-6 -mx-6 px-6 max-h-12"
-            contentContainerStyle={{ gap: 8, paddingRight: 40 }}
-          >
-            {filters.map((filter) => (
-              <Pressable
-                key={filter}
-                onPress={() => setActiveFilter(filter)}
-                className={
-                  activeFilter === filter
-                    ? 'px-5 py-2 rounded-full bg-primary'
-                    : 'px-5 py-2 rounded-full bg-white border border-slate-100'
-                }
-                style={activeFilter === filter ? Shadows.focus : Shadows.card}
-              >
-                <Text
-                  className={
-                    activeFilter === filter
-                      ? 'text-sm font-semibold text-white'
-                      : 'text-sm font-medium text-slate-500'
-                  }
-                >
-                  {filter}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          {/* Section Header */}
-          <View className="flex-row items-center justify-between py-6">
-            <Text className="text-lg font-bold text-midnight">
-              Active Patients{' '}
-              <Text className="text-slate-400 font-normal">({filtered.length})</Text>
-            </Text>
+      {/* Tabs */}
+      <View className="flex-row px-6 pt-4 pb-2 gap-3">
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab;
+          const count = tab === 'Upcoming' ? upcomingTotal : pastTotal;
+          return (
             <Pressable
-              onPress={handleSortPress}
-              className="flex-row items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100"
-              style={Shadows.card}
-            >
-              <ArrowDownUp size={14} color="#1A73E8" />
-              <Text className="text-primary text-xs font-bold">Sort</Text>
-            </Pressable>
-          </View>
-
-          {/* Patient Cards */}
-          {filtered.map((patient) => (
-            <Pressable
-              key={patient.id}
-              onPress={() =>
-                router.push({
-                  pathname: '/doctor/patient-clinical-summary',
-                  params: { id: patient.id },
-                })
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className={
+                isActive
+                  ? 'flex-1 py-2.5 rounded-xl bg-primary items-center'
+                  : 'flex-1 py-2.5 rounded-xl bg-white border border-slate-100 items-center'
               }
-              onLongPress={() => handleLongPress(patient)}
-              delayLongPress={500}
-              className="bg-white p-4 rounded-2xl mb-4 border border-slate-100 active:opacity-80"
-              style={Shadows.card}
+              style={isActive ? Shadows.focus : Shadows.card}
             >
-              <View className="flex-row items-start gap-4">
-                <Image
-                  source={{ uri: patient.avatar }}
-                  className="w-14 h-14 rounded-xl"
-                />
-                <View className="flex-1">
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1 mr-2">
-                      <Text className="font-bold text-midnight text-base">{patient.name}</Text>
-                      <Text className="text-xs text-slate-500 font-medium uppercase tracking-tight mt-0.5">
-                        ID: {patient.patientId} &bull; {patient.location}
-                      </Text>
-                    </View>
-                    <View className={`px-2.5 py-1 rounded-lg ${statusConfig[patient.status].bg}`}>
-                      <Text
-                        className={`text-[10px] font-bold uppercase tracking-wider ${statusConfig[patient.status].text}`}
-                      >
-                        {patient.status}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row flex-wrap gap-2 mt-3">
-                    {patient.tags.map((tag) => (
-                      <View key={tag} className="px-2 py-1 rounded-md bg-slate-50 border border-slate-100">
-                        <Text className="text-[10px] font-bold text-slate-500 uppercase">{tag}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-              <View className="mt-4 pt-4 border-t border-slate-50 flex-row justify-between items-center">
-                <View className="flex-row items-center gap-1.5">
-                  <Clock size={14} color="#94A3B8" />
-                  <Text className="text-xs text-slate-400 font-medium">{patient.lastVisit}</Text>
-                </View>
-                <Pressable
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleViewCharts(patient);
-                  }}
-                  className="flex-row items-center gap-1"
-                  hitSlop={8}
-                >
-                  <Text className="text-primary text-xs font-bold">View Charts</Text>
-                  <ArrowDownUp size={12} color="#1A73E8" style={{ transform: [{ rotate: '-90deg' }] }} />
-                </Pressable>
-              </View>
+              <Text
+                className={
+                  isActive
+                    ? 'text-sm font-bold text-white'
+                    : 'text-sm font-medium text-slate-500'
+                }
+              >
+                {tab} ({count})
+              </Text>
             </Pressable>
-          ))}
+          );
+        })}
+      </View>
 
-          {filtered.length === 0 && (
-            <View className="py-16 items-center">
-              <Search size={40} color="#CBD5E1" />
-              <Text className="text-slate-400 mt-3 text-sm">No patients match your search.</Text>
-            </View>
-          )}
+      {/* Content */}
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text className="text-slate-400 text-sm mt-4">Loading appointments...</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          className="flex-1 px-6"
+          contentContainerStyle={{ paddingBottom: 120, paddingTop: 8 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          }
+        >
+          {filtered.length === 0 ? (
+            <View className="items-center py-16">
+              <Calendar size={40} color="#CBD5E1" />
+              <Text className="text-slate-500 font-semibold text-base mt-3">
+                {search ? 'No matching appointments' : `No ${activeTab.toLowerCase()} appointments`}
+              </Text>
+              <Text className="text-slate-400 text-xs mt-1">
+                {search ? 'Try a different search term' : 'Pull down to refresh'}
+              </Text>
+            </View>
+          ) : (
+            filtered.map((item) => (
+              <AppointmentCard
+                key={item.id}
+                item={item}
+                onStatusChange={handleStatusChange}
+              />
+            ))
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

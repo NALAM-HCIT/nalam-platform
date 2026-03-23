@@ -191,6 +191,9 @@ app.MapHospitalEndpoints();
 app.MapAdminEndpoints();
 app.MapAppointmentEndpoints();
 app.MapReceptionistEndpoints();
+app.MapPharmacistEndpoints();
+app.MapPatientEndpoints();
+app.MapDoctorPortalEndpoints();
 
 // Health check
 app.MapGet("/", () => Results.Ok(new

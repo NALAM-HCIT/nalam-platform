@@ -199,7 +199,7 @@ export default function DoctorEditProfileScreen() {
   }, []);
 
   const handlePhotoUpdate = useCallback(() => {
-    const buttons: Alert.AlertButton[] = [
+    const buttons: any[] = [
       { text: 'Cancel', style: 'cancel' as const },
       { text: 'Take Photo', onPress: () => pickImage(true) },
       { text: 'Choose from Gallery', onPress: () => pickImage(false) },

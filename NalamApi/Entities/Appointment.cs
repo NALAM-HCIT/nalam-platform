@@ -84,6 +84,14 @@ public class Appointment
     [Column("notes")]
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Tracks prescription dispensing: null (no prescription), pending, dispensed, rejected.
+    /// Set to "pending" when doctor completes consultation with prescription notes.
+    /// </summary>
+    [MaxLength(20)]
+    [Column("prescription_status")]
+    public string? PrescriptionStatus { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

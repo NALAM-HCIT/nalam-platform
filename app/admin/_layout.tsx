@@ -8,6 +8,7 @@ export default function AdminLayout() {
       <Stack.Screen name="otp" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="create-user" />
+      <Stack.Screen name="manage-doctors" />
       <Stack.Screen name="edit-profile" />
     </Stack>
   );

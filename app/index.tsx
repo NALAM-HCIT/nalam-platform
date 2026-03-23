@@ -8,15 +8,13 @@ import { User, BriefcaseMedical, HelpCircle } from 'lucide-react-native';
 
 export default function SplashRoleScreen() {
   const router = useRouter();
-  const setRole = useAuthStore((s) => s.setRole);
 
   const handlePatient = () => {
-    setRole('patient');
     router.push('/patient/login');
   };
 
   const handleCareProvider = () => {
-    router.push('/care-provider/login');
+    router.push('/care-provider-select');
   };
 
   return (

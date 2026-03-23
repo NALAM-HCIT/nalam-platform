@@ -6,24 +6,40 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft, Stethoscope, Pill, Activity, HeartPulse, ChevronDown, ArrowRight, ShieldCheck } from 'lucide-react-native';
-import { TEST_USERS } from '@/constants/testUsers';
+import { api } from '@/services/api';
 
 export default function CareProviderLoginScreen() {
   const router = useRouter();
   const { setPhone } = useAuthStore();
   const [phone, setPhoneLocal] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (phone.length < 10) return;
     const fullPhone = `+91${phone}`;
-    if (!TEST_USERS[fullPhone]) {
-      setError('This number is not registered. Please contact your hospital administrator.');
-      return;
-    }
+    setIsLoading(true);
     setError('');
-    setPhone(fullPhone);
-    router.push('/care-provider/otp');
+    try {
+      const res = await api.post('/auth/send-otp', { mobileNumber: fullPhone });
+      const data = res.data;
+      if (data.success) {
+        setPhone(fullPhone);
+        router.push('/care-provider/otp');
+      } else if (data.isNewUser) {
+        setError('Mobile number not registered. Please contact your hospital administrator to create your account.');
+      } else {
+        setError(data.message || 'Failed to send OTP.');
+      }
+    } catch (err: any) {
+      if (err.response?.status === 429) {
+        setError('Too many requests. Please wait a minute.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to send OTP. Ensure you are a registered user.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

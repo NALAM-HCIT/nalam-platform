@@ -1,13 +1,14 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
 import {
   ArrowLeft, Search, ChevronDown, Star, MapPin, Briefcase,
   Video, Clock, ChevronRight, Heart, Brain, Bone, Baby,
-  Stethoscope, Eye, Smile,
+  Stethoscope, Eye, Smile, WifiOff,
 } from 'lucide-react-native';
+import { getDoctors, DoctorListItem } from '@/services/appointmentService';
 
 /* ───── Data ───── */
 
@@ -21,30 +22,29 @@ const SPECIALTIES = [
   { id: 'dental', label: 'Dental', icon: Smile, color: '#EC4899' },
 ];
 
+// Map specialty chip IDs to API search terms
+const SPECIALTY_MAP: Record<string, string> = {
+  cardio: 'cardio',
+  neuro: 'neuro',
+  ortho: 'ortho',
+  pedia: 'pedia',
+  optha: 'ophthalmol',
+  dental: 'dental',
+};
+
 interface Doctor {
   id: string;
+  doctorProfileId: string;
   name: string;
   initials: string;
   specialty: string;
-  specialtyId: string;
   rating: number;
   reviews: number;
   exp: number;
-  dist: string;
   fee: number;
   online: boolean;
-  nextSlot: string;
   languages: string;
 }
-
-const DOCTORS: Doctor[] = [
-  { id: '1', name: 'Dr. Aruna Reddy', initials: 'AR', specialty: 'Cardiologist', specialtyId: 'cardio', rating: 4.9, reviews: 312, exp: 12, dist: '2.4 km', fee: 800, online: true, nextSlot: '10:30 AM Today', languages: 'Tamil, English' },
-  { id: '2', name: 'Dr. Sarah Johnson', initials: 'SJ', specialty: 'Neurologist', specialtyId: 'neuro', rating: 4.8, reviews: 198, exp: 8, dist: '1.1 km', fee: 650, online: false, nextSlot: '2:00 PM Today', languages: 'English, Hindi' },
-  { id: '3', name: 'Dr. James Wilson', initials: 'JW', specialty: 'Orthopedic', specialtyId: 'ortho', rating: 4.7, reviews: 425, exp: 15, dist: '3.8 km', fee: 1000, online: true, nextSlot: '11:00 AM Tomorrow', languages: 'English' },
-  { id: '4', name: 'Dr. Elena Gomez', initials: 'EG', specialty: 'Pediatrician', specialtyId: 'pedia', rating: 5.0, reviews: 156, exp: 6, dist: '0.5 km', fee: 500, online: false, nextSlot: '9:00 AM Today', languages: 'Tamil, English, Hindi' },
-  { id: '5', name: 'Dr. Priya Sharma', initials: 'PS', specialty: 'Cardiologist', specialtyId: 'cardio', rating: 4.6, reviews: 89, exp: 5, dist: '4.2 km', fee: 600, online: true, nextSlot: '3:30 PM Today', languages: 'Hindi, English' },
-  { id: '6', name: 'Dr. Vikram Patel', initials: 'VP', specialty: 'Neurologist', specialtyId: 'neuro', rating: 4.9, reviews: 267, exp: 18, dist: '5.1 km', fee: 1200, online: true, nextSlot: '4:00 PM Today', languages: 'English, Gujarati' },
-];
 
 /* ───── Sub-components ───── */
 
@@ -123,26 +123,20 @@ const DoctorCard = React.memo(function DoctorCard({
             </View>
             <View className="w-1 h-1 rounded-full bg-slate-300" />
             <View className="flex-row items-center gap-1">
-              <MapPin size={12} color="#94A3B8" />
-              <Text className="text-[11px] text-slate-500 font-medium">{doc.dist}</Text>
-            </View>
-            <View className="w-1 h-1 rounded-full bg-slate-300" />
-            <View className="flex-row items-center gap-1">
               <Star size={12} color="#EAB308" fill="#EAB308" />
-              <Text className="text-[11px] text-midnight font-bold">{doc.rating}</Text>
+              <Text className="text-[11px] text-midnight font-bold">{doc.rating ?? '-'}</Text>
               <Text className="text-[10px] text-slate-400">({doc.reviews})</Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* Next Slot + Fee + Book */}
+      {/* Fee + Book */}
       <View className="flex-row items-center justify-between pt-4 mt-4 border-t border-slate-100">
         <View>
-          <View className="flex-row items-center gap-1.5 mb-1">
-            <Clock size={11} color="#059669" />
-            <Text className="text-[11px] text-emerald-600 font-semibold">{doc.nextSlot}</Text>
-          </View>
+          {doc.languages ? (
+            <Text className="text-[11px] text-slate-400 font-medium mb-1">{doc.languages}</Text>
+          ) : null}
           <Text className="text-xl font-extrabold text-midnight">
             {'\u20B9'}{doc.fee}
           </Text>
@@ -166,29 +160,60 @@ export default function ConsultationTypeScreen() {
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [activeSpecialty, setActiveSpecialty] = useState('all');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredDoctors = useMemo(() => {
-    let results = DOCTORS;
-    if (activeSpecialty !== 'all') {
-      results = results.filter((d) => d.specialtyId === activeSpecialty);
+  const fetchDoctors = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+
+      const specialtyFilter = activeSpecialty !== 'all' ? SPECIALTY_MAP[activeSpecialty] : undefined;
+      const searchFilter = searchText.trim() || undefined;
+
+      const response = await getDoctors({
+        specialty: specialtyFilter,
+        search: searchFilter,
+        pageSize: 50,
+      });
+
+      const mapped: Doctor[] = response.doctors.map((d) => ({
+        id: d.userId,
+        doctorProfileId: d.doctorProfileId,
+        name: d.fullName,
+        initials: d.initials,
+        specialty: d.specialty,
+        rating: d.rating ?? 0,
+        reviews: d.reviewCount,
+        exp: d.experienceYears,
+        fee: d.consultationFee,
+        online: d.availableForVideo,
+        languages: d.languages ?? '',
+      }));
+
+      setDoctors(mapped);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load doctors');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      results = results.filter(
-        (d) =>
-          d.name.toLowerCase().includes(q) ||
-          d.specialty.toLowerCase().includes(q),
-      );
-    }
-    return results;
   }, [activeSpecialty, searchText]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchDoctors(), 300);
+    return () => clearTimeout(timer);
+  }, [fetchDoctors]);
 
   const handleBook = useCallback(
     (doc: Doctor) => {
       router.push({
         pathname: '/patient/slot-selection',
         params: {
-          doctorId: doc.id,
+          doctorProfileId: doc.doctorProfileId,
           doctorName: doc.name,
           specialty: doc.specialty,
           fee: doc.fee.toString(),
@@ -251,23 +276,42 @@ export default function ConsultationTypeScreen() {
         className="flex-1 px-5"
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchDoctors(true)} tintColor={Colors.primary} />
+        }
       >
         <View className="flex-row items-center justify-between px-1 mb-4">
           <Text className="text-lg font-bold text-midnight">
             {activeSpecialty === 'all' ? 'Top Specialists' : SPECIALTIES.find((s) => s.id === activeSpecialty)?.label}
           </Text>
-          <Text className="text-slate-400 text-xs font-semibold">{filteredDoctors.length} doctors</Text>
+          <Text className="text-slate-400 text-xs font-semibold">{doctors.length} doctors</Text>
         </View>
 
-        {filteredDoctors.length === 0 ? (
+        {loading ? (
+          <View className="items-center pt-16">
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text className="text-slate-400 text-sm font-medium mt-4">Loading doctors...</Text>
+          </View>
+        ) : error ? (
+          <View className="items-center pt-16">
+            <WifiOff size={48} color="#CBD5E1" />
+            <Text className="text-slate-400 text-sm font-medium mt-4">{error}</Text>
+            <Pressable
+              onPress={() => fetchDoctors()}
+              className="mt-4 bg-primary px-6 py-2.5 rounded-full"
+            >
+              <Text className="text-white font-bold text-sm">Retry</Text>
+            </Pressable>
+          </View>
+        ) : doctors.length === 0 ? (
           <View className="items-center pt-16">
             <Stethoscope size={48} color="#CBD5E1" />
             <Text className="text-slate-400 text-sm font-medium mt-4">No doctors found</Text>
             <Text className="text-slate-300 text-xs mt-1">Try a different specialty or search term</Text>
           </View>
         ) : (
-          filteredDoctors.map((doc) => (
-            <DoctorCard key={doc.id} doc={doc} onBook={() => handleBook(doc)} />
+          doctors.map((doc) => (
+            <DoctorCard key={doc.doctorProfileId} doc={doc} onBook={() => handleBook(doc)} />
           ))
         )}
       </ScrollView>

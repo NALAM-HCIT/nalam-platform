@@ -1,16 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react-native';
-import { TEST_USERS } from '@/constants/testUsers';
+import { api } from '@/services/api';
 
 export default function ReceptionistOTPScreen() {
   const router = useRouter();
   const { phone, login } = useAuthStore();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
 
   const handleOtpChange = (text: string, index: number) => {
@@ -20,18 +22,29 @@ export default function ReceptionistOTPScreen() {
     if (text && index < 5) inputs.current[index + 1]?.focus();
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpString = otp.join('');
-    if (otpString.length === 6) {
-      const currentRole = 'receptionist';
-      const user = TEST_USERS[phone];
-      const defaultNames: Record<string, string> = { doctor: 'Doctor', receptionist: 'Receptionist', pharmacist: 'Pharmacist', admin: 'Admin' };
-      login({
-        userName: user?.name || defaultNames[currentRole] || 'Care Provider',
-        userId: user?.userId || `${currentRole}-001`,
-        role: currentRole,
+    if (otpString.length < 6) return;
+    setIsVerifying(true);
+    setError('');
+    try {
+      const response = await api.post('/auth/verify-otp', {
+        mobileNumber: phone,
+        otpCode: otpString,
       });
-      router.replace(`/${currentRole}/(tabs)` as any);
+      const { token, user } = response.data;
+      await login({
+        token,
+        userName: user.fullName || 'Receptionist',
+        userId: user.id,
+        role: user.role,
+        hospitalId: user.hospitalId,
+      });
+      router.replace(`/${user.role}/(tabs)` as any);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 

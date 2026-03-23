@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, Alert, Modal, RefreshControl } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
+import { receptionistService, ReceptionDashboardStats, QueuePatient } from '@/services/receptionistService';
 import { Shadows } from '@/constants/theme';
 import {
   Bell, LogIn, UserCheck, Clock, Stethoscope, Building2,
@@ -42,17 +43,34 @@ export default function ReceptionistDashboard() {
   const userName = useAuthStore((s) => s.userName);
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [appointments, setAppointments] = useState(initialAppointments);
+  const [stats, setStats] = useState<ReceptionDashboardStats | null>(null);
+  const [appointments, setAppointments] = useState<QueuePatient[]>([]);
   const [notifModalVisible, setNotifModalVisible] = useState(false);
   const [allApptModalVisible, setAllApptModalVisible] = useState(false);
   const [notifications, setNotifications] = useState(notificationsData);
 
-  const onRefresh = useCallback(() => {
+  const loadDashboard = async () => {
+    try {
+      const [dashStats, queue] = await Promise.all([
+        receptionistService.getDashboard(),
+        receptionistService.getQueue()
+      ]);
+      setStats(dashStats);
+      setAppointments(queue.slice(0, 5)); // Dashboard shows top 5
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to load dashboard data.');
+    }
+  };
+
+  React.useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      Alert.alert('Refreshed', 'Dashboard data has been updated.');
-    }, 1200);
+    await loadDashboard();
+    setRefreshing(false);
   }, []);
 
   const handleStatPress = (stat: typeof initialStats[0]) => {
@@ -143,35 +161,33 @@ export default function ReceptionistDashboard() {
     }
   };
 
-  const handleAppointmentPress = (apt: typeof initialAppointments[0]) => {
+  const currentStats = [
+    { label: 'Total Appts', value: stats?.stats.total ?? 0, icon: CalendarPlus, color: '#1A73E8', breakdown: 'All appointments for today' },
+    { label: 'Waiting', value: stats?.stats.waiting ?? 0, icon: Clock, color: '#F59E0B', breakdown: 'Checked-in and waiting for doctor' },
+    { label: 'In Consult', value: stats?.stats.in_consultation ?? 0, icon: Stethoscope, color: '#8B5CF6', breakdown: 'Currently with doctor' },
+    { label: 'Completed', value: stats?.stats.completed ?? 0, icon: UserCheck, color: '#22C55E', showDot: true, breakdown: 'Consultation finished' },
+  ];
+
+  const handleAppointmentPress = (apt: QueuePatient) => {
     Alert.alert(
-      apt.name,
-      `Doctor: ${apt.doctor}\nTime: ${apt.time}\nType: ${apt.type}\nAge: ${apt.age}\nPhone: ${apt.phone}\nReason: ${apt.reason}`,
+      apt.patientName,
+      `Doctor: ${apt.doctorName}\nTime: ${apt.time}\nType: ${apt.type}\nStatus: ${apt.status}\nPhone: ${apt.patientMobile}`,
       [
         { text: 'Dismiss' },
         {
           text: 'Check In',
-          onPress: () => {
-            if (apt.type === 'In-Person') {
-              router.push('/receptionist/patient-arrival');
+          onPress: async () => {
+            if (apt.type === 'in-person') {
+              router.push({ pathname: '/receptionist/patient-arrival', params: { appointmentId: apt.id } });
             } else {
-              setAppointments((prev) => prev.filter((a) => a.id !== apt.id));
-              Alert.alert('Checked In', `${apt.name} has been checked in successfully.\n\nAssigned to: ${apt.doctor}\nToken: T-${Math.floor(Math.random() * 100) + 1}`);
+              try {
+                await receptionistService.checkInPatient(apt.id);
+                loadDashboard();
+                Alert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
+              } catch (e) {
+                Alert.alert('Error', 'Failed to check-in patient');
+              }
             }
-          },
-        },
-        {
-          text: 'Reschedule',
-          onPress: () => {
-            Alert.alert(
-              'Reschedule Appointment',
-              `Reschedule ${apt.name}'s ${apt.time} appointment?`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Tomorrow Same Time', onPress: () => Alert.alert('Rescheduled', `${apt.name}'s appointment moved to tomorrow at ${apt.time}.`) },
-                { text: 'Next Available', onPress: () => Alert.alert('Rescheduled', `${apt.name}'s appointment moved to next available slot: 2:30 PM today.`) },
-              ]
-            );
           },
         },
         {
@@ -180,15 +196,14 @@ export default function ReceptionistDashboard() {
           onPress: () => {
             Alert.alert(
               'Cancel Appointment',
-              `Are you sure you want to cancel ${apt.name}'s appointment?`,
+              `Are you sure you want to cancel ${apt.patientName}'s appointment?`,
               [
                 { text: 'No', style: 'cancel' },
                 {
-                  text: 'Yes, Cancel',
+                  text: 'Cancel API Not Ready',
                   style: 'destructive',
                   onPress: () => {
-                    setAppointments((prev) => prev.filter((a) => a.id !== apt.id));
-                    Alert.alert('Cancelled', `${apt.name}'s appointment has been cancelled. SMS notification sent.`);
+                    Alert.alert('Info', 'Use the Appointments tab to access full cancel actions.');
                   },
                 },
               ]
@@ -267,10 +282,10 @@ export default function ReceptionistDashboard() {
 
         {/* Stats Grid 2x2 */}
         <View className="px-6 flex-row flex-wrap gap-3">
-          {initialStats.map((s, i) => (
+          {currentStats.map((s, i) => (
             <Pressable
               key={i}
-              onPress={() => handleStatPress(s)}
+              onPress={() => handleStatPress(s as any)}
               className="bg-white rounded-2xl p-5 active:opacity-80"
               style={[Shadows.card, { width: '48%' } as any]}
             >
@@ -340,17 +355,17 @@ export default function ReceptionistDashboard() {
                     style={{ backgroundColor: i % 2 === 0 ? '#DBEAFE' : '#E0E7FF' }}
                   >
                     <Text className="font-bold text-sm" style={{ color: i % 2 === 0 ? '#1A73E8' : '#4F46E5' }}>
-                      {p.initials}
+                      {p.patientInitials}
                     </Text>
                   </View>
                   <View className="flex-1">
                     <View className="flex-row items-center justify-between">
-                      <Text className="font-bold text-sm text-midnight">{p.name}</Text>
-                      <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: p.bgColor }}>
-                        <Text className="text-[10px] font-bold" style={{ color: p.typeColor }}>{p.type}</Text>
+                      <Text className="font-bold text-sm text-midnight">{p.patientName}</Text>
+                      <View className="px-2.5 py-1 rounded-full bg-slate-100">
+                        <Text className="text-[10px] font-bold text-slate-500">{p.type}</Text>
                       </View>
                     </View>
-                    <Text className="text-slate-500 text-xs mt-1">{p.doctor} {'\u2022'} {p.time}</Text>
+                    <Text className="text-slate-500 text-xs mt-1">{p.doctorName} {'\u2022'} {p.time}</Text>
                   </View>
                 </Pressable>
               ))
@@ -413,12 +428,7 @@ export default function ReceptionistDashboard() {
               </Pressable>
             </View>
             <ScrollView className="px-6" contentContainerStyle={{ paddingBottom: 40 }}>
-              {[...appointments, ...[
-                { id: '5', initials: 'PK', name: 'Priya Kumar', doctor: 'Dr. A. Nair', time: '01:00 PM', type: 'In-Person', typeColor: '#64748B', bgColor: '#F1F5F9', phone: '+91 98765 43214', age: 38, reason: 'Diabetes follow-up' },
-                { id: '6', initials: 'RS', name: 'Rajesh Singh', doctor: 'Dr. S. Sharma', time: '01:30 PM', type: 'Video', typeColor: '#1A73E8', bgColor: '#DBEAFE', phone: '+91 98765 43215', age: 52, reason: 'Post-surgery review' },
-                { id: '7', initials: 'MG', name: 'Meera Gupta', doctor: 'Dr. P. Reddy', time: '02:00 PM', type: 'In-Person', typeColor: '#64748B', bgColor: '#F1F5F9', phone: '+91 98765 43216', age: 29, reason: 'Allergy consultation' },
-                { id: '8', initials: 'AT', name: 'Arjun Thakur', doctor: 'Dr. R. Verma', time: '02:30 PM', type: 'Video', typeColor: '#1A73E8', bgColor: '#DBEAFE', phone: '+91 98765 43217', age: 41, reason: 'Back pain evaluation' },
-              ]].map((p, i) => (
+              {appointments.map((p, i) => (
                 <Pressable
                   key={p.id}
                   onPress={() => {
@@ -432,15 +442,15 @@ export default function ReceptionistDashboard() {
                     style={{ backgroundColor: i % 2 === 0 ? '#DBEAFE' : '#E0E7FF' }}
                   >
                     <Text className="font-bold text-sm" style={{ color: i % 2 === 0 ? '#1A73E8' : '#4F46E5' }}>
-                      {p.initials}
+                      {p.patientInitials}
                     </Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="font-bold text-sm text-midnight">{p.name}</Text>
-                    <Text className="text-slate-500 text-xs mt-0.5">{p.doctor} {'\u2022'} {p.time}</Text>
+                    <Text className="font-bold text-sm text-midnight">{p.patientName}</Text>
+                    <Text className="text-slate-500 text-xs mt-0.5">{p.doctorName} {'\u2022'} {p.time}</Text>
                   </View>
-                  <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: p.bgColor }}>
-                    <Text className="text-[10px] font-bold" style={{ color: p.typeColor }}>{p.type}</Text>
+                  <View className="px-2.5 py-1 rounded-full bg-slate-100">
+                    <Text className="text-[10px] font-bold text-slate-500">{p.type}</Text>
                   </View>
                 </Pressable>
               ))}

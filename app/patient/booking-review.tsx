@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -8,6 +8,7 @@ import {
   Pencil, Building2, CreditCard, Smartphone, Shield, Landmark, Wallet,
   Star, Briefcase, Clock, Tag, CheckCircle2,
 } from 'lucide-react-native';
+import { createAppointment } from '@/services/appointmentService';
 
 /* ───── Data ───── */
 
@@ -99,11 +100,13 @@ const DetailRow = React.memo(function DetailRow({
 export default function BookingReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
+    doctorProfileId?: string;
     doctorName?: string;
     specialty?: string;
     fee?: string;
     consultationType?: string;
     date?: string;
+    fullDate?: string;
     time?: string;
     initials?: string;
     exp?: string;
@@ -111,16 +114,18 @@ export default function BookingReviewScreen() {
     reviews?: string;
   }>();
 
-  const doctorName = params.doctorName ?? 'Dr. Aruna Reddy';
-  const specialty = params.specialty ?? 'Cardiologist';
-  const fee = parseFloat(params.fee ?? '800');
+  const doctorProfileId = params.doctorProfileId ?? '';
+  const doctorName = params.doctorName ?? 'Doctor';
+  const specialty = params.specialty ?? '';
+  const fee = parseFloat(params.fee ?? '0');
   const consultationType = params.consultationType ?? 'video';
-  const dateStr = params.date ?? 'Mar 21';
-  const timeStr = params.time ?? '10:00 AM';
-  const initials = params.initials ?? 'AR';
-  const exp = params.exp ?? '12';
-  const rating = params.rating ?? '4.9';
-  const reviews = params.reviews ?? '312';
+  const dateStr = params.date ?? '';
+  const fullDate = params.fullDate ?? '';
+  const timeStr = params.time ?? '';
+  const initials = params.initials ?? '';
+  const exp = params.exp ?? '0';
+  const rating = params.rating ?? '0';
+  const reviews = params.reviews ?? '0';
 
   const isVideo = consultationType === 'video';
   const ConsultIcon = isVideo ? Video : Building2;
@@ -128,6 +133,7 @@ export default function BookingReviewScreen() {
 
   const [selectedPayment, setSelectedPayment] = useState('upi');
   const [couponApplied, setCouponApplied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const pricing = useMemo(() => {
     const tax = fee * 0.05;
@@ -147,19 +153,51 @@ export default function BookingReviewScreen() {
     ]);
   }, [couponApplied]);
 
-  const handleConfirm = useCallback(() => {
-    router.push({
-      pathname: '/patient/booking-confirmation',
-      params: {
-        doctorName,
-        specialty,
+  // Convert "10:30 AM" display time to "10:30" 24h format for API
+  const parseTimeFor24h = (time12h: string): string => {
+    const match = time12h.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return time12h;
+    let hours = parseInt(match[1], 10);
+    const mins = match[2];
+    const period = match[3].toUpperCase();
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    return `${hours.toString().padStart(2, '0')}:${mins}`;
+  };
+
+  const handleConfirm = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+
+    try {
+      const result = await createAppointment({
+        doctorProfileId,
+        scheduleDate: fullDate,
+        startTime: parseTimeFor24h(timeStr),
         consultationType,
-        date: dateStr,
-        time: timeStr,
-        total: pricing.total.toFixed(2),
-      },
-    });
-  }, [router, doctorName, specialty, consultationType, dateStr, timeStr, pricing.total]);
+        paymentMethod: selectedPayment,
+        couponCode: couponApplied ? 'NALAM100' : undefined,
+      });
+
+      router.push({
+        pathname: '/patient/booking-confirmation',
+        params: {
+          bookingReference: result.bookingReference,
+          doctorName,
+          specialty,
+          consultationType,
+          date: dateStr,
+          time: timeStr,
+          total: result.totalAmount.toFixed(2),
+        },
+      });
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.message || 'Booking failed. Please try again.';
+      Alert.alert('Booking Failed', message);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting, router, doctorProfileId, fullDate, timeStr, consultationType, selectedPayment, couponApplied, doctorName, specialty, dateStr, pricing.total]);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -347,13 +385,20 @@ export default function BookingReviewScreen() {
         <SafeAreaView edges={['bottom']}>
           <Pressable
             onPress={handleConfirm}
-            className="w-full bg-primary py-4 rounded-full items-center flex-row justify-center gap-2"
+            disabled={submitting}
+            className={`w-full py-4 rounded-full items-center flex-row justify-center gap-2 ${submitting ? 'bg-primary/70' : 'bg-primary'}`}
             style={Shadows.focus}
           >
-            <Text className="text-white font-bold text-base">
-              Pay {'\u20B9'}{pricing.total.toFixed(2)} & Confirm
-            </Text>
-            <ChevronRight size={18} color="#FFFFFF" />
+            {submitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text className="text-white font-bold text-base">
+                  Pay {'\u20B9'}{pricing.total.toFixed(2)} & Confirm
+                </Text>
+                <ChevronRight size={18} color="#FFFFFF" />
+              </>
+            )}
           </Pressable>
         </SafeAreaView>
       </View>

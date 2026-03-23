@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -9,6 +9,7 @@ import {
   ChevronRight, CheckCircle2, XCircle, RotateCcw, FileText,
   AlertCircle, Stethoscope,
 } from 'lucide-react-native';
+import { getAppointments, cancelAppointment, AppointmentResponse } from '@/services/appointmentService';
 
 /* ───── Types & Data ───── */
 
@@ -24,13 +25,10 @@ interface Booking {
   time: string;
   type: 'video' | 'in-person';
   status: BookingStatus;
-  tab: BookingTab;
   fee: number;
   location?: string;
   rating?: number;
   exp?: number;
-  prescription?: boolean;
-  followUp?: string;
   cancelReason?: string;
 }
 
@@ -77,128 +75,49 @@ const STATUS_CONFIG: Record<BookingStatus, { label: string; bg: string; border: 
   },
 };
 
-const BOOKINGS: Booking[] = [
-  {
-    id: '1',
-    doctor: 'Dr. Aruna Devi',
-    initials: 'AD',
-    specialty: 'Cardiologist',
-    date: 'Mar 24, 2026',
-    time: '10:00 AM',
-    type: 'in-person',
-    status: 'confirmed',
-    tab: 'upcoming',
-    fee: 800,
-    location: 'Nalam Hospital, Wing A',
-    rating: 4.9,
-    exp: 12,
-  },
-  {
-    id: '2',
-    doctor: 'Dr. Rajesh Kumar',
-    initials: 'RK',
-    specialty: 'Neurologist',
-    date: 'Mar 28, 2026',
-    time: '02:30 PM',
-    type: 'video',
-    status: 'pending',
-    tab: 'upcoming',
-    fee: 650,
-    rating: 4.8,
-    exp: 8,
-  },
-  {
-    id: '3',
-    doctor: 'Dr. Shalini Singh',
-    initials: 'SS',
-    specialty: 'Dermatologist',
-    date: 'Apr 02, 2026',
-    time: '11:00 AM',
-    type: 'video',
-    status: 'confirmed',
-    tab: 'upcoming',
-    fee: 700,
-    rating: 4.7,
-    exp: 10,
-  },
-  {
-    id: '4',
-    doctor: 'Dr. Aruna Devi',
-    initials: 'AD',
-    specialty: 'Cardiologist',
-    date: 'Mar 10, 2026',
-    time: '10:00 AM',
-    type: 'in-person',
-    status: 'completed',
-    tab: 'past',
-    fee: 800,
-    location: 'Nalam Hospital, Wing A',
-    rating: 4.9,
-    exp: 12,
-    prescription: true,
-    followUp: 'Mar 24, 2026',
-  },
-  {
-    id: '5',
-    doctor: 'Dr. Rajesh Kumar',
-    initials: 'RK',
-    specialty: 'Neurologist',
-    date: 'Feb 25, 2026',
-    time: '03:00 PM',
-    type: 'video',
-    status: 'completed',
-    tab: 'past',
-    fee: 650,
-    rating: 4.8,
-    exp: 8,
-    prescription: true,
-  },
-  {
-    id: '6',
-    doctor: 'Dr. James Wilson',
-    initials: 'JW',
-    specialty: 'Orthopedic',
-    date: 'Feb 15, 2026',
-    time: '09:30 AM',
-    type: 'in-person',
-    status: 'cancelled',
-    tab: 'past',
-    fee: 1000,
-    cancelReason: 'Doctor unavailable',
-  },
-  {
-    id: '7',
-    doctor: 'Dr. Elena Gomez',
-    initials: 'EG',
-    specialty: 'Pediatrician',
-    date: 'Jan 28, 2026',
-    time: '11:00 AM',
-    type: 'video',
-    status: 'no_show',
-    tab: 'past',
-    fee: 500,
-  },
-  {
-    id: '8',
-    doctor: 'Dr. Priya Sharma',
-    initials: 'PS',
-    specialty: 'Cardiologist',
-    date: 'Jan 10, 2026',
-    time: '04:00 PM',
-    type: 'in-person',
-    status: 'completed',
-    tab: 'past',
-    fee: 600,
-    location: 'Nalam Hospital, Wing B',
-    prescription: true,
-    followUp: 'Feb 10, 2026',
-  },
-];
+// Format API date "2026-03-24" to display "Mar 24, 2026"
+function formatDate(dateStr: string): string {
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  return `${MONTHS[monthIdx]} ${parseInt(parts[2], 10)}, ${parts[0]}`;
+}
+
+// Format API time "10:00" to display "10:00 AM"
+function formatTime(timeStr: string): string {
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hours = parseInt(parts[0], 10);
+  const mins = parts[1];
+  const period = hours >= 12 ? 'PM' : 'AM';
+  if (hours > 12) hours -= 12;
+  if (hours === 0) hours = 12;
+  return `${hours.toString().padStart(2, '0')}:${mins} ${period}`;
+}
+
+function mapApiToBooking(a: AppointmentResponse): Booking {
+  return {
+    id: a.id,
+    doctor: a.doctorName,
+    initials: a.doctorInitials,
+    specialty: a.specialty,
+    date: formatDate(a.scheduleDate),
+    time: formatTime(a.startTime),
+    type: a.consultationType as 'video' | 'in-person',
+    status: a.status as BookingStatus,
+    fee: a.totalAmount,
+    location: a.location ?? undefined,
+    rating: a.doctorRating ?? undefined,
+    exp: a.doctorExperience ?? undefined,
+    cancelReason: a.cancelReason ?? undefined,
+  };
+}
 
 /* ───── Sub-components ───── */
 
 const BookingStatusBadge = React.memo(function BookingStatusBadge({ status }: { status: BookingStatus }) {
-  const config = STATUS_CONFIG[status];
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   const Icon = config.icon;
   return (
     <View className={`${config.bg} ${config.border} border px-2.5 py-1 rounded-full flex-row items-center gap-1`}>
@@ -250,13 +169,13 @@ const UpcomingBookingCard = React.memo(function UpcomingBookingCard({
           <View className="flex-1">
             <Text className="font-bold text-[15px] text-midnight">{booking.doctor}</Text>
             <Text className="text-primary text-xs font-semibold mt-0.5">{booking.specialty}</Text>
-            {booking.rating && (
+            {booking.rating != null && (
               <View className="flex-row items-center gap-2 mt-1">
                 <View className="flex-row items-center gap-0.5">
                   <Star size={10} color="#EAB308" fill="#EAB308" />
                   <Text className="text-[10px] text-midnight font-bold">{booking.rating}</Text>
                 </View>
-                {booking.exp && (
+                {booking.exp != null && (
                   <>
                     <View className="w-1 h-1 rounded-full bg-slate-300" />
                     <View className="flex-row items-center gap-0.5">
@@ -348,12 +267,10 @@ const UpcomingBookingCard = React.memo(function UpcomingBookingCard({
 const PastBookingCard = React.memo(function PastBookingCard({
   booking,
   onRebook,
-  onViewPrescription,
   onViewDetails,
 }: {
   booking: Booking;
   onRebook: () => void;
-  onViewPrescription: () => void;
   onViewDetails: () => void;
 }) {
   const isVideo = booking.type === 'video';
@@ -413,25 +330,8 @@ const PastBookingCard = React.memo(function PastBookingCard({
           </View>
         )}
 
-        {/* Follow-up info */}
-        {booking.followUp && (
-          <View className="bg-blue-50 rounded-xl px-3 py-2 mb-3 flex-row items-center gap-2">
-            <Calendar size={12} color={Colors.primary} />
-            <Text className="text-primary text-[11px] font-medium">Follow-up scheduled: {booking.followUp}</Text>
-          </View>
-        )}
-
         {/* Actions */}
         <View className="flex-row gap-3 pt-3 border-t border-slate-100">
-          {booking.prescription && (
-            <Pressable
-              onPress={onViewPrescription}
-              className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-full bg-primary/5 active:opacity-70"
-            >
-              <FileText size={12} color={Colors.primary} />
-              <Text className="text-primary text-xs font-bold">Prescription</Text>
-            </Pressable>
-          )}
           <Pressable
             onPress={onRebook}
             className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-full bg-primary/5 active:opacity-70"
@@ -452,9 +352,35 @@ const PastBookingCard = React.memo(function PastBookingCard({
 export default function BookingsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<BookingTab>('upcoming');
+  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
+  const [pastBookings, setPastBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const upcomingBookings = useMemo(() => BOOKINGS.filter((b) => b.tab === 'upcoming'), []);
-  const pastBookings = useMemo(() => BOOKINGS.filter((b) => b.tab === 'past'), []);
+  const fetchBookings = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const [upRes, pastRes] = await Promise.all([
+        getAppointments({ tab: 'upcoming', pageSize: 50 }),
+        getAppointments({ tab: 'past', pageSize: 50 }),
+      ]);
+
+      setUpcomingBookings(upRes.appointments.map(mapApiToBooking));
+      setPastBookings(pastRes.appointments.map(mapApiToBooking));
+    } catch (err: any) {
+      console.error('Failed to load bookings:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
   const filtered = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
 
   const handleJoinCall = useCallback((booking: Booking) => {
@@ -468,7 +394,7 @@ export default function BookingsScreen() {
   const handleReschedule = useCallback((booking: Booking) => {
     router.push({
       pathname: '/patient/edit-booking',
-      params: { type: booking.type === 'video' ? 'online' : 'in-person' },
+      params: { id: booking.id, type: booking.type === 'video' ? 'online' : 'in-person' },
     });
   }, [router]);
 
@@ -481,11 +407,19 @@ export default function BookingsScreen() {
         {
           text: 'Cancel Appointment',
           style: 'destructive',
-          onPress: () => Alert.alert('Cancelled', 'Your appointment has been cancelled. Refund will be processed within 3-5 business days.'),
+          onPress: async () => {
+            try {
+              await cancelAppointment(booking.id, 'Cancelled by patient');
+              Alert.alert('Cancelled', 'Your appointment has been cancelled. Refund will be processed within 3-5 business days.');
+              fetchBookings(true);
+            } catch (err: any) {
+              Alert.alert('Error', err.response?.data?.error || 'Failed to cancel appointment.');
+            }
+          },
         },
       ],
     );
-  }, []);
+  }, [fetchBookings]);
 
   const handleCall = useCallback((booking: Booking) => {
     Alert.alert('Call Hospital', `Calling reception for ${booking.doctor}'s clinic...`, [{ text: 'OK' }]);
@@ -496,19 +430,7 @@ export default function BookingsScreen() {
   }, []);
 
   const handleRebook = useCallback((booking: Booking) => {
-    router.push({
-      pathname: '/patient/slot-selection',
-      params: {
-        doctorName: booking.doctor,
-        specialty: booking.specialty,
-        fee: booking.fee.toString(),
-        initials: booking.initials,
-      },
-    });
-  }, [router]);
-
-  const handleViewPrescription = useCallback((booking: Booking) => {
-    router.push('/patient/digital-prescription');
+    router.push('/patient/consultation-type');
   }, [router]);
 
   return (
@@ -573,7 +495,7 @@ export default function BookingsScreen() {
             <Text className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Next Appointment</Text>
             <Text className="text-white font-bold text-[15px] mt-0.5">{upcomingBookings[0].doctor}</Text>
             <Text className="text-blue-100 text-xs mt-0.5">
-              {upcomingBookings[0].date} • {upcomingBookings[0].time}
+              {upcomingBookings[0].date} {'\u2022'} {upcomingBookings[0].time}
             </Text>
           </View>
           <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
@@ -586,8 +508,16 @@ export default function BookingsScreen() {
         className="flex-1 px-6"
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchBookings(true)} tintColor={Colors.primary} />
+        }
       >
-        {filtered.length === 0 ? (
+        {loading ? (
+          <View className="items-center justify-center pt-20">
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text className="text-slate-400 text-sm mt-4">Loading bookings...</Text>
+          </View>
+        ) : filtered.length === 0 ? (
           <View className="items-center justify-center pt-20">
             <Calendar size={48} color="#CBD5E1" />
             <Text className="text-slate-400 text-base mt-4 font-medium">
@@ -627,7 +557,6 @@ export default function BookingsScreen() {
                     key={booking.id}
                     booking={booking}
                     onRebook={() => handleRebook(booking)}
-                    onViewPrescription={() => handleViewPrescription(booking)}
                     onViewDetails={() => handleViewDetails(booking)}
                   />
                 ))}

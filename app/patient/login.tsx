@@ -1,21 +1,79 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View, Text, TextInput, Pressable, ScrollView,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
-import { ArrowLeft, Stethoscope, Pill, Activity, HeartPulse, ChevronDown, ArrowRight, ShieldCheck } from 'lucide-react-native';
+import {
+  ArrowLeft, Stethoscope, Pill, Activity, HeartPulse,
+  ChevronDown, ArrowRight, ShieldCheck, UserPlus,
+} from 'lucide-react-native';
+import { api, HOSPITAL_ID } from '@/services/api';
 
 export default function PatientLoginScreen() {
   const router = useRouter();
   const setPhone = useAuthStore((s) => s.setPhone);
   const [phone, setPhoneLocal] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleGetOTP = () => {
-    if (phone.length >= 10) {
-      setPhone(`+91${phone}`);
-      router.push('/patient/otp');
+  const handleGetOTP = async () => {
+    if (phone.length < 10) return;
+
+    const mobile = `+91${phone}`;
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/send-otp', { mobileNumber: mobile });
+      const data = res.data;
+
+      if (data.success) {
+        // Existing user — OTP sent, go to OTP screen
+        setPhone(mobile);
+        router.push('/patient/otp');
+      } else if (data.isNewUser) {
+        // New user — show name input for registration
+        setIsNewUser(true);
+      } else {
+        Alert.alert('Error', data.message || 'Something went wrong.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.message || 'Failed to connect. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (phone.length < 10 || fullName.trim().length < 2) return;
+
+    const mobile = `+91${phone}`;
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/patient-register', {
+        mobileNumber: mobile,
+        fullName: fullName.trim(),
+        hospitalId: HOSPITAL_ID,
+      });
+      const data = res.data;
+
+      if (data.success) {
+        setPhone(mobile);
+        router.push('/patient/otp');
+      } else {
+        Alert.alert('Registration Failed', data.message || 'Please try again.');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Registration failed. Please try again.';
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -25,7 +83,7 @@ export default function PatientLoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View className="flex-1 bg-[#EEF3FF]">
-        {/* Gradient Header — fixed height so bottom sheet always has room */}
+        {/* Gradient Header */}
         <LinearGradient
           colors={['#0c1d4a', '#1a3a8f', '#2260d9']}
           start={{ x: 0, y: 0 }}
@@ -50,7 +108,13 @@ export default function PatientLoginScreen() {
             {/* Back Button */}
             <View className="px-5 pt-3 mb-4">
               <Pressable
-                onPress={() => router.back()}
+                onPress={() => {
+                  if (isNewUser) {
+                    setIsNewUser(false);
+                  } else {
+                    router.back();
+                  }
+                }}
                 className="w-10 h-10 rounded-full items-center justify-center"
                 style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
               >
@@ -71,7 +135,7 @@ export default function PatientLoginScreen() {
           </SafeAreaView>
         </LinearGradient>
 
-        {/* Bottom Sheet — flex-1 fills all remaining space */}
+        {/* Bottom Sheet */}
         <View className="flex-1 bg-[#EEF3FF] rounded-t-[32px] -mt-8 z-10">
           <ScrollView
             className="flex-1"
@@ -82,56 +146,127 @@ export default function PatientLoginScreen() {
             {/* Handle Bar */}
             <View className="w-12 h-1.5 bg-slate-300/60 rounded-full self-center mt-4 mb-6" />
 
-            <Text className="text-midnight text-[26px] font-extrabold mb-1">
-              Login or Sign up
-            </Text>
-            <Text className="text-slate-400 text-sm mb-6 font-light">
-              Verify your mobile number to continue
-            </Text>
+            {isNewUser ? (
+              <>
+                {/* Registration Form */}
+                <View className="flex-row items-center gap-2 mb-1">
+                  <UserPlus size={22} color="#1A73E8" />
+                  <Text className="text-midnight text-[26px] font-extrabold">
+                    Create Account
+                  </Text>
+                </View>
+                <Text className="text-slate-400 text-sm mb-6 font-light">
+                  Enter your name to complete registration
+                </Text>
 
-            {/* Mobile Number Label */}
-            <Text className="text-midnight text-sm font-bold mb-3">
-              Mobile Number
-            </Text>
+                <Text className="text-midnight text-sm font-bold mb-3">
+                  Full Name
+                </Text>
+                <View className="bg-white rounded-xl mb-4" style={Shadows.card}>
+                  <TextInput
+                    className="px-4 py-4 text-midnight font-medium"
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#94A3B8"
+                    value={fullName}
+                    onChangeText={setFullName}
+                    autoCapitalize="words"
+                    autoFocus
+                  />
+                </View>
 
-            {/* Phone Input Row */}
-            <View className="flex-row gap-3 mb-5">
-              <Pressable
-                className="flex-row items-center gap-2 bg-white rounded-xl px-4 py-4"
-                style={Shadows.card}
-              >
-                <Text className="text-midnight font-semibold">+91</Text>
-                <ChevronDown size={14} color="#64748B" />
-              </Pressable>
-              <View className="flex-1 bg-white rounded-xl" style={Shadows.card}>
-                <TextInput
-                  className="px-4 py-4 text-midnight font-medium"
-                  placeholder="Enter 10 digit number"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={phone}
-                  onChangeText={setPhoneLocal}
-                />
-              </View>
-            </View>
+                <Text className="text-midnight text-sm font-bold mb-3">
+                  Mobile Number
+                </Text>
+                <View className="bg-slate-100 rounded-xl px-4 py-4 mb-5">
+                  <Text className="text-midnight font-medium">+91 {phone}</Text>
+                </View>
 
-            {/* Get OTP Button */}
-            <Pressable
-              onPress={handleGetOTP}
-              className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-3 mb-6 active:opacity-90"
-              style={{
-                backgroundColor: '#1A73E8',
-                shadowColor: '#1A73E8',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 12,
-                elevation: 8,
-              }}
-            >
-              <Text className="text-white font-bold text-base">Get OTP</Text>
-              <ArrowRight size={18} color="#FFFFFF" />
-            </Pressable>
+                <Pressable
+                  onPress={handleRegister}
+                  disabled={loading || fullName.trim().length < 2}
+                  className={`w-full py-4 rounded-2xl flex-row items-center justify-center gap-3 mb-6 active:opacity-90 ${
+                    fullName.trim().length < 2 ? 'opacity-50' : ''
+                  }`}
+                  style={{
+                    backgroundColor: '#1A73E8',
+                    shadowColor: '#1A73E8',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    elevation: 8,
+                  }}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text className="text-white font-bold text-base">Register & Get OTP</Text>
+                      <ArrowRight size={18} color="#FFFFFF" />
+                    </>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <>
+                {/* Login Form */}
+                <Text className="text-midnight text-[26px] font-extrabold mb-1">
+                  Login or Sign up
+                </Text>
+                <Text className="text-slate-400 text-sm mb-6 font-light">
+                  Verify your mobile number to continue
+                </Text>
+
+                <Text className="text-midnight text-sm font-bold mb-3">
+                  Mobile Number
+                </Text>
+
+                <View className="flex-row gap-3 mb-5">
+                  <Pressable
+                    className="flex-row items-center gap-2 bg-white rounded-xl px-4 py-4"
+                    style={Shadows.card}
+                  >
+                    <Text className="text-midnight font-semibold">+91</Text>
+                    <ChevronDown size={14} color="#64748B" />
+                  </Pressable>
+                  <View className="flex-1 bg-white rounded-xl" style={Shadows.card}>
+                    <TextInput
+                      className="px-4 py-4 text-midnight font-medium"
+                      placeholder="Enter 10 digit number"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      value={phone}
+                      onChangeText={setPhoneLocal}
+                    />
+                  </View>
+                </View>
+
+                <Pressable
+                  onPress={handleGetOTP}
+                  disabled={loading || phone.length < 10}
+                  className={`w-full py-4 rounded-2xl flex-row items-center justify-center gap-3 mb-6 active:opacity-90 ${
+                    phone.length < 10 ? 'opacity-50' : ''
+                  }`}
+                  style={{
+                    backgroundColor: '#1A73E8',
+                    shadowColor: '#1A73E8',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    elevation: 8,
+                  }}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text className="text-white font-bold text-base">Get OTP</Text>
+                      <ArrowRight size={18} color="#FFFFFF" />
+                    </>
+                  )}
+                </Pressable>
+              </>
+            )}
 
             {/* Security Info Callout */}
             <View className="flex-row gap-3 p-4 bg-white/70 rounded-2xl border border-blue-100 mb-6">

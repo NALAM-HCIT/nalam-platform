@@ -5,6 +5,9 @@ import * as SecureStore from 'expo-secure-store';
 // Make sure to set this in an .env file or rely on the default for now
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+// Hospital ID for patient self-signup (configured per hospital deployment)
+export const HOSPITAL_ID = process.env.EXPO_PUBLIC_HOSPITAL_ID || '';
+
 export const api = axios.create({
   baseURL: BASE_URL,
   headers: {

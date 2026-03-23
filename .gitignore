@@ -24,9 +24,9 @@ ios/
 *.docstates
 
 # Next.js
-nalam-web/.next/
-nalam-web/out/
-nalam-web/build/
+nalamapp-webportal/.next/
+nalamapp-webportal/out/
+nalamapp-webportal/build/
 
 # macOS
 .DS_Store

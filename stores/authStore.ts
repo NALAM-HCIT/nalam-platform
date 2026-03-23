@@ -12,6 +12,7 @@ interface AuthState {
   hospitalId: string | null;
   token: string | null;
   setPhone: (phone: string) => void;
+  setRole: (role: UserRole | null) => void;
   login: (data: { token: string; userName: string; userId: string; role: UserRole; hospitalId: string }) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -27,6 +28,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   
   setPhone: (phone) => set({ phone }),
+  setRole: (role) => set({ role }),
   
   login: async (data) => {
     // Persist session securely

@@ -11,6 +11,7 @@ import {
 export default function BookingConfirmationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
+    bookingReference?: string;
     doctorName?: string;
     specialty?: string;
     consultationType?: string;
@@ -19,12 +20,13 @@ export default function BookingConfirmationScreen() {
     total?: string;
   }>();
 
-  const doctorName = params.doctorName ?? 'Dr. Aruna Reddy';
-  const specialty = params.specialty ?? 'Cardiologist';
+  const bookingReference = params.bookingReference ?? 'NLM-0000';
+  const doctorName = params.doctorName ?? 'Doctor';
+  const specialty = params.specialty ?? '';
   const consultationType = params.consultationType ?? 'video';
-  const dateStr = params.date ?? 'Mar 21';
-  const timeStr = params.time ?? '10:00 AM';
-  const total = params.total ?? '889.00';
+  const dateStr = params.date ?? '';
+  const timeStr = params.time ?? '';
+  const total = params.total ?? '0.00';
 
   const isVideo = consultationType === 'video';
   const ConsultIcon = isVideo ? Video : Building2;
@@ -103,7 +105,7 @@ export default function BookingConfirmationScreen() {
               <Text className="text-primary text-[10px] font-bold uppercase tracking-widest">
                 Booking ID
               </Text>
-              <Text className="text-midnight font-extrabold text-lg mt-0.5">#NLM-2026-0321</Text>
+              <Text className="text-midnight font-extrabold text-lg mt-0.5">#{bookingReference}</Text>
             </View>
             <View className="items-end">
               <Text className="text-[10px] text-slate-400 font-medium uppercase">Paid</Text>

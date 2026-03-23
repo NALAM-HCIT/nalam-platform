@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft } from 'lucide-react-native';
-import { TEST_USERS } from '@/constants/testUsers';
+import { api } from '@/services/api';
 
 export default function OTPScreen() {
   const router = useRouter();
@@ -14,6 +14,8 @@ export default function OTPScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [error, setError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
 
   // Auto-focus first input on mount
@@ -65,16 +67,29 @@ export default function OTPScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpString = otp.join('');
-    if (otpString.length === 6) {
-      const user = TEST_USERS[phone];
-      login({
-        userName: user?.name || 'Patient',
-        userId: user?.userId || 'patient-001',
-        role: 'patient',
+    if (otpString.length < 6) return;
+    setIsVerifying(true);
+    setError('');
+    try {
+      const response = await api.post('/auth/verify-otp', {
+        mobileNumber: phone,
+        otpCode: otpString,
+      });
+      const { token, user } = response.data;
+      await login({
+        token,
+        userName: user.fullName || 'Patient',
+        userId: user.id,
+        role: user.role || 'patient',
+        hospitalId: user.hospitalId,
       });
       router.replace('/patient/(tabs)');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 

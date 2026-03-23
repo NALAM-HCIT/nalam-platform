@@ -1,17 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react-native';
-import { TEST_USERS } from '@/constants/testUsers';
+import { api } from '@/services/api';
 
 export default function CareProviderOTPScreen() {
   const router = useRouter();
   const { phone, login } = useAuthStore();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
 
   const handleOtpChange = (text: string, index: number) => {
@@ -22,16 +23,29 @@ export default function CareProviderOTPScreen() {
     if (text && index < 5) inputs.current[index + 1]?.focus();
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const otpString = otp.join('');
-    if (otpString.length === 6) {
-      const user = TEST_USERS[phone];
-      if (!user) {
-        setError('This number is not registered. Please contact your hospital administrator.');
-        return;
-      }
-      login({ userName: user.name, userId: user.userId, role: user.role });
+    if (otpString.length < 6) return;
+    setIsVerifying(true);
+    setError('');
+    try {
+      const response = await api.post('/auth/verify-otp', {
+        mobileNumber: phone,
+        otpCode: otpString,
+      });
+      const { token, user } = response.data;
+      await login({
+        token,
+        userName: user.fullName || 'Care Provider',
+        userId: user.id,
+        role: user.role,
+        hospitalId: user.hospitalId,
+      });
       router.replace(`/${user.role}/(tabs)` as any);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 

@@ -8,7 +8,7 @@ import {
   Bell, Users, Shield, UserPlus, Settings, Activity, Building2,
   ClipboardList, ChevronRight, X, Check, Clock, AlertTriangle,
   TrendingUp, Server, Wifi, Database, Calendar, BarChart3,
-  FileText, Zap, ArrowUpRight, ArrowDownRight,
+  FileText, Zap, ArrowUpRight, ArrowDownRight, Stethoscope,
 } from 'lucide-react-native';
 import { api } from '@/services/api';
 
@@ -62,7 +62,7 @@ const STAT_CARDS = [
 
 const QUICK_ACTIONS = [
   { icon: UserPlus, label: 'Create User', color: '#FFFFFF', bg: Colors.primary, actionId: 'create-user' },
-  { icon: Shield, label: 'Manage Roles', color: Colors.primary, bg: `${Colors.primary}12`, actionId: 'manage-roles' },
+  { icon: Stethoscope, label: 'Doctors', color: '#1D4ED8', bg: '#1D4ED812', actionId: 'manage-doctors' },
   { icon: Settings, label: 'Settings', color: '#64748B', bg: '#64748B12', actionId: 'system-settings' },
   { icon: ClipboardList, label: 'Audit Logs', color: '#059669', bg: '#05966912', actionId: 'audit-logs' },
 ];
@@ -233,11 +233,8 @@ export default function AdminDashboard() {
       case 'create-user':
         router.push('/admin/create-user');
         break;
-      case 'manage-roles':
-        Alert.alert('Manage Roles', 'Current Roles:\n\n- Admin (Full Access)\n- Doctor (Clinical Access)\n- Pharmacist (Pharmacy Access)\n- Receptionist (Front Desk Access)', [
-          { text: 'Close', style: 'cancel' },
-          { text: 'Go to Users', onPress: () => router.push('/admin/(tabs)/users' as any) },
-        ]);
+      case 'manage-doctors':
+        router.push('/admin/manage-doctors');
         break;
       case 'system-settings':
         router.push('/admin/(tabs)/settings' as any);

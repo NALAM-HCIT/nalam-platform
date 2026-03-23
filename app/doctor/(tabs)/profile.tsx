@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image } from 'react-native';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Alert, Linking, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
+import { doctorPortalService, DoctorMyProfile } from '@/services/doctorPortalService';
+import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import {
   User, Heart, Shield, Bell, FileText, LogOut, ChevronRight,
   Camera, Phone, Mail, Calendar, Briefcase, Star, Clock,
@@ -12,26 +14,7 @@ import {
   Stethoscope, Award, ClipboardList, AlertCircle, ExternalLink,
 } from 'lucide-react-native';
 
-/* ───── Data ───── */
-
-const DOCTOR_INFO = {
-  specialty: 'Senior Cardiologist',
-  department: 'Cardiology',
-  qualification: 'MD, DM (Cardio)',
-  registration: 'MCI-45892',
-  experience: 12,
-  empId: 'NLM-9921',
-  email: 'dr.sarah@arunpriya.com',
-  phone: '+91 98765 11111',
-  address: '42, Anna Nagar, Chennai - 600040',
-};
-
-const QUICK_STATS = [
-  { label: 'Consults', value: '1,240', icon: Users, color: Colors.primary },
-  { label: 'Rating', value: '4.9', icon: Star, color: '#EAB308' },
-  { label: 'Surgeries', value: '86', icon: Heart, color: '#EF4444' },
-  { label: 'Reviews', value: '850', icon: FileText, color: '#059669' },
-];
+// Doctor info and stats are loaded from the API — see liveProfile state below
 
 interface MenuItem {
   icon: React.ElementType;
@@ -95,7 +78,7 @@ const QuickStatCard = React.memo(function QuickStatCard({
   stat,
   onPress,
 }: {
-  stat: typeof QUICK_STATS[0];
+  stat: { label: string; value: string; icon: React.ElementType; color: string };
   onPress: () => void;
 }) {
   const Icon = stat.icon;
@@ -154,7 +137,28 @@ export default function DoctorProfileScreen() {
   const router = useRouter();
   const { userName, phone, logout } = useAuthStore();
 
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { profileImage, uploading, uploadProgress, handleChangePhoto } = useProfilePhoto();
+  const [liveProfile, setLiveProfile] = useState<DoctorMyProfile | null>(null);
+  const [quickStats, setQuickStats] = useState([
+    { label: 'Consults', value: '—', icon: Users, color: Colors.primary },
+    { label: 'Rating', value: '—', icon: Star, color: '#EAB308' },
+    { label: 'Patients', value: '—', icon: Heart, color: '#EF4444' },
+    { label: 'Reviews', value: '—', icon: FileText, color: '#059669' },
+  ]);
+
+  useEffect(() => {
+    doctorPortalService.getMyProfile()
+      .then((profile) => {
+        setLiveProfile(profile);
+        setQuickStats([
+          { label: 'Consults', value: String(profile.stats.totalConsults), icon: Users, color: Colors.primary },
+          { label: 'Rating', value: profile.stats.rating > 0 ? profile.stats.rating.toFixed(1) : '—', icon: Star, color: '#EAB308' },
+          { label: 'Patients', value: String(profile.stats.activePatients), icon: Heart, color: '#EF4444' },
+          { label: 'Reviews', value: String(profile.stats.reviewCount), icon: FileText, color: '#059669' },
+        ]);
+      })
+      .catch((err) => console.error('Failed to load profile:', err));
+  }, []);
 
   const displayName = userName || 'Dr. Sarah Johnson';
   const initials = useMemo(() => {
@@ -164,35 +168,7 @@ export default function DoctorProfileScreen() {
     return name[0].toUpperCase();
   }, [displayName]);
 
-  /* ── Image Picker ── */
-
-  const pickImage = useCallback(async (useCamera: boolean) => {
-    const permissionResult = useCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
-      return;
-    }
-
-    const result = useCamera
-      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 })
-      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-
-    if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
-      Alert.alert('Success', 'Profile photo updated!');
-    }
-  }, []);
-
-  const handleChangePhoto = useCallback(() => {
-    Alert.alert('Update Profile Photo', 'Choose a source:', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Take Photo', onPress: () => pickImage(true) },
-      { text: 'Choose from Gallery', onPress: () => pickImage(false) },
-    ]);
-  }, [pickImage]);
+  // Image picker logic is now handled by useProfilePhoto hook
 
   /* ── Action Handlers ── */
 
@@ -233,7 +209,7 @@ export default function DoctorProfileScreen() {
       case 'professional':
         Alert.alert(
           'Professional Details',
-          `Specialization: ${DOCTOR_INFO.specialty}\nDepartment: ${DOCTOR_INFO.department}\nQualification: ${DOCTOR_INFO.qualification}\nRegistration: ${DOCTOR_INFO.registration}\nExperience: ${DOCTOR_INFO.experience} years\n\nSpecializations:\n- Interventional Cardiology\n- Echocardiography\n- Cardiac Rehabilitation`,
+          `Specialization: ${liveProfile?.doctorProfile?.specialty || '—'}\nDepartment: ${liveProfile?.user?.department || '—'}\nExperience: ${liveProfile?.doctorProfile?.experienceYears || '—'} years\nLanguages: ${liveProfile?.doctorProfile?.languages || '—'}\nConsultation Fee: ₹${liveProfile?.doctorProfile?.consultationFee || '—'}`,
           [
             { text: 'OK' },
             { text: 'Edit', onPress: () => Alert.alert('Edit', 'To update professional details, please contact the Admin department.') },
@@ -380,7 +356,7 @@ export default function DoctorProfileScreen() {
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Send OTP',
-              onPress: () => Alert.alert('OTP Sent', `A 6-digit OTP has been sent to ${DOCTOR_INFO.phone}.`, [
+              onPress: () => Alert.alert('OTP Sent', `A 6-digit OTP has been sent to ${phone || 'your registered number'}.`, [
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Verify',
@@ -485,7 +461,7 @@ export default function DoctorProfileScreen() {
           <View className="-mt-6 mx-4 mb-4 bg-white rounded-2xl p-4" style={Shadows.card}>
             <View className="items-center mb-3">
               <Text className="text-xl font-extrabold text-midnight">{displayName}</Text>
-              <Text className="text-primary text-sm font-semibold mt-0.5">{DOCTOR_INFO.specialty}</Text>
+              <Text className="text-primary text-sm font-semibold mt-0.5">{liveProfile?.doctorProfile?.specialty || 'Doctor'}</Text>
             </View>
 
             {/* Role Badge & Employee ID */}
@@ -495,17 +471,17 @@ export default function DoctorProfileScreen() {
                 <Text className="text-primary text-xs font-bold">Doctor</Text>
               </View>
               <View className="bg-slate-100 px-3 py-1.5 rounded-full">
-                <Text className="text-slate-600 text-xs font-bold">{DOCTOR_INFO.empId}</Text>
+                <Text className="text-slate-600 text-xs font-bold">{liveProfile?.user?.employeeId || '—'}</Text>
               </View>
             </View>
 
             {/* Info Grid */}
             <View className="flex-row flex-wrap">
               {[
-                { label: 'Dept', value: DOCTOR_INFO.department, icon: Briefcase },
-                { label: 'Exp', value: `${DOCTOR_INFO.experience} yrs`, icon: Clock },
-                { label: 'MCI', value: DOCTOR_INFO.registration, icon: Shield },
-                { label: 'Qual', value: DOCTOR_INFO.qualification, icon: Award },
+                { label: 'Dept', value: liveProfile?.user?.department || '—', icon: Briefcase },
+                { label: 'Exp', value: liveProfile?.doctorProfile ? `${liveProfile.doctorProfile.experienceYears} yrs` : '—', icon: Clock },
+                { label: 'Fee', value: liveProfile?.doctorProfile ? `₹${liveProfile.doctorProfile.consultationFee}` : '—', icon: Shield },
+                { label: 'Lang', value: liveProfile?.doctorProfile?.languages || '—', icon: Award },
               ].map((info, idx) => {
                 const Icon = info.icon;
                 return (
@@ -520,14 +496,14 @@ export default function DoctorProfileScreen() {
 
             {/* Contact Info */}
             <View className="mt-2 pt-3 border-t border-slate-100 gap-2">
-              <Pressable onPress={() => Linking.openURL(`mailto:${DOCTOR_INFO.email}`)} className="flex-row items-center gap-2 active:opacity-60">
+              <Pressable onPress={() => liveProfile?.user?.email && Linking.openURL(`mailto:${liveProfile.user.email}`)} className="flex-row items-center gap-2 active:opacity-60">
                 <Mail size={12} color="#94A3B8" />
-                <Text className="text-xs text-slate-500">{DOCTOR_INFO.email}</Text>
+                <Text className="text-xs text-slate-500">{liveProfile?.user?.email || '—'}</Text>
                 <ExternalLink size={10} color="#CBD5E1" />
               </Pressable>
-              <Pressable onPress={() => Linking.openURL(`tel:${DOCTOR_INFO.phone.replace(/\s/g, '')}`)} className="flex-row items-center gap-2 active:opacity-60">
+              <Pressable onPress={() => Linking.openURL(`tel:${(phone || '').replace(/\s/g, '')}`)} className="flex-row items-center gap-2 active:opacity-60">
                 <Phone size={12} color="#94A3B8" />
-                <Text className="text-xs text-slate-500">{DOCTOR_INFO.phone}</Text>
+                <Text className="text-xs text-slate-500">{phone || '—'}</Text>
                 <ExternalLink size={10} color="#CBD5E1" />
               </Pressable>
             </View>
@@ -544,7 +520,7 @@ export default function DoctorProfileScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row mx-6 mt-4 gap-2.5">
-          {QUICK_STATS.map((stat, idx) => (
+          {quickStats.map((stat, idx) => (
             <QuickStatCard key={idx} stat={stat} onPress={() => handleStatPress(stat.label)} />
           ))}
         </View>

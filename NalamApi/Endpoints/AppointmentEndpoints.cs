@@ -665,6 +665,13 @@ public static class AppointmentEndpoints
         var oldStatus = appointment.Status;
         appointment.Status = request.Status;
         appointment.UpdatedAt = DateTime.UtcNow;
+
+        // Auto-create prescription queue entry when consultation is completed with notes
+        if (request.Status == "completed" && !string.IsNullOrWhiteSpace(appointment.Notes) && appointment.PrescriptionStatus == null)
+        {
+            appointment.PrescriptionStatus = "pending";
+        }
+
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(

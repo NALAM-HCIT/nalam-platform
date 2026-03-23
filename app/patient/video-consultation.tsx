@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, Image, Modal } from 'react-native';
+import { View, Text, Pressable, Image, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows } from '@/constants/theme';
 import {
-  Mic, MicOff, Video, VideoOff, Phone, MessageSquare,
+  Mic, MicOff, Video as VideoIcon, VideoOff, Phone, MessageSquare,
   Heart, Wind, AlertTriangle, Clock, X,
 } from 'lucide-react-native';
+import { RtcSurfaceView, RenderModeType } from 'react-native-agora';
+import { agoraService } from '@/services/agoraService';
 
 // Mock data
 const doctorData = {
@@ -40,10 +42,46 @@ const healthMetrics = [
 
 export default function VideoConsultationScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const [elapsedSeconds, setElapsedSeconds] = useState(765); // 12:45
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [endCallModal, setEndCallModal] = useState(false);
+  const [remoteUid, setRemoteUid] = useState<number | null>(null);
+
+  // Use the appointment ID for the channel name to match the doctor
+  const channelName = id ? `consultation_${id}` : 'consultation_default'; 
+
+  useEffect(() => {
+    if (!id && !__DEV__) return; // Ensure we have an ID unless in dev mode
+    let mounted = true;
+
+    async function setupAgora() {
+      try {
+        await agoraService.init({
+          onJoinChannelSuccess: () => {
+            console.log('Joined successfully');
+          },
+          onUserJoined: (connection, uid) => {
+            if (mounted) setRemoteUid(uid);
+          },
+          onUserOffline: () => {
+             if (mounted) setRemoteUid(null);
+          },
+        });
+        await agoraService.join(channelName);
+      } catch (err) {
+        console.error('Agora Init Error', err);
+      }
+    }
+
+    setupAgora();
+
+    return () => {
+      mounted = false;
+      agoraService.leave();
+    };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -106,13 +144,17 @@ export default function VideoConsultationScreen() {
             elevation: 8,
           }}
         >
-          <Image
-            source={{
-              uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBlYApkZEfMEncjm57_ZBHpNlh4XiXu_Va5wg1Yb6I7y4KPcMHBuilR-gubPxfHW20B_F5VaMRPSZzSDveUWU8pF8ck9eiDBjuLbRbR0ULRoE6I9pjv2Bs6QiMgwU-C1TZ3Yq01J5ubYmlD3v2Az80Lb_0YYzlZggJF1aakEdPavdD81nPtd57ta0xefHhOIsmYJgFciRaheHVL4RYgn9i-sjSh8-fUaiH-bKaY2dysaXQzFZoXlRgXuq11OPc1xsLsLK-i2KCvVLXu',
-            }}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
+          {remoteUid ? (
+            <RtcSurfaceView
+              canvas={{ uid: remoteUid }}
+              style={{ flex: 1 }}
+            />
+          ) : (
+            <View className="flex-1 items-center justify-center">
+               <ActivityIndicator size="large" color="#1A73E8" />
+               <Text className="text-white mt-4 font-medium">Waiting for doctor...</Text>
+            </View>
+          )}
 
           {/* Watermark */}
           <View className="absolute top-6 right-6 opacity-30">
@@ -123,7 +165,7 @@ export default function VideoConsultationScreen() {
 
           {/* Patient PIP Overlay */}
           <View
-            className="absolute bottom-6 right-6 w-32 rounded-2xl overflow-hidden border-2 border-white/50"
+            className="absolute bottom-6 right-6 w-32 rounded-2xl overflow-hidden border-2 border-white/50 bg-slate-800"
             style={{
               aspectRatio: 3 / 4,
               shadowColor: '#000',
@@ -133,13 +175,16 @@ export default function VideoConsultationScreen() {
               elevation: 10,
             }}
           >
-            <Image
-              source={{
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAoNIAictKqKl5obI7t2ubbTNQZB-yoKamNwcO3ObQYLSunvjqqoG2AVpf37lRPgjCtSx9Kv1Ic-Kn5iUZUPRfSsez2BLABXPuTjeGnuDwt9Gfv64AGdF43xUftyzV6NvSBI0Pjj6Q-EwxcKTkXptFmgY0KJd3jV5p-TC1JzhF72kiwo6rkJVxsCAuP14CO41Z_3EJXCryIDSZjgjwXpG5Orex-Cjdew1YsPsUXqSP6NYSp9KUy_sBhvM5HH6O0c6mHJ1b2UAp8ir4r',
-              }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
+            {isVideoOn ? (
+              <RtcSurfaceView
+                canvas={{ uid: 0 }}
+                style={{ flex: 1 }}
+              />
+            ) : (
+              <View className="flex-1 items-center justify-center">
+                <VideoOff size={24} color="#64748B" />
+              </View>
+            )}
             <View className="absolute bottom-2 left-2 bg-black/40 px-2 py-0.5 rounded">
               <Text className="text-[10px] text-white">You</Text>
             </View>
@@ -220,7 +265,11 @@ export default function VideoConsultationScreen() {
         >
           {/* Mute Toggle */}
           <Pressable
-            onPress={() => setIsMuted(!isMuted)}
+            onPress={() => {
+              const newMuted = !isMuted;
+              setIsMuted(newMuted);
+              agoraService.toggleMute(newMuted);
+            }}
             className={`w-14 h-14 rounded-full items-center justify-center ${
               isMuted ? 'bg-red-100' : 'bg-transparent'
             }`}
@@ -234,13 +283,17 @@ export default function VideoConsultationScreen() {
 
           {/* Video Toggle */}
           <Pressable
-            onPress={() => setIsVideoOn(!isVideoOn)}
+            onPress={() => {
+              const newVideo = !isVideoOn;
+              setIsVideoOn(newVideo);
+              agoraService.toggleVideo(newVideo);
+            }}
             className={`w-14 h-14 rounded-full items-center justify-center ${
               !isVideoOn ? 'bg-red-100' : 'bg-transparent'
             }`}
           >
             {isVideoOn ? (
-              <Video size={22} color="#64748B" />
+              <VideoIcon size={22} color="#64748B" />
             ) : (
               <VideoOff size={22} color="#64748B" />
             )}
