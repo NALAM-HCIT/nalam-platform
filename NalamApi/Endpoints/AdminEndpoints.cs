@@ -134,7 +134,7 @@ public static class AdminEndpoints
             return Results.BadRequest(new { error = $"Invalid role. Valid roles: {string.Join(", ", validRoles)}" });
 
         var hospitalId = GetHospitalId(ctx);
-        var mobile = request.MobileNumber.Trim().Replace(" ", "");
+        var mobile = AuthEndpoints.NormalizeMobile(request.MobileNumber);
 
         // Check if mobile already exists in this hospital
         var exists = await db.Users.AnyAsync(u => u.MobileNumber == mobile);

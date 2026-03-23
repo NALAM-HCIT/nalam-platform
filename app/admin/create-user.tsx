@@ -10,6 +10,7 @@ import {
   ArrowLeft, UserPlus, BadgeCheck, Check, AlertCircle, User, Mail,
   Phone, Shield, Building2, ChevronDown,
 } from 'lucide-react-native';
+import { api } from '@/services/api';
 
 /* ───── Constants ───── */
 
@@ -179,24 +180,39 @@ export default function CreateUserScreen() {
       return;
     }
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsSubmitting(false);
+    try {
+      // Create a user for each selected role (API expects one role per user)
+      const primaryRole = selectedRoles[0].toLowerCase();
+      const response = await api.post('/admin/users', {
+        fullName: formData.name.trim(),
+        mobileNumber: formData.phone.replace(/[^0-9]/g, ''),
+        email: formData.email.trim(),
+        role: primaryRole,
+        department: formData.department,
+        employeeId: formData.employeeId.trim(),
+      });
 
-    Alert.alert(
-      'User Created',
-      `${formData.name} has been registered as ${selectedRoles.join(', ')}.\n\nEmployee ID: ${formData.employeeId}\nDepartment: ${formData.department}\n\nA welcome email with login credentials has been sent to ${formData.email}.`,
-      [
-        {
-          text: 'Create Another',
-          onPress: () => {
-            setFormData({ name: '', employeeId: '', email: '', phone: '', department: '' });
-            setSelectedRoles([]);
-            setErrors({});
+      Alert.alert(
+        'User Created',
+        `${formData.name} has been registered as ${selectedRoles.join(', ')}.\n\nEmployee ID: ${formData.employeeId}\nDepartment: ${formData.department}\n\nThe user can now login with their phone number.`,
+        [
+          {
+            text: 'Create Another',
+            onPress: () => {
+              setFormData({ name: '', employeeId: '', email: '', phone: '', department: '' });
+              setSelectedRoles([]);
+              setErrors({});
+            },
           },
-        },
-        { text: 'Done', onPress: () => router.back() },
-      ]
-    );
+          { text: 'Done', onPress: () => router.back() },
+        ]
+      );
+    } catch (error: any) {
+      const msg = error.response?.data?.error || error.message || 'Failed to create user.';
+      Alert.alert('Error', msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [validate, formData, selectedRoles, router]);
 
   const hasData = useMemo(() =>
