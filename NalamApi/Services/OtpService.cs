@@ -61,8 +61,7 @@ public class OtpService
                       $"&credit=4" +
                       $"&sender={senderId}" +
                       $"&message={message}" +
-                      $"&number={smsNumber}" +
-                      $"&templateid={HttpUtility.UrlEncode(templateId.Replace("{otp}", otp))}";
+                      $"&number={smsNumber}";
 
             var response = await _httpClient.GetAsync(url);
             var result = await response.Content.ReadAsStringAsync();
