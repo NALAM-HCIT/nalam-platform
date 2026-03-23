@@ -204,6 +204,13 @@ app.MapGet("/", () => Results.Ok(new
     timestamp = DateTime.UtcNow
 }));
 
+// DEBUG: Show JWT claims (remove after debugging)
+app.MapGet("/api/_debug/claims", (HttpContext ctx) =>
+{
+    var claims = ctx.User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+    return Results.Ok(new { authenticated = ctx.User.Identity?.IsAuthenticated, claims });
+}).RequireAuthorization();
+
 // DEBUG ENDPOINT - Safe dump of connection string details to diagnose XX000 error
 app.MapGet("/api/_debug/db-config", () => {
     var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "Not set";
