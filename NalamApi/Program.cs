@@ -57,6 +57,7 @@ var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false; // Keep JWT claim names as-is (don't remap "role" to long URI)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -67,7 +68,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"] ?? "NalamApp",
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
-            RoleClaimType = "role"
+            RoleClaimType = "role",
+            NameClaimType = "sub"
         };
     });
 

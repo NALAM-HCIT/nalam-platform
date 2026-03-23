@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -137,18 +137,29 @@ export default function CareProviderLoginScreen() {
 
             <Pressable
               onPress={handleSendOTP}
+              disabled={isLoading || phone.length < 10}
               className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-3 mb-5 active:opacity-90"
               style={{
-                backgroundColor: '#1A73E8',
+                backgroundColor: isLoading ? '#6BA3F0' : '#1A73E8',
                 shadowColor: '#1A73E8',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 12,
                 elevation: 8,
+                opacity: phone.length < 10 ? 0.5 : 1,
               }}
             >
-              <Text className="text-white font-bold text-base">Get OTP</Text>
-              <ArrowRight size={18} color="#FFFFFF" />
+              {isLoading ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text className="text-white font-bold text-base">Sending OTP...</Text>
+                </>
+              ) : (
+                <>
+                  <Text className="text-white font-bold text-base">Get OTP</Text>
+                  <ArrowRight size={18} color="#FFFFFF" />
+                </>
+              )}
             </Pressable>
 
             <View className="flex-row gap-3 p-4 bg-white/70 rounded-2xl border border-blue-100">
