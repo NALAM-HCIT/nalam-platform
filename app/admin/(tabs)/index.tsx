@@ -35,29 +35,15 @@ interface Notification {
 
 /* ───── Data ───── */
 
-const INITIAL_ACTIVITIES: ActivityItem[] = [
-  { id: '1', action: 'New doctor registered', user: 'Dr. Priya Sharma', category: 'User', categoryColor: Colors.primary, time: '10 min ago', read: false },
-  { id: '2', action: 'User role updated', user: 'Priya Sharma', category: 'Role', categoryColor: '#8B5CF6', time: '25 min ago', read: false },
-  { id: '3', action: 'New receptionist added', user: 'Ravi Kumar', category: 'User', categoryColor: Colors.primary, time: '1 hour ago', read: true },
-  { id: '4', action: 'System backup completed', user: 'System', category: 'System', categoryColor: '#22C55E', time: '2 hours ago', read: true },
-  { id: '5', action: 'Password reset requested', user: 'Dr. Rajesh Kumar', category: 'Security', categoryColor: '#EF4444', time: '3 hours ago', read: true },
-  { id: '6', action: 'New pharmacist onboarded', user: 'Sathish Patel', category: 'User', categoryColor: Colors.primary, time: '5 hours ago', read: true },
-  { id: '7', action: 'Department updated', user: 'Admin User', category: 'System', categoryColor: '#22C55E', time: 'Yesterday', read: true },
-  { id: '8', action: 'Access revoked', user: 'Former Staff M.', category: 'Security', categoryColor: '#EF4444', time: 'Yesterday', read: true },
-];
+const INITIAL_ACTIVITIES: ActivityItem[] = [];
 
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  { id: '1', title: 'New User Pending Approval', body: 'Dr. Meena Krishnan has requested admin access. Review and approve in the Users tab.', time: '5 min ago', type: 'warning', read: false },
-  { id: '2', title: 'System Backup Complete', body: 'Daily automated backup completed successfully. 2.4 GB stored.', time: '1 hour ago', type: 'success', read: false },
-  { id: '3', title: 'Security Alert', body: '3 failed login attempts detected from IP 192.168.1.45. Account temporarily locked.', time: '3 hours ago', type: 'error', read: false },
-  { id: '4', title: 'Scheduled Maintenance', body: 'Server maintenance scheduled for Sunday 2:00 AM - 4:00 AM IST.', time: '1 day ago', type: 'info', read: true },
-];
+const INITIAL_NOTIFICATIONS: Notification[] = [];
 
 const STAT_CARDS = [
-  { label: 'Total Users', value: '124', icon: Users, color: Colors.primary, trend: '+4%', trendUp: true },
-  { label: 'Active Staff', value: '86', icon: Activity, color: '#22C55E', trend: 'Online', trendUp: true },
-  { label: 'Pending', value: '5', icon: ClipboardList, color: '#F59E0B', trend: 'Urgent', trendUp: false },
-  { label: 'Uptime', value: '99%', icon: Server, color: '#8B5CF6', trend: 'Stable', trendUp: true },
+  { label: 'Total Users', value: '0', icon: Users, color: Colors.primary, trend: '', trendUp: true },
+  { label: 'Active Staff', value: '0', icon: Activity, color: '#22C55E', trend: 'Online', trendUp: true },
+  { label: 'Pending', value: '0', icon: ClipboardList, color: '#F59E0B', trend: '', trendUp: false },
+  { label: 'Departments', value: '0', icon: Server, color: '#8B5CF6', trend: '', trendUp: true },
 ];
 
 const QUICK_ACTIONS = [
@@ -76,10 +62,10 @@ const SYSTEM_HEALTH_ITEMS = [
 ];
 
 const TODAY_OVERVIEW = [
-  { label: 'Appointments', value: '142', icon: Calendar, color: Colors.primary },
-  { label: 'New Patients', value: '18', icon: UserPlus, color: '#059669' },
-  { label: 'Prescriptions', value: '96', icon: FileText, color: '#8B5CF6' },
-  { label: 'Revenue', value: '₹2.4L', icon: BarChart3, color: '#F59E0B' },
+  { label: 'Appointments', value: '0', icon: Calendar, color: Colors.primary },
+  { label: 'New Patients', value: '0', icon: UserPlus, color: '#059669' },
+  { label: 'Prescriptions', value: '0', icon: FileText, color: '#8B5CF6' },
+  { label: 'Revenue', value: '₹0', icon: BarChart3, color: '#F59E0B' },
 ];
 
 /* ───── Sub-components ───── */

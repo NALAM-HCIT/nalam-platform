@@ -29,13 +29,7 @@ type UserItem = {
 
 /* ───── Constants ───── */
 
-const INITIAL_USERS: UserItem[] = [
-  { id: '1', name: 'Dr. Aruna Reddy', role: 'Doctor', department: 'Cardiology', status: 'active', phone: '+91 98765 43210', email: 'aruna.r@arunpriya.com', employeeId: 'DOC-001', joinDate: '2023-01-15' },
-  { id: '2', name: 'Dr. Sarah Johnson', role: 'Doctor', department: 'Neurology', status: 'active', phone: '+91 98765 43211', email: 'sarah.j@arunpriya.com', employeeId: 'DOC-002', joinDate: '2023-03-20' },
-  { id: '3', name: 'Ravi Kumar', role: 'Receptionist', department: 'Front Desk', status: 'active', phone: '+91 98765 43213', email: 'ravi.k@arunpriya.com', employeeId: 'REC-001', joinDate: '2023-06-10' },
-  { id: '4', name: 'Priya Sharma', role: 'Pharmacist', department: 'Pharmacy', status: 'active', phone: '+91 98765 43212', email: 'priya.s@arunpriya.com', employeeId: 'PHM-001', joinDate: '2023-02-28' },
-  { id: '6', name: 'Admin User', role: 'Admin', department: 'IT', status: 'active', phone: '+91 98765 43215', email: 'admin@arunpriya.com', employeeId: 'ADM-001', joinDate: '2022-01-01' },
-];
+const INITIAL_USERS: UserItem[] = [];
 
 const ROLE_FILTERS = ['All', 'Doctor', 'Receptionist', 'Pharmacist', 'Admin'];
 

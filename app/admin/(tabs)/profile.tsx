@@ -16,18 +16,18 @@ import {
 
 const ADMIN_INFO = {
   role: 'Hospital Admin',
-  department: 'IT Administration',
+  department: 'Administration',
   empId: 'ADM-001',
-  email: 'admin@arunpriya.com',
-  phone: '+91 98765 43215',
-  joinDate: 'Mar 01, 2023',
+  email: '',
+  phone: '',
+  joinDate: '',
 };
 
 const QUICK_STATS = [
-  { label: 'Actions', value: '156', icon: BarChart3, color: Colors.primary },
-  { label: 'Session', value: '4.2h', icon: Calendar, color: '#059669' },
-  { label: 'Users', value: '12', icon: Users, color: '#8B5CF6' },
-  { label: 'Alerts', value: '3', icon: AlertTriangle, color: '#EF4444' },
+  { label: 'Actions', value: '0', icon: BarChart3, color: Colors.primary },
+  { label: 'Session', value: '0h', icon: Calendar, color: '#059669' },
+  { label: 'Users', value: '0', icon: Users, color: '#8B5CF6' },
+  { label: 'Alerts', value: '0', icon: AlertTriangle, color: '#EF4444' },
 ];
 
 interface MenuItem {
