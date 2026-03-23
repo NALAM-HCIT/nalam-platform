@@ -51,13 +51,12 @@ public class OtpService
 
         try
         {
-            // Pay4SMS API integration
-            // Adjust the URL and parameters based on your Pay4SMS API documentation
-            var message = HttpUtility.UrlEncode($"Your Nalam verification code is {otp}. Valid for 5 minutes. Do not share.");
+            // Pay4SMS API integration (ABHA verification format)
+            var message = HttpUtility.UrlEncode($"Your Nalam ABHA verification one time password is {otp} - NALAMHCIT");
 
-            var url = $"https://pay4sms.in/sendsms/" +
+            var url = $"http://pay4sms.in/sendsms/" +
                       $"?token={apiKey}" +
-                      $"&credit=2" +
+                      $"&credit=4" +
                       $"&sender={senderId}" +
                       $"&message={message}" +
                       $"&number={mobileNumber}" +
