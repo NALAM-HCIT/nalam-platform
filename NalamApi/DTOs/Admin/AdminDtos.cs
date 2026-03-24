@@ -8,7 +8,13 @@ public record CreateUserRequest(
     string? Email,
     string Role,        // doctor, pharmacist, receptionist
     string? Department,
-    string? EmployeeId
+    string? EmployeeId,
+    // Doctor-specific fields (used only when Role = "doctor")
+    string? Specialty,
+    int? ExperienceYears,
+    decimal? ConsultationFee,
+    string? Languages,
+    string? Bio
 );
 
 public record UpdateUserRequest(

@@ -8,7 +8,8 @@ import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
 import {
   ArrowLeft, UserPlus, BadgeCheck, Check, AlertCircle, User, Mail,
-  Phone, Shield, Building2, ChevronDown,
+  Phone, Shield, Building2, ChevronDown, Stethoscope, Clock, DollarSign,
+  Globe, FileText,
 } from 'lucide-react-native';
 import { api } from '@/services/api';
 
@@ -24,6 +25,12 @@ const ROLES = [
 const DEPARTMENTS = [
   'Cardiology', 'Neurology', 'Orthopedics', 'General Medicine', 'Pediatrics',
   'Pharmacy', 'Front Desk', 'General Ward', 'ICU', 'IT', 'Emergency',
+];
+
+const SPECIALTIES = [
+  'Cardiology', 'Neurology', 'Orthopedics', 'General Medicine', 'Pediatrics',
+  'Dermatology', 'ENT', 'Ophthalmology', 'Gynecology', 'Urology',
+  'Psychiatry', 'Pulmonology', 'Gastroenterology', 'Nephrology', 'Oncology',
 ];
 
 interface FormField {
@@ -128,6 +135,7 @@ export default function CreateUserScreen() {
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({
     name: '', employeeId: '', email: '', phone: '', department: '',
+    specialty: '', experienceYears: '', consultationFee: '', languages: '', bio: '',
   });
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,6 +145,16 @@ export default function CreateUserScreen() {
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   }, [errors]);
+
+  const isDoctorRole = selectedRoles.includes('Doctor');
+
+  const DOCTOR_FIELDS: FormField[] = useMemo(() => [
+    { key: 'specialty', label: 'Specialty', icon: Stethoscope, iconColor: '#1D4ED8', placeholder: 'Select specialty', type: 'select' as const, options: SPECIALTIES },
+    { key: 'experienceYears', label: 'Experience (Years)', icon: Clock, iconColor: '#059669', placeholder: 'e.g. 10', type: 'text' as const, keyboard: 'phone-pad' as const },
+    { key: 'consultationFee', label: 'Consultation Fee (INR)', icon: DollarSign, iconColor: '#D97706', placeholder: 'e.g. 500', type: 'text' as const, keyboard: 'phone-pad' as const },
+    { key: 'languages', label: 'Languages', icon: Globe, iconColor: '#8B5CF6', placeholder: 'e.g. English, Tamil', type: 'text' as const },
+    { key: 'bio', label: 'Bio (Optional)', icon: FileText, iconColor: '#64748B', placeholder: 'Short professional bio', type: 'text' as const },
+  ], []);
 
   const toggleRole = useCallback((roleName: string) => {
     setSelectedRoles((prev) =>
@@ -183,23 +201,38 @@ export default function CreateUserScreen() {
     try {
       // Create a user for each selected role (API expects one role per user)
       const primaryRole = selectedRoles[0].toLowerCase();
-      const response = await api.post('/admin/users', {
+      const payload: Record<string, any> = {
         fullName: formData.name.trim(),
         mobileNumber: formData.phone.replace(/[^0-9]/g, ''),
         email: formData.email.trim(),
         role: primaryRole,
         department: formData.department,
         employeeId: formData.employeeId.trim(),
-      });
+      };
+
+      // Include doctor-specific fields when creating a doctor
+      if (primaryRole === 'doctor') {
+        if (formData.specialty) payload.specialty = formData.specialty;
+        if (formData.experienceYears) payload.experienceYears = parseInt(formData.experienceYears, 10) || 0;
+        if (formData.consultationFee) payload.consultationFee = parseFloat(formData.consultationFee) || 500;
+        if (formData.languages) payload.languages = formData.languages.trim();
+        if (formData.bio) payload.bio = formData.bio.trim();
+      }
+
+      const response = await api.post('/admin/users', payload);
+
+      const doctorNote = primaryRole === 'doctor'
+        ? '\n\nDoctor profile & default schedule (Mon-Sat) have been auto-created.'
+        : '';
 
       Alert.alert(
         'User Created',
-        `${formData.name} has been registered as ${selectedRoles.join(', ')}.\n\nEmployee ID: ${formData.employeeId}\nDepartment: ${formData.department}\n\nThe user can now login with their phone number.`,
+        `${formData.name} has been registered as ${selectedRoles.join(', ')}.\n\nEmployee ID: ${formData.employeeId}\nDepartment: ${formData.department}\n\nThe user can now login with their phone number.${doctorNote}`,
         [
           {
             text: 'Create Another',
             onPress: () => {
-              setFormData({ name: '', employeeId: '', email: '', phone: '', department: '' });
+              setFormData({ name: '', employeeId: '', email: '', phone: '', department: '', specialty: '', experienceYears: '', consultationFee: '', languages: '', bio: '' });
               setSelectedRoles([]);
               setErrors({});
             },
@@ -232,11 +265,18 @@ export default function CreateUserScreen() {
   }, [hasData, router]);
 
   const completionPercent = useMemo(() => {
-    const total = FORM_FIELDS.length + 1; // +1 for roles
-    let filled = Object.entries(formData).filter(([, v]) => v.trim().length > 0).length;
+    const baseFields = FORM_FIELDS.length + 1; // +1 for roles
+    // Count doctor-required fields (specialty, fee) if doctor role selected
+    const doctorRequired = isDoctorRole ? 2 : 0;
+    const total = baseFields + doctorRequired;
+    let filled = FORM_FIELDS.filter((f) => formData[f.key]?.trim().length > 0).length;
     if (selectedRoles.length > 0) filled++;
+    if (isDoctorRole) {
+      if (formData.specialty?.trim()) filled++;
+      if (formData.consultationFee?.trim()) filled++;
+    }
     return Math.round((filled / total) * 100);
-  }, [formData, selectedRoles]);
+  }, [formData, selectedRoles, isDoctorRole]);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -288,6 +328,29 @@ export default function CreateUserScreen() {
               />
             ))}
           </View>
+
+          {/* Doctor-Specific Fields (shown when Doctor role is selected) */}
+          {isDoctorRole && (
+            <View className="px-6 mt-2 mb-2">
+              <View className="flex-row items-center gap-2 mb-4">
+                <View className="w-8 h-8 rounded-xl bg-blue-50 items-center justify-center">
+                  <Stethoscope size={14} color="#1D4ED8" />
+                </View>
+                <Text className="text-base font-bold text-midnight">Doctor Profile</Text>
+              </View>
+              <Text className="text-slate-400 text-xs mb-3 ml-1">A doctor profile & default schedule will be auto-created</Text>
+              {DOCTOR_FIELDS.map((field) => (
+                <FormInput
+                  key={field.key}
+                  field={field}
+                  value={formData[field.key] || ''}
+                  error={errors[field.key]}
+                  onChange={(val) => updateField(field.key, val)}
+                  onSelectPress={handleSelectPress}
+                />
+              ))}
+            </View>
+          )}
 
           {/* Role Selection */}
           <View className="px-6 mt-2">

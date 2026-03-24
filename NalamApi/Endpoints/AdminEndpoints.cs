@@ -158,9 +158,59 @@ public static class AdminEndpoints
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
+        // Auto-create DoctorProfile when role is "doctor"
+        DoctorProfile? doctorProfile = null;
+        if (user.Role == "doctor")
+        {
+            var specialty = request.Specialty?.Trim() ?? request.Department?.Trim() ?? "General Medicine";
+            var fee = request.ConsultationFee ?? 500m;
+
+            doctorProfile = new DoctorProfile
+            {
+                HospitalId = hospitalId,
+                UserId = user.Id,
+                Specialty = specialty,
+                ExperienceYears = request.ExperienceYears ?? 0,
+                ConsultationFee = fee,
+                AvailableForVideo = true,
+                AvailableForInPerson = true,
+                Languages = request.Languages?.Trim() ?? "English, Tamil",
+                Bio = request.Bio?.Trim(),
+                IsAcceptingAppointments = true
+            };
+            db.DoctorProfiles.Add(doctorProfile);
+            await db.SaveChangesAsync();
+
+            // Auto-create default weekly schedule: Mon-Fri 09:00-12:00 + 14:00-17:00, Sat 10:00-13:00
+            var defaultSchedules = new (int Day, string Start, string End, string Type)[]
+            {
+                (1, "09:00", "12:00", "both"), (1, "14:00", "17:00", "both"),
+                (2, "09:00", "12:00", "both"), (2, "14:00", "17:00", "both"),
+                (3, "09:00", "12:00", "both"), (3, "14:00", "17:00", "both"),
+                (4, "09:00", "12:00", "both"), (4, "14:00", "17:00", "both"),
+                (5, "09:00", "12:00", "both"), (5, "14:00", "17:00", "both"),
+                (6, "10:00", "13:00", "both"),
+            };
+
+            foreach (var s in defaultSchedules)
+            {
+                db.DoctorSchedules.Add(new DoctorSchedule
+                {
+                    HospitalId = hospitalId,
+                    DoctorProfileId = doctorProfile.Id,
+                    DayOfWeek = s.Day,
+                    StartTime = TimeOnly.Parse(s.Start),
+                    EndTime = TimeOnly.Parse(s.End),
+                    SlotDurationMinutes = 30,
+                    ConsultationType = s.Type
+                });
+            }
+            await db.SaveChangesAsync();
+        }
+
         await auditService.LogAsync(
             hospitalId, GetUserId(ctx),
-            $"Created user: {user.FullName}",
+            $"Created user: {user.FullName}" + (doctorProfile != null ? $" with doctor profile ({doctorProfile.Specialty})" : ""),
             "user", "info",
             $"Role: {user.Role}, Mobile: {user.MobileNumber}");
 
