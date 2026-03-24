@@ -1,0 +1,2347 @@
+{
+  "info": {
+    "name": "Nalam App - Complete API Collection",
+    "description": "Complete API collection for Nalam healthcare mobile app. Covers all 5 roles: Patient, Doctor, Receptionist, Pharmacist, Admin.\n\n**How Authentication & Hospital Scoping Works:**\n- The JWT token from verify-otp contains embedded claims: userId, role, hospitalId, fullName\n- Every API call sends this token via `Authorization: Bearer <token>`\n- The backend extracts hospitalId FROM the token (not from headers/params)\n- All database queries are automatically filtered by hospitalId via EF Core global query filters + PostgreSQL RLS\n- You do NOT need to pass hospitalId separately — it travels inside the JWT\n\n**Setup:**\n1. Set `baseUrl` variable to your API URL\n2. Run the Auth folder first to get tokens (tokens + hospitalId auto-saved)\n3. All subsequent requests use the saved token which carries hospitalId internally",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "nalam-app"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://nalam-api-production.up.railway.app/api",
+      "type": "string"
+    },
+    {
+      "key": "patientToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctorToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "receptionistToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pharmacistToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "appointmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctorProfileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scheduleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientHospitalId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-extracted from verify-otp response. This same value is embedded in the JWT token and used by the backend for tenant scoping."
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "description": "OTP-based authentication for all user roles. No prior token needed.",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-otp"]
+            },
+            "description": "Send OTP to a mobile number. Works for all user roles. Rate-limited (429 if too many requests)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has success field\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('success');",
+                  "  pm.expect(json.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"isNewUser\": false,\n  \"message\": \"OTP sent successfully\"\n}"
+            },
+            {
+              "name": "Rate Limited",
+              "status": "Too Many Requests",
+              "code": 429,
+              "body": "{\n  \"error\": \"Too many OTP requests. Please wait before trying again.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP (Patient)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919876543210\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "description": "Verify OTP and receive JWT token. Token is auto-saved as patientToken variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Response has token with embedded hospitalId\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('token');",
+                  "  pm.expect(json).to.have.property('user');",
+                  "  pm.expect(json.user).to.have.property('role');",
+                  "",
+                  "  // Save token and user data",
+                  "  pm.collectionVariables.set('patientToken', json.token);",
+                  "  if (json.user.id) pm.collectionVariables.set('patientId', json.user.id);",
+                  "  if (json.user.hospitalId) pm.collectionVariables.set('patientHospitalId', json.user.hospitalId);",
+                  "",
+                  "  // Decode JWT to verify hospitalId claim is embedded",
+                  "  const tokenParts = json.token.split('.');",
+                  "  if (tokenParts.length === 3) {",
+                  "    const payload = JSON.parse(atob(tokenParts[1]));",
+                  "    console.log('=== JWT CLAIMS (decoded) ===');",
+                  "    console.log('userId (sub):', payload.sub);",
+                  "    console.log('role:', payload.role);",
+                  "    console.log('hospitalId:', payload.hospitalId);",
+                  "    console.log('fullName:', payload.fullName);",
+                  "    console.log('expires:', new Date(payload.exp * 1000).toISOString());",
+                  "    console.log('===========================');",
+                  "",
+                  "    pm.expect(payload).to.have.property('hospitalId', 'JWT token must contain hospitalId claim');",
+                  "    pm.expect(payload).to.have.property('role');",
+                  "    pm.expect(payload).to.have.property('sub');",
+                  "  }",
+                  "});",
+                  "",
+                  "pm.test(\"User response includes hospitalId\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.user).to.have.property('hospitalId');",
+                  "  console.log('Hospital ID:', json.user.hospitalId);",
+                  "  console.log('Hospital Name:', json.user.hospitalName);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful.\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMDAxIiwicm9sZSI6InBhdGllbnQiLCJob3NwaXRhbElkIjoiaG9zcF8wMDEiLCJmdWxsTmFtZSI6IlJhaiBLdW1hciJ9...\",\n  \"refreshToken\": \"<refresh_token>\",\n  \"user\": {\n    \"id\": \"usr_patient_001\",\n    \"fullName\": \"Raj Kumar\",\n    \"mobileNumber\": \"+919876543210\",\n    \"role\": \"patient\",\n    \"hospitalId\": \"hosp_001\",\n    \"hospitalName\": \"Arun Priya Multispeciality\"\n  }\n}\n\n// NOTE: The JWT token above contains these claims (base64 decoded):\n// { sub: \"usr_001\", role: \"patient\", hospitalId: \"hosp_001\", fullName: \"Raj Kumar\" }\n// All subsequent API calls use this token. The backend extracts hospitalId FROM the token\n// to filter all queries to only this hospital's data. No separate hospitalId param needed."
+            },
+            {
+              "name": "Invalid OTP",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"error\": \"Invalid or expired OTP\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP (Doctor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919000000001\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('doctorToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP (Receptionist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919000000002\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('receptionistToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP (Pharmacist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919000000003\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('pharmacistToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919000000004\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('adminToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register New Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919876543299\",\n  \"fullName\": \"New Patient Test\",\n  \"hospitalId\": \"hosp_001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/patient-register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "patient-register"]
+            },
+            "description": "Self-registration for new patients. No token required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"Success field is true\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Patient registered successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Patient - Appointments",
+      "description": "Patient appointment booking, listing, rescheduling, and cancellation.",
+      "item": [
+        {
+          "name": "List Doctors",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/doctors?specialty=Cardiology&page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "doctors"],
+              "query": [
+                { "key": "specialty", "value": "Cardiology", "description": "Filter by specialty (optional)" },
+                { "key": "search", "value": "", "description": "Search by doctor name (optional)", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            },
+            "description": "Get paginated list of available doctors. Results are automatically filtered to the patient's hospital (extracted from JWT hospitalId claim). No separate hospitalId parameter needed. Supports filtering by specialty and name search."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has doctors array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('doctors');",
+                  "  pm.expect(json.doctors).to.be.an('array');",
+                  "  pm.expect(json).to.have.property('total');",
+                  "  if (json.doctors.length > 0) {",
+                  "    pm.collectionVariables.set('doctorProfileId', json.doctors[0].doctorProfileId);",
+                  "  }",
+                  "});",
+                  "pm.test(\"Doctor objects have required fields\", () => {",
+                  "  const json = pm.response.json();",
+                  "  if (json.doctors.length > 0) {",
+                  "    const doc = json.doctors[0];",
+                  "    pm.expect(doc).to.have.property('doctorProfileId');",
+                  "    pm.expect(doc).to.have.property('fullName');",
+                  "    pm.expect(doc).to.have.property('specialty');",
+                  "    pm.expect(doc).to.have.property('consultationFee');",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"total\": 15,\n  \"page\": 1,\n  \"pageSize\": 10,\n  \"doctors\": [\n    {\n      \"doctorProfileId\": \"dp_001\",\n      \"userId\": \"usr_doctor_001\",\n      \"fullName\": \"Dr. Aravind Kumar\",\n      \"initials\": \"AK\",\n      \"specialty\": \"Cardiology\",\n      \"department\": \"Heart Care\",\n      \"experienceYears\": 12,\n      \"consultationFee\": 500,\n      \"availableForVideo\": true,\n      \"availableForInPerson\": true,\n      \"languages\": \"English, Tamil\",\n      \"rating\": 4.5,\n      \"reviewCount\": 120,\n      \"profilePhotoUrl\": null,\n      \"isAcceptingAppointments\": true\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Doctor Availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/doctors/{{doctorProfileId}}/availability?startDate=2026-03-25&days=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "doctors", "{{doctorProfileId}}", "availability"],
+              "query": [
+                { "key": "startDate", "value": "2026-03-25" },
+                { "key": "days", "value": "7" }
+              ]
+            },
+            "description": "Get available time slots for a specific doctor over a date range."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has dates and slotGroups\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('dates');",
+                  "  pm.expect(json).to.have.property('slotGroups');",
+                  "  pm.expect(json.dates).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"doctorProfileId\": \"dp_001\",\n  \"doctorName\": \"Dr. Aravind Kumar\",\n  \"dates\": [\n    {\n      \"date\": \"2026-03-25\",\n      \"dayName\": \"Wednesday\",\n      \"availableSlots\": 8\n    }\n  ],\n  \"slotGroups\": [\n    {\n      \"period\": \"Morning\",\n      \"icon\": \"sun\",\n      \"color\": \"#FFD700\",\n      \"slots\": [\n        {\n          \"startTime\": \"09:00\",\n          \"endTime\": \"09:30\",\n          \"isAvailable\": true\n        },\n        {\n          \"startTime\": \"09:30\",\n          \"endTime\": \"10:00\",\n          \"isAvailable\": false\n        }\n      ]\n    },\n    {\n      \"period\": \"Afternoon\",\n      \"icon\": \"cloud-sun\",\n      \"color\": \"#FFA500\",\n      \"slots\": [\n        {\n          \"startTime\": \"14:00\",\n          \"endTime\": \"14:30\",\n          \"isAvailable\": true\n        }\n      ]\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Book Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorProfileId\": \"{{doctorProfileId}}\",\n  \"scheduleDate\": \"2026-03-25\",\n  \"startTime\": \"09:00\",\n  \"consultationType\": \"video\",\n  \"notes\": \"Chest pain and breathlessness for past 3 days\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"]
+            },
+            "description": "Book a new appointment. consultationType: 'video' or 'in-person'. Hospital scoping: the appointment is automatically linked to the patient's hospitalId (from JWT token). The doctorProfileId must belong to the same hospital (enforced by EF Core query filters)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"Appointment created with booking reference\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json).to.have.property('bookingReference');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.collectionVariables.set('appointmentId', json.id);",
+                  "});",
+                  "pm.test(\"Appointment has fee details\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('consultationFee');",
+                  "  pm.expect(json).to.have.property('totalAmount');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": \"apt_20260325_001\",\n  \"bookingReference\": \"APT-20260325-001\",\n  \"doctorName\": \"Dr. Aravind Kumar\",\n  \"doctorInitials\": \"AK\",\n  \"specialty\": \"Cardiology\",\n  \"scheduleDate\": \"2026-03-25\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"09:30\",\n  \"consultationType\": \"video\",\n  \"status\": \"confirmed\",\n  \"consultationFee\": 500,\n  \"taxAmount\": 90,\n  \"platformFee\": 50,\n  \"discountAmount\": 0,\n  \"totalAmount\": 640,\n  \"paymentMethod\": null,\n  \"paymentStatus\": \"pending\",\n  \"couponCode\": null,\n  \"location\": null,\n  \"doctorRating\": 4.5,\n  \"doctorExperience\": 12,\n  \"cancelReason\": null,\n  \"createdAt\": \"2026-03-24T10:30:00Z\"\n}"
+            },
+            {
+              "name": "Slot Unavailable",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"Selected time slot is no longer available\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List My Appointments (Upcoming)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?tab=upcoming&page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                { "key": "tab", "value": "upcoming" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has appointments array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('appointments');",
+                  "  pm.expect(json.appointments).to.be.an('array');",
+                  "  pm.expect(json).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Appointments (Past)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?tab=past&page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                { "key": "tab", "value": "past" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has appointments array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('appointments');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Appointment Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Appointment has required fields\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json).to.have.property('bookingReference');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json).to.have.property('scheduleDate');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reschedule Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduleDate\": \"2026-03-28\",\n  \"startTime\": \"10:30\",\n  \"consultationType\": \"video\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Appointment rescheduled\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.scheduleDate).to.equal('2026-03-28');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Personal emergency, unable to attend\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}", "cancel"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Appointment cancelled\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('cancelled');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"apt_20260325_001\",\n  \"status\": \"cancelled\",\n  \"cancelReason\": \"Personal emergency, unable to attend\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Patient - Profile & History",
+      "description": "Patient profile stats, consultation history, and prescriptions.",
+      "item": [
+        {
+          "name": "Get Profile Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient/profile-stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["patient", "profile-stats"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Stats has required fields\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('totalVisits');",
+                  "  pm.expect(json).to.have.property('activeRx');",
+                  "  pm.expect(json).to.have.property('totalAppointments');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"totalVisits\": 15,\n  \"activeRx\": 3,\n  \"totalAppointments\": 25\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Consultation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient/consultation-history?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["patient", "consultation-history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has consultations array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('consultations');",
+                  "  pm.expect(json.consultations).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"total\": 25,\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"consultations\": [\n    {\n      \"id\": \"apt_001\",\n      \"bookingReference\": \"APT-20260310-001\",\n      \"doctorName\": \"Dr. Aravind Kumar\",\n      \"doctorInitials\": \"AK\",\n      \"specialty\": \"Cardiology\",\n      \"scheduleDate\": \"2026-03-10\",\n      \"time\": \"09:00\",\n      \"consultationType\": \"video\",\n      \"notes\": \"Patient presented with chest pain...\",\n      \"prescriptionStatus\": \"dispensed\",\n      \"hasPrescription\": true\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Prescriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient/prescriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["patient", "prescriptions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"apt_001\",\n    \"bookingReference\": \"APT-20260310-001\",\n    \"doctorName\": \"Dr. Aravind Kumar\",\n    \"doctorInitials\": \"AK\",\n    \"specialty\": \"Cardiology\",\n    \"scheduleDate\": \"2026-03-10\",\n    \"time\": \"09:00\",\n    \"consultationType\": \"video\",\n    \"prescriptionNotes\": \"Tab. Atorvastatin 10mg - once daily at night\\nTab. Aspirin 75mg - once daily after breakfast\",\n    \"prescriptionStatus\": \"dispensed\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Prescription Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient/prescriptions/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["patient", "prescriptions", "{{appointmentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Prescription has doctor and hospital info\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('doctor');",
+                  "  pm.expect(json).to.have.property('patient');",
+                  "  pm.expect(json).to.have.property('hospital');",
+                  "  pm.expect(json).to.have.property('prescriptionNotes');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"apt_001\",\n  \"bookingReference\": \"APT-20260310-001\",\n  \"scheduleDate\": \"2026-03-10\",\n  \"time\": \"09:00\",\n  \"consultationType\": \"video\",\n  \"prescriptionNotes\": \"Tab. Atorvastatin 10mg - once daily at night\\nTab. Aspirin 75mg - once daily after breakfast\\nAdvice: Low sodium diet, 30 min walk daily\",\n  \"prescriptionStatus\": \"dispensed\",\n  \"doctor\": {\n    \"name\": \"Dr. Aravind Kumar\",\n    \"specialty\": \"Cardiology\",\n    \"bio\": \"15 years experience in interventional cardiology\",\n    \"languages\": \"English, Tamil\"\n  },\n  \"patient\": {\n    \"name\": \"Raj Kumar\",\n    \"mobile\": \"+919876543210\"\n  },\n  \"hospital\": {\n    \"name\": \"Arun Priya Multispeciality\",\n    \"address\": \"123 Main Street, Chennai - 600001\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Doctor Portal",
+      "description": "Doctor's appointment management, patient summaries, and profile.",
+      "item": [
+        {
+          "name": "Get Today's Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?date=today&pageSize=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                { "key": "date", "value": "today" },
+                { "key": "pageSize", "value": "50" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has appointments\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('appointments');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Upcoming Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?tab=upcoming&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                { "key": "tab", "value": "upcoming" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Past Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments?tab=past&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                { "key": "tab", "value": "past" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Appointment Status (Doctor)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in-progress\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}", "status"]
+            },
+            "description": "Valid statuses: arrived, in-progress, completed, cancelled"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Appointment status updated\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('in-progress');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Doctor Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/doctor-portal/my-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctor-portal", "my-profile"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Profile has user and doctorProfile\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('user');",
+                  "  pm.expect(json).to.have.property('doctorProfile');",
+                  "  pm.expect(json).to.have.property('stats');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_doctor_001\",\n    \"name\": \"Dr. Aravind Kumar\",\n    \"initials\": \"AK\",\n    \"phone\": \"+919000000001\",\n    \"email\": \"aravind@arunpriya.com\",\n    \"role\": \"doctor\",\n    \"department\": \"Cardiology\",\n    \"employeeId\": \"EMP-2024-001\"\n  },\n  \"doctorProfile\": {\n    \"specialty\": \"Interventional Cardiology\",\n    \"experienceYears\": 12,\n    \"consultationFee\": 500,\n    \"rating\": 4.5,\n    \"reviewCount\": 120,\n    \"bio\": \"15 years of experience in interventional cardiology\",\n    \"languages\": \"English, Tamil\",\n    \"availableForVideo\": true,\n    \"availableForInPerson\": true\n  },\n  \"stats\": {\n    \"totalConsults\": 500,\n    \"totalAppointments\": 600,\n    \"activePatients\": 150,\n    \"rating\": 4.5,\n    \"reviewCount\": 120\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Hospital Directory",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/doctor-portal/directory",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctor-portal", "directory"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true, "description": "Optional: search by name" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array of role groups\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  if (json.length > 0) {",
+                  "    pm.expect(json[0]).to.have.property('role');",
+                  "    pm.expect(json[0]).to.have.property('members');",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"role\": \"Doctor\",\n    \"memberCount\": 10,\n    \"members\": [\n      {\n        \"id\": \"usr_doctor_001\",\n        \"name\": \"Dr. Aravind Kumar\",\n        \"initials\": \"AK\",\n        \"role\": \"Doctor\",\n        \"department\": \"Cardiology\",\n        \"phone\": \"+919000000001\",\n        \"email\": \"aravind@arunpriya.com\"\n      }\n    ]\n  },\n  {\n    \"role\": \"Receptionist\",\n    \"memberCount\": 3,\n    \"members\": []\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Patient Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/doctor-portal/patient-summary/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["doctor-portal", "patient-summary", "{{patientId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has patient and appointments\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('patient');",
+                  "  pm.expect(json).to.have.property('totalVisits');",
+                  "  pm.expect(json).to.have.property('recentAppointments');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"patient\": {\n    \"id\": \"usr_patient_001\",\n    \"name\": \"Raj Kumar\",\n    \"initials\": \"RK\",\n    \"phone\": \"+919876543210\",\n    \"email\": \"raj@email.com\",\n    \"role\": \"patient\"\n  },\n  \"totalVisits\": 8,\n  \"recentAppointments\": [\n    {\n      \"id\": \"apt_001\",\n      \"scheduleDate\": \"2026-03-10\",\n      \"time\": \"09:00\",\n      \"consultationType\": \"video\",\n      \"status\": \"completed\",\n      \"notes\": \"Patient reports improvement...\",\n      \"prescriptionStatus\": \"dispensed\",\n      \"doctorName\": \"Dr. Aravind Kumar\",\n      \"specialty\": \"Cardiology\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Receptionist",
+      "description": "Reception dashboard, patient queue, check-in, and walk-in registration.",
+      "item": [
+        {
+          "name": "Get Reception Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reception/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["reception", "dashboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Dashboard has stats\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('stats');",
+                  "  pm.expect(json.stats).to.have.property('total');",
+                  "  pm.expect(json.stats).to.have.property('waiting');",
+                  "  pm.expect(json.stats).to.have.property('completed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"date\": \"2026-03-24\",\n  \"stats\": {\n    \"total\": 50,\n    \"waiting\": 5,\n    \"in_consultation\": 3,\n    \"completed\": 40,\n    \"upcoming\": 2\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Patient Queue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reception/queue",
+              "host": ["{{baseUrl}}"],
+              "path": ["reception", "queue"],
+              "query": [
+                { "key": "status", "value": "waiting", "disabled": true, "description": "Filter: waiting, in-consultation, completed" },
+                { "key": "search", "value": "", "disabled": true, "description": "Search by patient or doctor name" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  if (json.length > 0) {",
+                  "    pm.expect(json[0]).to.have.property('patientName');",
+                  "    pm.expect(json[0]).to.have.property('status');",
+                  "    pm.collectionVariables.set('appointmentId', json[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"apt_20260324_001\",\n    \"bookingReference\": \"APT-20260324-001\",\n    \"patientName\": \"Raj Kumar\",\n    \"patientInitials\": \"RK\",\n    \"patientMobile\": \"+919876543210\",\n    \"doctorName\": \"Dr. Aravind Kumar\",\n    \"time\": \"09:00\",\n    \"type\": \"in-person\",\n    \"status\": \"waiting\",\n    \"paymentStatus\": \"paid\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Check-In Patient",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"arrived\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}", "status"]
+            },
+            "description": "Mark patient as arrived/checked-in."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Patient checked in\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('arrived');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reception/patients?query=Raj",
+              "host": ["{{baseUrl}}"],
+              "path": ["reception", "patients"],
+              "query": [
+                { "key": "query", "value": "Raj", "description": "Search by name or phone number" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array of patients\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  if (json.length > 0) {",
+                  "    pm.expect(json[0]).to.have.property('fullName');",
+                  "    pm.expect(json[0]).to.have.property('mobileNumber');",
+                  "    pm.collectionVariables.set('patientId', json[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"usr_patient_001\",\n    \"fullName\": \"Raj Kumar\",\n    \"mobileNumber\": \"+919876543210\",\n    \"initials\": \"RK\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Register Walk-In Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Priya Sharma\",\n  \"mobileNumber\": \"+919988776655\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reception/patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["reception", "patients"]
+            },
+            "description": "Register a new walk-in patient without an existing account."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"Patient created with ID\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('patientId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": \"usr_patient_new_001\",\n  \"fullName\": \"Priya Sharma\",\n  \"mobileNumber\": \"+919988776655\",\n  \"initials\": \"PS\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Pharmacist",
+      "description": "Pharmacy dashboard and prescription dispensing workflow.",
+      "item": [
+        {
+          "name": "Get Pharmacy Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pharmacy/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["pharmacy", "dashboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Dashboard has prescription stats\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('stats');",
+                  "  pm.expect(json.stats).to.have.property('pending');",
+                  "  pm.expect(json.stats).to.have.property('dispensed');",
+                  "  pm.expect(json.stats).to.have.property('rejected');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"date\": \"2026-03-24\",\n  \"stats\": {\n    \"pending\": 12,\n    \"dispensed\": 45,\n    \"rejected\": 2,\n    \"total\": 59\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Prescription Queue (Pending)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pharmacy/prescriptions?status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["pharmacy", "prescriptions"],
+              "query": [
+                { "key": "status", "value": "pending", "description": "Filter: pending, dispensed, rejected" },
+                { "key": "search", "value": "", "disabled": true, "description": "Search by patient/doctor/reference" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array of prescriptions\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  if (json.length > 0) {",
+                  "    pm.expect(json[0]).to.have.property('prescriptionStatus');",
+                  "    pm.expect(json[0]).to.have.property('patientName');",
+                  "    pm.collectionVariables.set('appointmentId', json[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"apt_001\",\n    \"bookingReference\": \"APT-20260324-001\",\n    \"patientName\": \"Raj Kumar\",\n    \"patientInitials\": \"RK\",\n    \"patientMobile\": \"+919876543210\",\n    \"doctorName\": \"Dr. Aravind Kumar\",\n    \"doctorSpecialty\": \"Cardiology\",\n    \"time\": \"09:00\",\n    \"consultationType\": \"video\",\n    \"prescriptionNotes\": \"Tab. Atorvastatin 10mg OD\\nTab. Aspirin 75mg OD\",\n    \"prescriptionStatus\": \"pending\",\n    \"appointmentStatus\": \"completed\",\n    \"updatedAt\": \"2026-03-24T10:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Prescription Queue (All)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pharmacy/prescriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["pharmacy", "prescriptions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dispense Prescription",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pharmacy/prescriptions/{{appointmentId}}/dispense",
+              "host": ["{{baseUrl}}"],
+              "path": ["pharmacy", "prescriptions", "{{appointmentId}}", "dispense"]
+            },
+            "description": "Mark a prescription as dispensed. No body required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Prescription marked dispensed\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.prescriptionStatus).to.equal('dispensed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"apt_001\",\n  \"prescriptionStatus\": \"dispensed\",\n  \"updatedAt\": \"2026-03-24T11:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reject Prescription",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacistToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pharmacy/prescriptions/{{appointmentId}}/reject?reason=Medication+out+of+stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["pharmacy", "prescriptions", "{{appointmentId}}", "reject"],
+              "query": [
+                { "key": "reason", "value": "Medication out of stock", "description": "Optional rejection reason" }
+              ]
+            },
+            "description": "Reject a prescription with an optional reason."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Prescription rejected\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.prescriptionStatus).to.equal('rejected');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"apt_001\",\n  \"prescriptionStatus\": \"rejected\",\n  \"updatedAt\": \"2026-03-24T11:05:00Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Admin - User Management",
+      "description": "Admin user creation, listing, role management, and deletion.",
+      "item": [
+        {
+          "name": "Get Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "dashboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Admin Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "profile"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "role", "value": "", "disabled": true, "description": "Filter: doctor, receptionist, pharmacist, admin" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has users array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('users');",
+                  "  pm.expect(json.users).to.be.an('array');",
+                  "  pm.expect(json).to.have.property('total');",
+                  "  if (json.users.length > 0) {",
+                  "    pm.collectionVariables.set('userId', json.users[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"total\": 25,\n  \"users\": [\n    {\n      \"id\": \"usr_doctor_001\",\n      \"fullName\": \"Dr. Aravind Kumar\",\n      \"mobileNumber\": \"+919000000001\",\n      \"email\": \"aravind@arunpriya.com\",\n      \"role\": \"doctor\",\n      \"department\": \"Cardiology\",\n      \"status\": \"active\",\n      \"createdAt\": \"2026-01-01T00:00:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Doctors Only",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?role=doctor&pageSize=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "role", "value": "doctor" },
+                { "key": "pageSize", "value": "100" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create New User (Doctor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Dr. Meena Krishnan\",\n  \"mobileNumber\": \"9876500001\",\n  \"email\": \"meena@arunpriya.com\",\n  \"role\": \"doctor\",\n  \"department\": \"Neurology\",\n  \"employeeId\": \"EMP-2026-005\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"User created with ID\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('userId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": \"usr_new_001\",\n  \"fullName\": \"Dr. Meena Krishnan\",\n  \"mobileNumber\": \"9876500001\",\n  \"email\": \"meena@arunpriya.com\",\n  \"role\": \"doctor\",\n  \"department\": \"Neurology\",\n  \"status\": \"active\",\n  \"createdAt\": \"2026-03-24T00:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create New User (Receptionist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Lakshmi Priya\",\n  \"mobileNumber\": \"9876500002\",\n  \"email\": \"lakshmi@arunpriya.com\",\n  \"role\": \"receptionist\",\n  \"employeeId\": \"EMP-2026-006\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User Status (Deactivate)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"User status updated\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('inactive');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User Status (Activate)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"pharmacist\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"User role updated\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.role).to.equal('pharmacist');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}"]
+            },
+            "description": "WARNING: Permanently deletes the user. Use with caution."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"User deleted\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Admin - Doctor Profiles & Schedules",
+      "description": "Manage doctor profiles, specialties, and availability schedules.",
+      "item": [
+        {
+          "name": "List Doctor Profiles",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/doctor-profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "doctor-profiles"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  if (json.length > 0) {",
+                  "    pm.collectionVariables.set('doctorProfileId', json[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"dp_001\",\n    \"userId\": \"usr_doctor_001\",\n    \"doctorName\": \"Dr. Aravind Kumar\",\n    \"specialty\": \"Cardiology\",\n    \"experienceYears\": 12,\n    \"consultationFee\": 500,\n    \"availableForVideo\": true,\n    \"availableForInPerson\": true,\n    \"languages\": \"English, Tamil\",\n    \"rating\": 4.5,\n    \"reviewCount\": 120,\n    \"bio\": \"15 years experience\",\n    \"isAcceptingAppointments\": true,\n    \"createdAt\": \"2026-01-01T00:00:00Z\",\n    \"schedules\": []\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create Doctor Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"specialty\": \"Neurology\",\n  \"experienceYears\": 8,\n  \"consultationFee\": 600,\n  \"availableForVideo\": true,\n  \"availableForInPerson\": true,\n  \"languages\": \"English, Tamil, Telugu\",\n  \"bio\": \"Specialist in neurological disorders with 8 years experience\",\n  \"isAcceptingAppointments\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/doctor-profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "doctor-profiles"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"Doctor profile created\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('doctorProfileId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Doctor Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/doctor-profiles/{{doctorProfileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "doctor-profiles", "{{doctorProfileId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Profile deleted\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Doctor Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorProfileId\": \"{{doctorProfileId}}\",\n  \"dayOfWeek\": 1,\n  \"startTime\": \"09:00\",\n  \"endTime\": \"17:00\",\n  \"slotDurationMinutes\": 30,\n  \"consultationType\": \"video\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/doctor-schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "doctor-schedules"]
+            },
+            "description": "dayOfWeek: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 201\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"Schedule created with ID\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('scheduleId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": \"sched_001\",\n  \"doctorProfileId\": \"dp_001\",\n  \"dayOfWeek\": 1,\n  \"startTime\": \"09:00\",\n  \"endTime\": \"17:00\",\n  \"slotDurationMinutes\": 30,\n  \"consultationType\": \"video\",\n  \"isActive\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Doctor Schedule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/doctor-schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "doctor-schedules", "{{scheduleId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Schedule deleted\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Admin - Hospital Settings",
+      "description": "Hospital configuration and settings management.",
+      "item": [
+        {
+          "name": "Get Hospital Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "settings"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Settings has hospitalName\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('hospitalName');",
+                  "  pm.expect(json).to.have.property('settings');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"hospitalName\": \"Arun Priya Multispeciality\",\n  \"settings\": [\n    { \"key\": \"address\", \"value\": \"123 Main Street, Chennai - 600001\" },\n    { \"key\": \"phone\", \"value\": \"+91 44 1234 5678\" },\n    { \"key\": \"email\", \"value\": \"admin@arunpriya.com\" }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Hospital Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"settings\": [\n    { \"key\": \"address\", \"value\": \"456 Updated Street, Chennai - 600002\" },\n    { \"key\": \"phone\", \"value\": \"+91 44 9876 5432\" },\n    { \"key\": \"email\", \"value\": \"contact@arunpriya.com\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "settings"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Error & Edge Cases",
+      "description": "Tests for authentication errors, validation, and edge cases.",
+      "item": [
+        {
+          "name": "Unauthorized - No Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"]
+            },
+            "description": "Should return 401 when no auth token provided."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returns 401 Unauthorized\", () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"error\": \"Unauthorized. Please provide a valid token.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unauthorized - Expired Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.expired_token.invalid_signature" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returns 401 for expired token\", () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "OTP Rate Limiting Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-otp"]
+            },
+            "description": "Send OTP multiple times rapidly to trigger 429 rate limiting."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returns 200 or 429\", () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 429]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Non-Existent Appointment",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/appointments/nonexistent_id_12345",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "nonexistent_id_12345"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returns 404 Not Found\", () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Appointment not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invalid OTP Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"+919876543210\",\n  \"otpCode\": \"000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returns 401 for invalid OTP\", () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book Appointment - Unavailable Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorProfileId\": \"{{doctorProfileId}}\",\n  \"scheduleDate\": \"2020-01-01\",\n  \"startTime\": \"99:00\",\n  \"consultationType\": \"video\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"]
+            },
+            "description": "Attempt to book with an invalid date/time — should return 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returns 400 for invalid slot\", () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

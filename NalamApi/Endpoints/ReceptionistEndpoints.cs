@@ -105,14 +105,13 @@ public static class ReceptionistEndpoints
                 a.BookingReference.ToLower().Contains(q));
         }
 
-        var queue = await query
+        var rawQueue = await query
             .OrderBy(a => a.StartTime)
-            .Select(a => new 
+            .Select(a => new
             {
                 id = a.Id,
                 bookingReference = a.BookingReference,
                 patientName = a.Patient.FullName,
-                patientInitials = GetInitials(a.Patient.FullName),
                 patientMobile = a.Patient.MobileNumber,
                 doctorName = a.DoctorProfile.User.FullName,
                 time = a.StartTime.ToString("HH:mm"),
@@ -121,6 +120,21 @@ public static class ReceptionistEndpoints
                 paymentStatus = a.PaymentStatus
             })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var queue = rawQueue.Select(a => new
+        {
+            a.id,
+            a.bookingReference,
+            a.patientName,
+            patientInitials = GetInitials(a.patientName),
+            a.patientMobile,
+            a.doctorName,
+            a.time,
+            a.type,
+            a.status,
+            a.paymentStatus
+        }).ToList();
 
         return Results.Ok(queue);
     }
@@ -148,17 +162,25 @@ public static class ReceptionistEndpoints
                 u.MobileNumber.Contains(q));
         }
 
-        var patients = await dbQuery
+        var rawPatients = await dbQuery
             .OrderBy(u => u.FullName)
             .Take(50)
-            .Select(u => new 
+            .Select(u => new
             {
                 id = u.Id,
                 fullName = u.FullName,
-                mobileNumber = u.MobileNumber,
-                initials = GetInitials(u.FullName)
+                mobileNumber = u.MobileNumber
             })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var patients = rawPatients.Select(u => new
+        {
+            u.id,
+            u.fullName,
+            u.mobileNumber,
+            initials = GetInitials(u.fullName)
+        }).ToList();
 
         return Results.Ok(patients);
     }

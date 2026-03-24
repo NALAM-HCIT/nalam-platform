@@ -99,14 +99,13 @@ public static class PharmacistEndpoints
                 a.BookingReference.ToLower().Contains(q));
         }
 
-        var prescriptions = await query
+        var rawPrescriptions = await query
             .OrderByDescending(a => a.UpdatedAt)
             .Select(a => new
             {
                 id = a.Id,
                 bookingReference = a.BookingReference,
                 patientName = a.Patient.FullName,
-                patientInitials = GetInitials(a.Patient.FullName),
                 patientMobile = a.Patient.MobileNumber,
                 doctorName = a.DoctorProfile.User.FullName,
                 doctorSpecialty = a.DoctorProfile.Specialty,
@@ -118,6 +117,24 @@ public static class PharmacistEndpoints
                 updatedAt = a.UpdatedAt
             })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var prescriptions = rawPrescriptions.Select(a => new
+        {
+            a.id,
+            a.bookingReference,
+            a.patientName,
+            patientInitials = GetInitials(a.patientName),
+            a.patientMobile,
+            a.doctorName,
+            a.doctorSpecialty,
+            a.time,
+            a.consultationType,
+            a.prescriptionNotes,
+            a.prescriptionStatus,
+            a.appointmentStatus,
+            a.updatedAt
+        }).ToList();
 
         return Results.Ok(prescriptions);
     }

@@ -51,7 +51,7 @@ public static class PatientEndpoints
 
         var total = await query.CountAsync();
 
-        var consultations = await query
+        var rawConsultations = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(a => new
@@ -59,7 +59,6 @@ public static class PatientEndpoints
                 id = a.Id,
                 bookingReference = a.BookingReference,
                 doctorName = a.DoctorProfile.User.FullName,
-                doctorInitials = GetInitials(a.DoctorProfile.User.FullName),
                 specialty = a.DoctorProfile.Specialty,
                 scheduleDate = a.ScheduleDate.ToString("yyyy-MM-dd"),
                 time = a.StartTime.ToString("hh:mm tt"),
@@ -69,6 +68,22 @@ public static class PatientEndpoints
                 hasPrescription = a.PrescriptionStatus != null
             })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var consultations = rawConsultations.Select(a => new
+        {
+            a.id,
+            a.bookingReference,
+            a.doctorName,
+            doctorInitials = GetInitials(a.doctorName),
+            a.specialty,
+            a.scheduleDate,
+            a.time,
+            a.consultationType,
+            a.notes,
+            a.prescriptionStatus,
+            a.hasPrescription
+        }).ToList();
 
         return Results.Ok(new { total, page, pageSize, consultations });
     }
@@ -84,7 +99,7 @@ public static class PatientEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var prescriptions = await db.Appointments.AsNoTracking()
+        var rawPrescriptions = await db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Where(a => a.PatientId == userId && a.PrescriptionStatus != null)
@@ -95,7 +110,6 @@ public static class PatientEndpoints
                 id = a.Id,
                 bookingReference = a.BookingReference,
                 doctorName = a.DoctorProfile.User.FullName,
-                doctorInitials = GetInitials(a.DoctorProfile.User.FullName),
                 specialty = a.DoctorProfile.Specialty,
                 scheduleDate = a.ScheduleDate.ToString("yyyy-MM-dd"),
                 time = a.StartTime.ToString("hh:mm tt"),
@@ -104,6 +118,21 @@ public static class PatientEndpoints
                 prescriptionStatus = a.PrescriptionStatus
             })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var prescriptions = rawPrescriptions.Select(a => new
+        {
+            a.id,
+            a.bookingReference,
+            a.doctorName,
+            doctorInitials = GetInitials(a.doctorName),
+            a.specialty,
+            a.scheduleDate,
+            a.time,
+            a.consultationType,
+            a.prescriptionNotes,
+            a.prescriptionStatus
+        }).ToList();
 
         return Results.Ok(prescriptions);
     }

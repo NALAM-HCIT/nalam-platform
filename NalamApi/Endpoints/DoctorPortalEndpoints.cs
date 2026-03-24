@@ -56,20 +56,31 @@ public static class DoctorPortalEndpoints
                 (u.Department != null && u.Department.ToLower().Contains(q)));
         }
 
-        var users = await query
+        var rawUsers = await query
             .OrderBy(u => u.Role)
             .ThenBy(u => u.FullName)
             .Select(u => new
             {
                 id = u.Id,
                 name = u.FullName,
-                initials = GetInitials(u.FullName),
                 role = u.Role,
                 department = u.Department,
                 phone = u.MobileNumber,
                 email = u.Email
             })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var users = rawUsers.Select(u => new
+        {
+            u.id,
+            u.name,
+            initials = GetInitials(u.name),
+            u.role,
+            u.department,
+            u.phone,
+            u.email
+        }).ToList();
 
         // Group by role
         var grouped = users

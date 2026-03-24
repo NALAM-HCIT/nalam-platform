@@ -114,19 +114,18 @@ public static class AppointmentEndpoints
         }
 
         var total = await query.CountAsync();
-        var doctors = await query
+        var rawDoctors = await query
             .OrderByDescending(dp => dp.Rating ?? 0)
             .ThenByDescending(dp => dp.ReviewCount)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(dp => new DoctorListItem(
+            .Select(dp => new
+            {
                 dp.Id,
                 dp.UserId,
-                dp.User.FullName,
-                string.Join("", dp.User.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Take(2).Select(w => w.Substring(0, 1))).ToUpper(),
+                FullName = dp.User.FullName,
                 dp.Specialty,
-                dp.User.Department,
+                Department = dp.User.Department,
                 dp.ExperienceYears,
                 dp.ConsultationFee,
                 dp.AvailableForVideo,
@@ -134,10 +133,29 @@ public static class AppointmentEndpoints
                 dp.Languages,
                 dp.Rating,
                 dp.ReviewCount,
-                dp.User.ProfilePhotoUrl,
+                ProfilePhotoUrl = dp.User.ProfilePhotoUrl,
                 dp.IsAcceptingAppointments
-            ))
+            })
             .ToListAsync();
+
+        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        var doctors = rawDoctors.Select(dp => new DoctorListItem(
+            dp.Id,
+            dp.UserId,
+            dp.FullName,
+            GetInitials(dp.FullName),
+            dp.Specialty,
+            dp.Department,
+            dp.ExperienceYears,
+            dp.ConsultationFee,
+            dp.AvailableForVideo,
+            dp.AvailableForInPerson,
+            dp.Languages,
+            dp.Rating,
+            dp.ReviewCount,
+            dp.ProfilePhotoUrl,
+            dp.IsAcceptingAppointments
+        )).ToList();
 
         return Results.Ok(new { total, page, pageSize, doctors });
     }
