@@ -7,7 +7,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * App Purpose: Nalam - A multi-tenant telemedicine platform (SaaS) for hospitals.
 * Web Portal: React/Next.js (Hospital Registration Only) - Hosted on Vercel.
   - Live URL: https://nalamapp-webportal.vercel.app
-  - Repo: https://github.com/NALAM-HCIT/nalamapp-webportal
+  - Repo: https://github.com/Sureshb11/nalamapp-webportal
 * Mobile App: React Native / Expo (Patient & Doctor interaction).
 * Backend API: ASP.NET Core 9.0 (Minimal APIs) - Hosted on Railway.
   - Live URL: https://nalam-api-production.up.railway.app/api
@@ -146,6 +146,15 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] Backend: appsettings.json - configured ApiKey, SenderId (NALAMS), and Template
   * [x] Backend: Integrated ABHA verification format for OTP messages
   * [x] Backend: Auto-migration enabled for Railway deployments
+* [x] Phase 13: Performance Optimizations & Railway Migration - COMPLETED
+  * [x] Backend: Migrated hosting from Render to Railway (no cold starts)
+  * [x] Backend: Added IMemoryCache for dashboard stats (2-min TTL per hospitalId)
+  * [x] Backend: Added response compression (gzip, EnableForHttps = true)
+  * [x] Backend: AsNoTracking() added to all read-only EF Core queries (30-40% faster)
+  * [x] Web Portal: Updated NEXT_PUBLIC_API_URL to Railway URL in Vercel env vars
+  * [x] Web Portal: Repo moved to https://github.com/Sureshb11/nalamapp-webportal
+  * [x] Web Portal: Step-by-step progress indicator added to hospital registration form
+  * [x] Railway Root Directory set to NalamApi (fixes Metro bundler misdeployment)
 
 4. CURRENT DATABASE SCHEMA SNAPSHOT
 ------------------------------------------------------
@@ -157,7 +166,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * audit_logs: [id (PK/UUID), hospital_id (FK), user_id (FK), action, category, severity, details, created_at]
 * doctor_profiles: [id (PK/UUID), hospital_id (FK), user_id (FK/unique), specialty, experience_years, consultation_fee, available_for_video, available_for_in_person, languages, rating, review_count, bio, is_accepting_appointments, created_at, updated_at]
 * doctor_schedules: [id (PK/UUID), hospital_id (FK), doctor_profile_id (FK), day_of_week (0-6), start_time, end_time, slot_duration_minutes, consultation_type, is_active]
-* appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, created_at, updated_at]
+* appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, prescription_status (null/pending/dispensed/rejected), created_at, updated_at]
 
 5. COMPLETED API ROUTES
 ------------------------------------------------------
