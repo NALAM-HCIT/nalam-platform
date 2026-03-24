@@ -1,3 +1,5 @@
+# Legacy file — backend now hosted on Railway
+# See: https://nalam-api-production.up.railway.app
 services:
   - type: web
     name: nalam-api
@@ -9,6 +11,6 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: DATABASE_URL
-        sync: false # User must set in Render dashboard
+        sync: false # User must set in Railway dashboard
       - key: PORT
         value: 5000

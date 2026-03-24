@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using NalamApi.Data;
 using NalamApi.DTOs.Admin;
 using NalamApi.Entities;
@@ -85,7 +86,7 @@ public static class AdminEndpoints
         int page = 1,
         int pageSize = 50)
     {
-        var query = db.Users.AsQueryable();
+        var query = db.Users.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(role) && role.ToLower() != "all")
             query = query.Where(u => u.Role == role.ToLower());
@@ -282,15 +283,19 @@ public static class AdminEndpoints
     //  DASHBOARD
     // ═══════════════════════════════════════════════════════════
 
-    /// <summary>GET /api/admin/dashboard — Dashboard stats for the hospital.</summary>
-    private static async Task<IResult> GetDashboard(NalamDbContext db, HttpContext ctx)
+    /// <summary>GET /api/admin/dashboard — Dashboard stats for the hospital (cached 2 min).</summary>
+    private static async Task<IResult> GetDashboard(NalamDbContext db, HttpContext ctx, IMemoryCache cache)
     {
         var hospitalId = GetHospitalId(ctx);
+        var cacheKey = $"dashboard_{hospitalId}";
 
-        var users = await db.Users.ToListAsync();
-        var departments = await db.Departments.CountAsync();
+        if (cache.TryGetValue(cacheKey, out DashboardResponse? cached) && cached != null)
+            return Results.Ok(cached);
 
-        var recentActivity = await db.AuditLogs
+        var users = await db.Users.AsNoTracking().ToListAsync();
+        var departments = await db.Departments.AsNoTracking().CountAsync();
+
+        var recentActivity = await db.AuditLogs.AsNoTracking()
             .OrderByDescending(a => a.CreatedAt)
             .Take(10)
             .Select(a => new ActivityResponse(
@@ -298,7 +303,7 @@ public static class AdminEndpoints
                 a.Category, a.Severity, a.Details, a.CreatedAt))
             .ToListAsync();
 
-        return Results.Ok(new DashboardResponse(
+        var result = new DashboardResponse(
             TotalUsers: users.Count,
             ActiveUsers: users.Count(u => u.Status == "active"),
             InactiveUsers: users.Count(u => u.Status == "inactive"),
@@ -307,7 +312,10 @@ public static class AdminEndpoints
             Receptionists: users.Count(u => u.Role == "receptionist"),
             TotalDepartments: departments,
             RecentActivity: recentActivity
-        ));
+        );
+
+        cache.Set(cacheKey, result, TimeSpan.FromMinutes(2));
+        return Results.Ok(result);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -321,7 +329,7 @@ public static class AdminEndpoints
         int page = 1,
         int pageSize = 20)
     {
-        var query = db.AuditLogs.AsQueryable();
+        var query = db.AuditLogs.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(a => a.Category == category.ToLower());
@@ -349,7 +357,7 @@ public static class AdminEndpoints
         var hospitalId = GetHospitalId(ctx);
         var hospital = await db.Hospitals.FindAsync(hospitalId);
 
-        var settings = await db.HospitalSettings
+        var settings = await db.HospitalSettings.AsNoTracking()
             .Select(s => new SettingDto(s.Key, s.Value))
             .ToListAsync();
 
@@ -407,7 +415,7 @@ public static class AdminEndpoints
     private static async Task<IResult> GetProfile(NalamDbContext db, HttpContext ctx)
     {
         var userId = GetUserId(ctx);
-        var user = await db.Users.Include(u => u.Hospital).FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await db.Users.AsNoTracking().Include(u => u.Hospital).FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user is null) return Results.NotFound(new { error = "Profile not found." });
 
@@ -463,7 +471,7 @@ public static class AdminEndpoints
     /// <summary>GET /api/admin/doctor-profiles — List all doctor profiles for this hospital.</summary>
     private static async Task<IResult> GetDoctorProfiles(NalamDbContext db)
     {
-        var profiles = await db.DoctorProfiles
+        var profiles = await db.DoctorProfiles.AsNoTracking()
             .Include(dp => dp.User)
             .Include(dp => dp.Schedules)
             .OrderBy(dp => dp.User.FullName)

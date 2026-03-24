@@ -14,7 +14,7 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-# Render uses PORT env variable
+# Railway uses PORT env variable
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 5000
 

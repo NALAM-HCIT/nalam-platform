@@ -96,7 +96,7 @@ public static class AppointmentEndpoints
         int page = 1,
         int pageSize = 20)
     {
-        var query = db.DoctorProfiles
+        var query = db.DoctorProfiles.AsNoTracking()
             .Include(dp => dp.User)
             .Where(dp => dp.IsAcceptingAppointments && dp.User.Status == "active")
             .AsQueryable();
@@ -152,7 +152,7 @@ public static class AppointmentEndpoints
         string? startDate = null,
         int days = 7)
     {
-        var profile = await db.DoctorProfiles
+        var profile = await db.DoctorProfiles.AsNoTracking()
             .Include(dp => dp.User)
             .FirstOrDefaultAsync(dp => dp.Id == doctorProfileId);
 
@@ -164,13 +164,13 @@ public static class AppointmentEndpoints
             : DateOnly.Parse(startDate);
 
         // Get doctor's weekly schedule
-        var schedules = await db.DoctorSchedules
+        var schedules = await db.DoctorSchedules.AsNoTracking()
             .Where(ds => ds.DoctorProfileId == doctorProfileId && ds.IsActive)
             .ToListAsync();
 
         // Get existing appointments in the date range
         var endDate = start.AddDays(days);
-        var existingAppointments = await db.Appointments
+        var existingAppointments = await db.Appointments.AsNoTracking()
             .Where(a => a.DoctorProfileId == doctorProfileId
                 && a.ScheduleDate >= start
                 && a.ScheduleDate < endDate
@@ -424,7 +424,7 @@ public static class AppointmentEndpoints
         var userId = GetUserId(ctx);
         var role = GetRole(ctx);
 
-        var query = db.Appointments
+        var query = db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Include(a => a.Patient)
@@ -486,7 +486,7 @@ public static class AppointmentEndpoints
         var userId = GetUserId(ctx);
         var role = GetRole(ctx);
 
-        var appointment = await db.Appointments
+        var appointment = await db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Include(a => a.Patient)

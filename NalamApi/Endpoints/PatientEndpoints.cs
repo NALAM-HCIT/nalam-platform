@@ -42,7 +42,7 @@ public static class PatientEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var query = db.Appointments
+        var query = db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Where(a => a.PatientId == userId && a.Status == "completed")
@@ -84,7 +84,7 @@ public static class PatientEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var prescriptions = await db.Appointments
+        var prescriptions = await db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Where(a => a.PatientId == userId && a.PrescriptionStatus != null)
@@ -120,7 +120,7 @@ public static class PatientEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var appointment = await db.Appointments
+        var appointment = await db.Appointments.AsNoTracking()
             .Include(a => a.Patient)
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
@@ -173,7 +173,7 @@ public static class PatientEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var appointments = await db.Appointments
+        var appointments = await db.Appointments.AsNoTracking()
             .Where(a => a.PatientId == userId)
             .ToListAsync();
 

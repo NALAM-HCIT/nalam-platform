@@ -44,7 +44,7 @@ public static class PharmacistEndpoints
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         // All appointments that have prescription data (notes != null AND prescription_status is set)
-        var prescriptions = await db.Appointments
+        var prescriptions = await db.Appointments.AsNoTracking()
             .Where(a => a.ScheduleDate == today && a.PrescriptionStatus != null)
             .ToListAsync();
 
@@ -78,7 +78,7 @@ public static class PharmacistEndpoints
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var query = db.Appointments
+        var query = db.Appointments.AsNoTracking()
             .Include(a => a.Patient)
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)

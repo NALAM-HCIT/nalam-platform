@@ -44,7 +44,7 @@ public static class DoctorPortalEndpoints
         var caller = await db.Users.FindAsync(userId);
         if (caller == null) return Results.Unauthorized();
 
-        var query = db.Users
+        var query = db.Users.AsNoTracking()
             .Where(u => u.HospitalId == caller.HospitalId && u.Status == "active");
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -101,12 +101,12 @@ public static class DoctorPortalEndpoints
         if (user == null) return Results.NotFound(new { error = "User not found." });
 
         // Try to find doctor profile
-        var doctorProfile = await db.DoctorProfiles
+        var doctorProfile = await db.DoctorProfiles.AsNoTracking()
             .FirstOrDefaultAsync(dp => dp.UserId == userId);
 
         // Get appointment stats
         var appointments = doctorProfile != null
-            ? await db.Appointments
+            ? await db.Appointments.AsNoTracking()
                 .Where(a => a.DoctorProfileId == doctorProfile.Id)
                 .ToListAsync()
             : new List<Appointment>();
@@ -176,7 +176,7 @@ public static class DoctorPortalEndpoints
             .FirstOrDefaultAsync(dp => dp.UserId == userId);
 
         // Get past appointments for this patient (with this doctor if doctor profile exists)
-        var appointmentsQuery = db.Appointments
+        var appointmentsQuery = db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Where(a => a.PatientId == patientId);

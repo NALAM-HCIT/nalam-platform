@@ -112,6 +112,16 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // ═══════════════════════════════════════════════════════════
+//  CACHING & COMPRESSION
+// ═══════════════════════════════════════════════════════════
+
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
+// ═══════════════════════════════════════════════════════════
 //  SERVICES (DI Registration)
 // ═══════════════════════════════════════════════════════════
 
@@ -178,6 +188,7 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 });
 
 // Middleware pipeline (order matters!)
+app.UseResponseCompression();
 app.UseCors("AllowNalamClients");
 app.UseRateLimiter();
 app.UseAuthentication();

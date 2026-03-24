@@ -9,8 +9,8 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   - Live URL: https://nalamapp-webportal.vercel.app
   - Repo: https://github.com/NALAM-HCIT/nalamapp-webportal
 * Mobile App: React Native / Expo (Patient & Doctor interaction).
-* Backend API: ASP.NET Core 9.0 (Minimal APIs) - Hosted on Render (Free Tier).
-  - Live URL: https://nalam-api.onrender.com/api
+* Backend API: ASP.NET Core 9.0 (Minimal APIs) - Hosted on Railway.
+  - Live URL: https://nalam-api-production.up.railway.app/api
   - Repo: https://github.com/NALAM-HCIT/nalam-platform
 * Database: PostgreSQL - Managed by Supabase (Free Tier).
 * Storage: Cloudinary (for Hospital Logos, Licenses, and Medical Records).
@@ -22,7 +22,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * RULE 2: Authentication - Mobile app uses Mobile Number + OTP ONLY. No passwords/Employee IDs.
 * RULE 3: Role-Based Access Control (RBAC) - Roles: Patient, Doctor, Hospital Admin, Staff (Pharmacist/Receptionist).
 * RULE 4: Image Handling - Store URLs only in DB; actual files go to Cloudinary.
-* RULE 5: Infrastructure - Keep code compatible with Docker for Render deployment.
+* RULE 5: Infrastructure - Keep code compatible with Docker for Railway deployment.
 * RULE 6: Defense-in-Depth - 4-layer tenant isolation: JWT Claims → TenantMiddleware → EF Core Global Query Filters → PostgreSQL RLS.
 * RULE 7: Never accept hospital_id from request body — always extract from JWT (except patient-register which is pre-auth).
 * RULE 8: Auth Flow Split:
@@ -44,12 +44,12 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * [x] Phase 2J: EF Core Migration (InitialCreate) - COMPLETED
 * [x] Phase 2K: Supabase DB Connection configured - COMPLETED
 * [x] Phase 2L: Manual Execution of Schema & RLS Scripts in Supabase - COMPLETED
-* [x] Phase 3: Hospital Web Registration Flow (Vercel -> Render API) - COMPLETED
+* [x] Phase 3: Hospital Web Registration Flow (Vercel -> Railway API) - COMPLETED
 * [x] Phase 4: Mobile App Integration (Connect Admin screens to APIs) - COMPLETED
   * [x] Removed Employee ID mockup login
   * [x] Created Axios interceptor and connected AuthStore to secure endpoints
   * [x] Connected Admin Dashboard, Users, Settings, and Profile to backend APIs
-* [x] Phase 4.5: Global Backend Deployment (Render URL Configured) - COMPLETED
+* [x] Phase 4.5: Global Backend Deployment (Railway URL Configured) - COMPLETED
 * [x] Phase 4.6: Web Portal Deployment (Vercel: nalamapp-webportal.vercel.app) - COMPLETED
 * [x] Phase 4.7: Live Database Configuration & CORS Fix (Supabase IPv4 Pooler) - COMPLETED
 * [x] Phase 4.8: Database Migration Applied to Supabase - COMPLETED
@@ -141,6 +141,11 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] Mobile: doctor/active-consultation.tsx - real Agora video call integration
   * [x] Fixed channel name alignment (consultation_{id}) between roles
   * [x] TypeScript build: 0 errors (npx tsc --noEmit)
+* [x] Phase 12: Real SMS Gateway Integration - COMPLETED
+  * [x] Backend: services/OtpService.cs - Pay4Sms API integration
+  * [x] Backend: appsettings.json - configured ApiKey, SenderId (NALAMS), and Template
+  * [x] Backend: Integrated ABHA verification format for OTP messages
+  * [x] Backend: Auto-migration enabled for Railway deployments
 
 4. CURRENT DATABASE SCHEMA SNAPSHOT
 ------------------------------------------------------
