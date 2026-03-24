@@ -30,11 +30,17 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthFlow = segments[0] === 'care-provider' || segments[0] === 'patient' || segments[0] === '(index)' || !segments[0];
+    // "Auth flow" = screens where a logged-in user should be redirected to their dashboard
+    const isLoginScreen = segments[1] === 'login' || segments[1] === 'otp';
+    const inAuthFlow = segments[0] === '(index)' || !segments[0] || isLoginScreen;
+    const inProtectedRoute = ['patient', 'doctor', 'receptionist', 'pharmacist', 'admin'].includes(segments[0] as string) && !isLoginScreen;
 
     if (isAuthenticated && role && inAuthFlow) {
       // User is logged in but on login/splash screen — redirect to their dashboard
       router.replace(`/${role}/(tabs)` as any);
+    } else if (!isAuthenticated && inProtectedRoute) {
+      // Token expired or user logged out — redirect to login
+      router.replace('/');
     }
   }, [isAuthenticated, role, isLoading, segments]);
 
