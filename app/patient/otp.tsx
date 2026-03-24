@@ -58,12 +58,18 @@ export default function OTPScreen() {
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (canResend) {
-      setCountdown(30);
-      setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
-      inputs.current[0]?.focus();
+      setError('');
+      try {
+        await api.post('/auth/send-otp', { mobileNumber: phone });
+        setCountdown(30);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        inputs.current[0]?.focus();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to resend OTP');
+      }
     }
   };
 

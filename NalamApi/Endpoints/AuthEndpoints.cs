@@ -43,6 +43,7 @@ public static class AuthEndpoints
         SendOtpRequest request,
         NalamDbContext db,
         OtpService otpService,
+        IServiceScopeFactory scopeFactory,
         ILogger<Program> logger)
     {
         if (string.IsNullOrWhiteSpace(request.MobileNumber))
@@ -93,15 +94,22 @@ public static class AuthEndpoints
         db.OtpVerifications.Add(otpRecord);
         await db.SaveChangesAsync();
 
-        // Send OTP via Pay4SMS (or log to console in dev mode)
-        var sent = await otpService.SendOtpAsync(mobile, otpCode);
-
-        if (!sent)
+        // 🚀 Fire and Forget: Send OTP in background so API returns instantly
+        _ = Task.Run(async () =>
         {
-            return Results.Ok(new AuthResponse(false, "Failed to send OTP. Please try again."));
-        }
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var backgroundOtpService = scope.ServiceProvider.GetRequiredService<OtpService>();
+                await backgroundOtpService.SendOtpAsync(mobile, otpCode);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Background OTP send failed for {Mobile}", mobile);
+            }
+        });
 
-        logger.LogInformation("OTP sent to {Mobile} for user {UserId}", mobile, user.Id);
+        logger.LogInformation("OTP generation complete. SMS dispatch queued for {Mobile} (UserId: {UserId})", mobile, user.Id);
 
         return Results.Ok(new AuthResponse(true, "OTP sent successfully."));
     }
@@ -148,14 +156,15 @@ public static class AuthEndpoints
         if (otpRecord.AttemptCount >= 5)
         {
             otpRecord.IsUsed = true;
-            await db.SaveChangesAsync();
 
-            await auditService.LogAsync(
+            auditService.Log(
                 otpRecord.User.HospitalId,
                 otpRecord.UserId,
                 "OTP locked after 5 failed attempts",
                 "security", "critical",
                 $"Mobile: {mobile}");
+
+            await db.SaveChangesAsync();
 
             return Results.Ok(new AuthResponse(false, "Too many failed attempts. Please request a new OTP."));
         }
@@ -165,16 +174,17 @@ public static class AuthEndpoints
         {
             otpRecord.AttemptCount++;
             otpRecord.LastAttemptAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
 
             var remaining = 5 - otpRecord.AttemptCount;
 
-            await auditService.LogAsync(
+            auditService.Log(
                 otpRecord.User.HospitalId,
                 otpRecord.UserId,
                 $"Invalid OTP attempt ({otpRecord.AttemptCount}/5)",
                 "security", "warning",
                 $"Mobile: {mobile}");
+
+            await db.SaveChangesAsync();
 
             return Results.Ok(new AuthResponse(false, $"Invalid OTP. {remaining} attempt(s) remaining."));
         }
@@ -186,19 +196,21 @@ public static class AuthEndpoints
         var user = otpRecord.User;
         user.LastLogin = DateTime.UtcNow;
         user.IsVerified = true;
-        await db.SaveChangesAsync();
 
         // Generate JWT
         var accessToken = jwtService.GenerateAccessToken(
             user.Id, user.Role, user.HospitalId, user.FullName);
         var refreshToken = jwtService.GenerateRefreshToken();
 
-        // Log successful login
-        await auditService.LogAsync(
+        // Log successful login (sync, saved in the single transaction below)
+        auditService.Log(
             user.HospitalId, user.Id,
             "Login successful",
             "security", "info",
             $"Role: {user.Role}");
+
+        // Single database commit for OtpRecord, User properties, and Audit Log
+        await db.SaveChangesAsync();
 
         logger.LogInformation("User {UserId} logged in successfully", user.Id);
 
@@ -220,6 +232,7 @@ public static class AuthEndpoints
         PatientRegisterRequest request,
         NalamDbContext db,
         OtpService otpService,
+        IServiceScopeFactory scopeFactory,
         ILogger<Program> logger)
     {
         if (string.IsNullOrWhiteSpace(request.MobileNumber))
@@ -273,12 +286,22 @@ public static class AuthEndpoints
         db.OtpVerifications.Add(otpRecord);
         await db.SaveChangesAsync();
 
-        var sent = await otpService.SendOtpAsync(mobile, otpCode);
+        // 🚀 Fire and Forget: Send OTP via Pay4SMS in background
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var backgroundOtpService = scope.ServiceProvider.GetRequiredService<OtpService>();
+                await backgroundOtpService.SendOtpAsync(mobile, otpCode);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Background OTP send failed for Patient Registration {Mobile}", mobile);
+            }
+        });
 
-        if (!sent)
-            return Results.Ok(new AuthResponse(false, "Account created but failed to send OTP. Please try Login."));
-
-        logger.LogInformation("Patient registered: {Mobile} for hospital {HospitalId}", mobile, request.HospitalId);
+        logger.LogInformation("Patient registered: {Mobile} for hospital {HospitalId}. SMS dispatch queued.", mobile, request.HospitalId);
 
         return Results.Ok(new AuthResponse(true, "Registration successful. OTP sent."));
     }

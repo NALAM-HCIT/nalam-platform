@@ -41,4 +41,28 @@ public class AuditService
         _db.AuditLogs.Add(log);
         await _db.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Log an audit event without saving immediately (for batching transactions).
+    /// </summary>
+    public void Log(
+        Guid hospitalId,
+        Guid? userId,
+        string action,
+        string category = "system",
+        string severity = "info",
+        string? details = null)
+    {
+        var log = new AuditLog
+        {
+            HospitalId = hospitalId,
+            UserId = userId,
+            Action = action,
+            Category = category,
+            Severity = severity,
+            Details = details
+        };
+
+        _db.AuditLogs.Add(log);
+    }
 }

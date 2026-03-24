@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,7 +13,39 @@ export default function ReceptionistOTPScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [countdown, setCountdown] = useState(30);
+  const [canResend, setCanResend] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [countdown]);
+
+  const handleResend = async () => {
+    if (canResend) {
+      setError('');
+      try {
+        await api.post('/auth/send-otp', { mobileNumber: phone });
+        setCountdown(30);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        inputs.current[0]?.focus();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to resend OTP');
+      }
+    }
+  };
 
   const handleOtpChange = (text: string, index: number) => {
     const newOtp = [...otp];
@@ -124,11 +156,15 @@ export default function ReceptionistOTPScreen() {
             </Pressable>
 
             {/* Resend */}
-            <View className="flex-row justify-center mt-6 gap-1">
+            <View className="flex-row justify-center mt-6 gap-1 items-center">
               <Text className="text-slate-400 text-sm font-light">Didn't receive the code?</Text>
-              <Pressable>
-                <Text className="text-primary font-semibold text-sm">Resend OTP</Text>
-              </Pressable>
+              {canResend ? (
+                <Pressable onPress={handleResend}>
+                  <Text className="text-primary font-semibold text-sm">Resend OTP</Text>
+                </Pressable>
+              ) : (
+                <Text className="text-slate-400 text-sm font-medium">Resend in {countdown}s</Text>
+              )}
             </View>
           </View>
 
