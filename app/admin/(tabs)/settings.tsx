@@ -41,9 +41,6 @@ export default function SettingsScreen() {
   >([]);
 
   // ── Security settings state ─────────────────────────────
-  const [sessionTimeout, setSessionTimeout] = useState('15');
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
-  const [loginAttemptsLimit, setLoginAttemptsLimit] = useState('5');
   const [auditLogging, setAuditLogging] = useState(true);
 
   // ── Notification settings state ─────────────────────────
@@ -98,9 +95,6 @@ export default function SettingsScreen() {
       const res = await api.get('/admin/settings');
       const s: { key: string; value: string }[] = res.data.settings || [];
       const getVal = (k: string, fallback: string) => s.find((x) => x.key === k)?.value ?? fallback;
-      setSessionTimeout(getVal('session_timeout_minutes', '15'));
-      setTwoFactorEnabled(getVal('two_factor_enabled', 'true') === 'true');
-      setLoginAttemptsLimit(getVal('max_login_attempts', '5'));
       setAuditLogging(getVal('audit_logging_enabled', 'true') === 'true');
     } catch (e) {
       console.log('Failed to fetch security settings', e);
@@ -190,9 +184,6 @@ export default function SettingsScreen() {
     try {
       await api.put('/admin/settings', {
         settings: [
-          { key: 'session_timeout_minutes', value: sessionTimeout },
-          { key: 'two_factor_enabled', value: String(twoFactorEnabled) },
-          { key: 'max_login_attempts', value: loginAttemptsLimit },
           { key: 'audit_logging_enabled', value: String(auditLogging) },
         ],
       });
@@ -348,6 +339,7 @@ export default function SettingsScreen() {
                   value={field.value}
                   onChangeText={field.setter}
                   keyboardType={field.keyboard}
+                  maxLength={field.keyboard === 'phone-pad' ? 10 : undefined}
                 />
               </View>
             ))}
@@ -409,18 +401,6 @@ export default function SettingsScreen() {
             <View className="gap-4">
               <View className="flex-row items-center justify-between py-2">
                 <View className="flex-1">
-                  <Text className="font-semibold text-midnight text-sm">Two-Factor Authentication</Text>
-                  <Text className="text-slate-400 text-xs mt-0.5">Require OTP for all admin logins</Text>
-                </View>
-                <Switch
-                  value={twoFactorEnabled}
-                  onValueChange={setTwoFactorEnabled}
-                  trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-                  thumbColor={twoFactorEnabled ? '#1A73E8' : '#94A3B8'}
-                />
-              </View>
-              <View className="flex-row items-center justify-between py-2">
-                <View className="flex-1">
                   <Text className="font-semibold text-midnight text-sm">Audit Logging</Text>
                   <Text className="text-slate-400 text-xs mt-0.5">Log all user actions for compliance</Text>
                 </View>
@@ -429,24 +409,6 @@ export default function SettingsScreen() {
                   onValueChange={setAuditLogging}
                   trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
                   thumbColor={auditLogging ? '#1A73E8' : '#94A3B8'}
-                />
-              </View>
-              <View className="mb-2">
-                <Text className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 ml-1">Session Timeout (minutes)</Text>
-                <TextInput
-                  className="bg-slate-50 rounded-xl px-4 py-3.5 text-midnight text-sm border border-slate-100"
-                  value={sessionTimeout}
-                  onChangeText={setSessionTimeout}
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View className="mb-2">
-                <Text className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 ml-1">Max Login Attempts</Text>
-                <TextInput
-                  className="bg-slate-50 rounded-xl px-4 py-3.5 text-midnight text-sm border border-slate-100"
-                  value={loginAttemptsLimit}
-                  onChangeText={setLoginAttemptsLimit}
-                  keyboardType="number-pad"
                 />
               </View>
             </View>

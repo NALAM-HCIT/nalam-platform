@@ -29,6 +29,7 @@ public static class AdminEndpoints
         group.MapPatch("/users/{id:guid}/status", ChangeUserStatus);
         group.MapPatch("/users/{id:guid}/role", ChangeUserRole);
         group.MapDelete("/users/{id:guid}", DeleteUser);
+        group.MapPost("/users/{id:guid}/reset-auth", ResetUserAuth);
 
         // ── Dashboard ────────────────────────────────────────────
         group.MapGet("/dashboard", GetDashboard);
@@ -303,18 +304,23 @@ public static class AdminEndpoints
         AuditService auditService,
         HttpContext ctx)
     {
-        var user = await db.Users.FindAsync(id);
+        var hospitalId = GetHospitalId(ctx);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
         if (user is null) return Results.NotFound(new { error = "User not found." });
 
         if (request.Status != "active" && request.Status != "inactive")
             return Results.BadRequest(new { error = "Status must be 'active' or 'inactive'." });
+
+        // Prevent deactivating yourself
+        if (user.Id == GetUserId(ctx) && request.Status == "inactive")
+            return Results.BadRequest(new { error = "You cannot deactivate your own account." });
 
         var oldStatus = user.Status;
         user.Status = request.Status;
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(
-            GetHospitalId(ctx), GetUserId(ctx),
+            hospitalId, GetUserId(ctx),
             $"User {user.FullName} status changed: {oldStatus} → {request.Status}",
             "user", request.Status == "inactive" ? "warning" : "info");
 
@@ -329,7 +335,9 @@ public static class AdminEndpoints
         AuditService auditService,
         HttpContext ctx)
     {
-        var user = await db.Users.Include(u => u.UserRoles).FirstOrDefaultAsync(u => u.Id == id);
+        var hospitalId = GetHospitalId(ctx);
+        var user = await db.Users.Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
         if (user is null) return Results.NotFound(new { error = "User not found." });
 
         if (request.Roles == null || request.Roles.Count == 0)
@@ -386,7 +394,8 @@ public static class AdminEndpoints
         AuditService auditService,
         HttpContext ctx)
     {
-        var user = await db.Users.FindAsync(id);
+        var hospitalId = GetHospitalId(ctx);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
         if (user is null) return Results.NotFound(new { error = "User not found." });
 
         // Prevent deleting yourself
@@ -398,11 +407,44 @@ public static class AdminEndpoints
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(
-            GetHospitalId(ctx), GetUserId(ctx),
+            hospitalId, GetUserId(ctx),
             $"Deleted user: {userName}",
             "user", "critical");
 
         return Results.Ok(new { message = $"{userName} has been removed." });
+    }
+
+    /// <summary>POST /api/admin/users/{id}/reset-auth — Invalidate sessions and force re-login.</summary>
+    private static async Task<IResult> ResetUserAuth(
+        Guid id,
+        NalamDbContext db,
+        AuditService auditService,
+        HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
+        if (user is null) return Results.NotFound(new { error = "User not found." });
+
+        // Invalidate all active OTPs for this user
+        var activeOtps = await db.OtpVerifications
+            .IgnoreQueryFilters()
+            .Where(o => o.UserId == user.Id && !o.IsUsed && o.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+
+        foreach (var otp in activeOtps)
+            otp.IsUsed = true;
+
+        // Mark user as unverified — forces re-authentication on next request
+        user.IsVerified = false;
+
+        await db.SaveChangesAsync();
+
+        await auditService.LogAsync(
+            hospitalId, GetUserId(ctx),
+            $"Auth reset for user {user.FullName}. {activeOtps.Count} active OTP(s) invalidated.",
+            "security", "warning");
+
+        return Results.Ok(new { message = $"Auth reset for {user.FullName}. They must re-login via OTP." });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -576,6 +618,7 @@ public static class AdminEndpoints
         if (!string.IsNullOrWhiteSpace(request.FullName)) user.FullName = request.FullName.Trim();
         if (request.Email != null) user.Email = request.Email.Trim();
         if (request.ProfilePhotoUrl != null) user.ProfilePhotoUrl = request.ProfilePhotoUrl.Trim();
+        if (request.Department != null) user.Department = request.Department.Trim();
 
         await db.SaveChangesAsync();
 

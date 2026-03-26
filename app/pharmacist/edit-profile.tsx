@@ -76,6 +76,7 @@ const FormInput = React.memo(function FormInput({
             onChangeText={onChange}
             keyboardType={field.type === 'email' ? 'email-address' : field.type === 'phone' ? 'phone-pad' : 'default'}
             autoCapitalize={field.type === 'email' ? 'none' : 'words'}
+            maxLength={field.type === 'phone' ? 10 : undefined}
             multiline={field.type === 'multiline'}
             numberOfLines={field.type === 'multiline' ? 3 : 1}
             style={field.type === 'multiline' ? { minHeight: 70, textAlignVertical: 'top' } : undefined}

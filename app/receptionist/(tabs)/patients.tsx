@@ -172,6 +172,7 @@ export default function PatientsScreen() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-midnight font-medium text-base"
                 placeholder="+91 98765 43210"
                 keyboardType="phone-pad"
+                maxLength={10}
                 value={newPatientMobile}
                 onChangeText={setNewPatientMobile}
               />

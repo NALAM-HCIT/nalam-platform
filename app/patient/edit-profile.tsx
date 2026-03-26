@@ -104,6 +104,7 @@ const FormInput = React.memo(function FormInput({
               : 'default'
             }
             autoCapitalize={field.type === 'email' ? 'none' : 'words'}
+            maxLength={field.type === 'phone' ? 10 : undefined}
             multiline={field.type === 'multiline'}
             numberOfLines={field.type === 'multiline' ? 3 : 1}
             style={field.type === 'multiline' ? { minHeight: 70, textAlignVertical: 'top' } : undefined}

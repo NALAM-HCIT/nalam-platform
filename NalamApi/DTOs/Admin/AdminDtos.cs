@@ -150,7 +150,8 @@ public record DoctorScheduleResponse(
 public record UpdateProfileRequest(
     string? FullName,
     string? Email,
-    string? ProfilePhotoUrl
+    string? ProfilePhotoUrl,
+    string? Department
 );
 
 public record ProfileResponse(

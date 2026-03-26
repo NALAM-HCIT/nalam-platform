@@ -1,12 +1,12 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Modal, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Modal, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Search, User, UserPlus, X, Phone, Mail, Shield, MoreVertical,
   Calendar, Building2, UserCheck, UserX, Users, Key, Trash2,
-  ArrowUpRight, ChevronRight,
+  ArrowUpRight, ChevronRight, Check,
 } from 'lucide-react-native';
 import { Shadows, Colors } from '@/constants/theme';
 import { StatusChip } from '@/components';
@@ -278,40 +278,68 @@ export default function UsersScreen() {
     );
   }, []);
 
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleModalUser, setRoleModalUser] = useState<UserItem | null>(null);
+  const [pendingRoles, setPendingRoles] = useState<string[]>([]);
+  const [savingRole, setSavingRole] = useState(false);
+
   const handleEditRole = useCallback((user: UserItem) => {
-    CustomAlert.alert(
-      'Change Role',
-      `Current role: ${user.role}\n\nSelect new role for ${user.name}:`,
-      [
-        ...['Doctor', 'Receptionist', 'Pharmacist', 'Admin']
-          .filter((r) => r !== user.role)
-          .map((role) => ({
-            text: role,
-            onPress: async () => {
-              try {
-                await api.patch(`/admin/users/${user.id}/role`, { role: role.toLowerCase() });
-                setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
-                setSelectedUser((prev) => prev?.id === user.id ? { ...prev, role } : prev);
-                CustomAlert.alert('Role Updated', `${user.name} is now a ${role}.`);
-              } catch (error: any) {
-                CustomAlert.alert('Error', 'Failed to change role.');
-              }
-            },
-          })),
-        { text: 'Cancel', style: 'cancel' },
-      ]
+    setRoleModalUser(user);
+    setPendingRoles(user.roles.map((r) => r.toLowerCase()));
+    setShowRoleModal(true);
+  }, []);
+
+  const togglePendingRole = useCallback((role: string) => {
+    setPendingRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
     );
   }, []);
 
+  const handleSaveRoles = useCallback(async () => {
+    if (!roleModalUser || pendingRoles.length === 0) {
+      CustomAlert.alert('Error', 'At least one role is required.');
+      return;
+    }
+    setSavingRole(true);
+    try {
+      await api.patch(`/admin/users/${roleModalUser.id}/role`, { roles: pendingRoles });
+      const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+      const newRoles = pendingRoles.map(capitalize);
+      const newPrimaryRole = newRoles[0];
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === roleModalUser.id ? { ...u, role: newPrimaryRole, roles: newRoles } : u
+        )
+      );
+      setSelectedUser((prev) =>
+        prev?.id === roleModalUser.id ? { ...prev, role: newPrimaryRole, roles: newRoles } : prev
+      );
+      setShowRoleModal(false);
+      CustomAlert.alert('Roles Updated', `${roleModalUser.name} now has roles: ${newRoles.join(', ')}.`);
+    } catch (error: any) {
+      CustomAlert.alert('Error', error.response?.data?.error || 'Failed to change roles.');
+    } finally {
+      setSavingRole(false);
+    }
+  }, [roleModalUser, pendingRoles]);
+
   const handleResetPassword = useCallback((user: UserItem) => {
     CustomAlert.alert(
-      'Reset Password',
-      `Send a password reset link to ${user.email}?`,
+      'Reset Auth',
+      `This will invalidate ${user.name}'s active sessions and force them to re-login via OTP.\n\nContinue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Send Reset',
-          onPress: () => CustomAlert.alert('Email Sent', `Password reset link sent to ${user.email}.`),
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.post(`/admin/users/${user.id}/reset-auth`);
+              CustomAlert.alert('Auth Reset', res.data?.message || `${user.name} must re-login via OTP.`);
+            } catch (error: any) {
+              CustomAlert.alert('Error', error.response?.data?.error || 'Failed to reset auth.');
+            }
+          },
         },
       ]
     );
@@ -321,7 +349,7 @@ export default function UsersScreen() {
     CustomAlert.alert(user.name, `${user.role} | ${user.department}`, [
       { text: 'View Details', onPress: () => handleUserPress(user) },
       { text: 'Change Role', onPress: () => handleEditRole(user) },
-      { text: 'Reset Password', onPress: () => handleResetPassword(user) },
+      { text: 'Reset Auth', onPress: () => handleResetPassword(user) },
       {
         text: user.status === 'active' ? 'Deactivate' : 'Activate',
         onPress: () => handleToggleStatus(user.id),
@@ -487,7 +515,7 @@ export default function UsersScreen() {
                 <View className="gap-3 mb-6">
                   <View className="flex-row gap-3">
                     <ActionButton icon={Shield} label="Change Role" color={Colors.primary} bgColor="#EFF6FF" onPress={() => handleEditRole(selectedUser)} />
-                    <ActionButton icon={Key} label="Reset Pass" color="#F59E0B" bgColor="#FFFBEB" onPress={() => handleResetPassword(selectedUser)} />
+                    <ActionButton icon={Key} label="Reset Auth" color="#F59E0B" bgColor="#FFFBEB" onPress={() => handleResetPassword(selectedUser)} />
                   </View>
                   <View className="flex-row gap-3">
                     <ActionButton
@@ -502,6 +530,61 @@ export default function UsersScreen() {
                 </View>
               </ScrollView>
             )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Change Role Modal */}
+      <Modal visible={showRoleModal} transparent animationType="fade" onRequestClose={() => setShowRoleModal(false)}>
+        <Pressable className="flex-1 bg-black/40 justify-center items-center px-6" onPress={() => setShowRoleModal(false)}>
+          <Pressable onPress={() => {}} className="bg-white rounded-3xl w-full p-6" style={Shadows.card}>
+            <Text className="text-lg font-extrabold text-midnight text-center mb-1">Change Roles</Text>
+            <Text className="text-xs text-slate-400 text-center mb-5">
+              Select one or more roles for {roleModalUser?.name}
+            </Text>
+
+            <View className="gap-3 mb-6">
+              {['doctor', 'receptionist', 'pharmacist', 'admin'].map((role) => {
+                const label = role.charAt(0).toUpperCase() + role.slice(1);
+                const rc = ROLE_COLORS[label] || ROLE_COLORS.Admin;
+                const isSelected = pendingRoles.includes(role);
+                return (
+                  <Pressable
+                    key={role}
+                    onPress={() => togglePendingRole(role)}
+                    className={`flex-row items-center gap-3 p-3.5 rounded-2xl border ${isSelected ? 'border-primary/30' : 'border-slate-100'}`}
+                    style={{ backgroundColor: isSelected ? rc.bg : '#FAFAFA' }}
+                  >
+                    <View className={`w-6 h-6 rounded-lg items-center justify-center border-2 ${isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'}`}>
+                      {isSelected && <Check size={14} color="#FFFFFF" />}
+                    </View>
+                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: rc.dot }} />
+                    <Text className={`text-sm font-semibold ${isSelected ? 'text-midnight' : 'text-slate-500'}`}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={() => setShowRoleModal(false)}
+                className="flex-1 py-3.5 rounded-full bg-slate-100 items-center"
+              >
+                <Text className="font-semibold text-sm text-slate-500">Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveRoles}
+                disabled={savingRole || pendingRoles.length === 0}
+                className={`flex-1 py-3.5 rounded-full items-center ${pendingRoles.length > 0 ? 'bg-primary' : 'bg-slate-200'}`}
+                style={pendingRoles.length > 0 ? Shadows.focus : undefined}
+              >
+                {savingRole ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text className={`font-bold text-sm ${pendingRoles.length > 0 ? 'text-white' : 'text-slate-400'}`}>Save Roles</Text>
+                )}
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

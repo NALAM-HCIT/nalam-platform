@@ -86,6 +86,7 @@ const FormInput = React.memo(function FormInput({ field, value, error, onChange,
             onChangeText={onChange}
             keyboardType={field.keyboard || 'default'}
             autoCapitalize={field.autoCapitalize || 'words'}
+            maxLength={field.type === 'phone' ? 10 : undefined}
           />
         </View>
       )}
