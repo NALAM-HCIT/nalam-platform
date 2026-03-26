@@ -103,7 +103,7 @@ public class Appointment
     public Hospital Hospital { get; set; } = null!;
 
     [ForeignKey("PatientId")]
-    public User Patient { get; set; } = null!;
+    public Patient Patient { get; set; } = null!;
 
     [ForeignKey("DoctorProfileId")]
     public DoctorProfile DoctorProfile { get; set; } = null!;

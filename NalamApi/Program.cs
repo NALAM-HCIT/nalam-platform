@@ -206,6 +206,7 @@ app.MapAppointmentEndpoints();
 app.MapReceptionistEndpoints();
 app.MapPharmacistEndpoints();
 app.MapPatientEndpoints();
+app.MapPatientProfileEndpoints();
 app.MapDoctorPortalEndpoints();
 
 // Health check

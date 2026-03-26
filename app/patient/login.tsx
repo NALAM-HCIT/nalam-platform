@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, ScrollView,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,6 +11,7 @@ import {
   ChevronDown, ArrowRight, ShieldCheck, UserPlus,
 } from 'lucide-react-native';
 import { api, HOSPITAL_ID } from '@/services/api';
+import { HospitalConfig } from '@/config/hospital';
 
 export default function PatientLoginScreen() {
   const router = useRouter();
@@ -29,7 +28,9 @@ export default function PatientLoginScreen() {
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/send-otp', { mobileNumber: mobile });
+      console.log('[PatientLogin] Sending OTP to:', mobile, 'API base:', api.defaults.baseURL);
+      const res = await api.post('/auth/send-otp', { mobileNumber: mobile, hospitalId: HOSPITAL_ID || undefined, accountType: 'patient' });
+      console.log('[PatientLogin] Response:', JSON.stringify(res.data));
       const data = res.data;
 
       if (data.success) {
@@ -40,10 +41,10 @@ export default function PatientLoginScreen() {
         // New user — show name input for registration
         setIsNewUser(true);
       } else {
-        Alert.alert('Error', data.message || 'Something went wrong.');
+        CustomAlert.alert('Error', data.message || 'Something went wrong.');
       }
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to connect. Please try again.');
+      CustomAlert.alert('Error', err.response?.data?.message || 'Failed to connect. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -67,11 +68,11 @@ export default function PatientLoginScreen() {
         setPhone(mobile);
         router.push('/patient/otp');
       } else {
-        Alert.alert('Registration Failed', data.message || 'Please try again.');
+        CustomAlert.alert('Registration Failed', data.message || 'Please try again.');
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Registration failed. Please try again.';
-      Alert.alert('Error', msg);
+      CustomAlert.alert('Error', msg);
     } finally {
       setLoading(false);
     }
@@ -125,8 +126,8 @@ export default function PatientLoginScreen() {
             {/* Header Text */}
             <View className="px-6">
               <Text className="text-white text-[26px] font-bold leading-tight">
-                Welcome to Arun Priya{'\n'}
-                <Text className="text-[#7EB3FF] font-extrabold">Multispeciality Hospital</Text>
+                Welcome to{'\n'}
+                <Text className="text-[#7EB3FF] font-extrabold">{HospitalConfig.name}</Text>
               </Text>
               <Text className="text-white/50 text-xs font-semibold uppercase tracking-[3px] mt-2">
                 Patient Portal Access

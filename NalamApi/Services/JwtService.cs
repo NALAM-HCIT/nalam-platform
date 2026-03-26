@@ -40,6 +40,33 @@ public class JwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    public string GeneratePatientAccessToken(Guid patientId, Guid hospitalId, string fullName)
+    {
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_config["Jwt:Secret"] ?? "NalamDefaultSecretKey_ChangeInProduction_32chars!"));
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, patientId.ToString()),
+            new Claim("role", "patient"),
+            new Claim("accountType", "patient"),
+            new Claim("hospitalId", hospitalId.ToString()),
+            new Claim("fullName", fullName),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"] ?? "NalamApi",
+            audience: _config["Jwt:Audience"] ?? "NalamApp",
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(
+                double.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "60")),
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
     public string GenerateRefreshToken()
     {
         return Convert.ToBase64String(Guid.NewGuid().ToByteArray()) +

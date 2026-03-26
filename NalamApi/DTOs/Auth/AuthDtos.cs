@@ -1,6 +1,10 @@
 namespace NalamApi.DTOs.Auth;
 
-public record SendOtpRequest(string MobileNumber);
+public record SendOtpRequest(
+    string MobileNumber,
+    Guid? HospitalId = null,
+    string AccountType = "staff"    // "patient" or "staff"
+);
 
 public record PatientRegisterRequest(
     string MobileNumber,
@@ -8,7 +12,12 @@ public record PatientRegisterRequest(
     Guid HospitalId
 );
 
-public record VerifyOtpRequest(string MobileNumber, string OtpCode);
+public record VerifyOtpRequest(
+    string MobileNumber,
+    string OtpCode,
+    Guid? HospitalId = null,
+    string AccountType = "staff"    // "patient" or "staff"
+);
 
 public record AuthResponse(
     bool Success,
@@ -24,8 +33,13 @@ public record UserInfo(
     string FullName,
     string MobileNumber,
     string Role,
+    List<string> Roles,
     Guid HospitalId,
-    string HospitalName
+    string HospitalName,
+    string AccountType = "staff"    // "patient" or "staff"
 );
 
 public record RefreshTokenRequest(string RefreshToken);
+
+// ── Role Switching ──────────────────────────────────────
+public record SwitchRoleRequest(string Role);

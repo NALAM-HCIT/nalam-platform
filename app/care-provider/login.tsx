@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft, Stethoscope, Pill, Activity, HeartPulse, ChevronDown, ArrowRight, ShieldCheck } from 'lucide-react-native';
-import { api } from '@/services/api';
+import { api, HOSPITAL_ID } from '@/services/api';
 
 export default function CareProviderLoginScreen() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function CareProviderLoginScreen() {
     setIsLoading(true);
     setError('');
     try {
-      const res = await api.post('/auth/send-otp', { mobileNumber: fullPhone });
+      const res = await api.post('/auth/send-otp', { mobileNumber: fullPhone, hospitalId: HOSPITAL_ID || undefined, accountType: 'staff' });
       const data = res.data;
       if (data.success) {
         setPhone(fullPhone);

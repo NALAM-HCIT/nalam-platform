@@ -150,36 +150,36 @@ public static class ReceptionistEndpoints
     {
         var hospitalId = GetHospitalId(ctx);
 
-        var dbQuery = db.Users.AsNoTracking()
-            .Where(u => u.HospitalId == hospitalId && u.Role == "patient" && u.Status == "active")
+        var dbQuery = db.Patients.AsNoTracking()
+            .Where(p => p.HospitalId == hospitalId && p.Status == "active")
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query))
         {
             var q = query.ToLower();
-            dbQuery = dbQuery.Where(u => 
-                u.FullName.ToLower().Contains(q) || 
-                u.MobileNumber.Contains(q));
+            dbQuery = dbQuery.Where(p =>
+                p.FullName.ToLower().Contains(q) ||
+                p.MobileNumber.Contains(q));
         }
 
         var rawPatients = await dbQuery
-            .OrderBy(u => u.FullName)
+            .OrderBy(p => p.FullName)
             .Take(50)
-            .Select(u => new
+            .Select(p => new
             {
-                id = u.Id,
-                fullName = u.FullName,
-                mobileNumber = u.MobileNumber
+                id = p.Id,
+                fullName = p.FullName,
+                mobileNumber = p.MobileNumber
             })
             .ToListAsync();
 
         // Compute initials in memory (string.Split/Substring can't be translated to SQL)
-        var patients = rawPatients.Select(u => new
+        var patients = rawPatients.Select(p => new
         {
-            u.id,
-            u.fullName,
-            u.mobileNumber,
-            initials = GetInitials(u.fullName)
+            p.id,
+            p.fullName,
+            p.mobileNumber,
+            initials = GetInitials(p.fullName)
         }).ToList();
 
         return Results.Ok(patients);
@@ -201,29 +201,23 @@ public static class ReceptionistEndpoints
         var hospitalId = GetHospitalId(ctx);
         var mobile = request.MobileNumber.Trim().Replace(" ", "");
 
-        // Check if patient already exists
-        var existingPatient = await db.Users
-            .FirstOrDefaultAsync(u => u.HospitalId == hospitalId && u.MobileNumber == mobile);
+        // Check if patient already exists in patients table
+        var existingPatient = await db.Patients
+            .FirstOrDefaultAsync(p => p.HospitalId == hospitalId && p.MobileNumber == mobile);
 
         if (existingPatient != null)
-        {
-            if (existingPatient.Role != "patient")
-                return Results.Conflict(new { error = "This mobile number belongs to a staff member." });
-            
             return Results.Conflict(new { error = "Patient already exists. Use the search function." });
-        }
 
-        var patient = new User
+        var patient = new Patient
         {
             HospitalId = hospitalId,
             FullName = request.FullName.Trim(),
             MobileNumber = mobile,
-            Role = "patient",
             Status = "active",
             IsVerified = false
         };
 
-        db.Users.Add(patient);
+        db.Patients.Add(patient);
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(

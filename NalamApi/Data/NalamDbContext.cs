@@ -28,6 +28,8 @@ public class NalamDbContext : DbContext
     public DbSet<DoctorProfile> DoctorProfiles => Set<DoctorProfile>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<Patient> Patients => Set<Patient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +46,11 @@ public class NalamDbContext : DbContext
             .IsUnique()
             .HasFilter("employee_id IS NOT NULL")
             .HasDatabaseName("ix_users_hospital_employee");
+
+        modelBuilder.Entity<Patient>()
+            .HasIndex(p => new { p.HospitalId, p.MobileNumber })
+            .IsUnique()
+            .HasDatabaseName("ix_patients_hospital_mobile");
 
         modelBuilder.Entity<HospitalSetting>()
             .HasIndex(s => new { s.HospitalId, s.Key })
@@ -77,9 +84,24 @@ public class NalamDbContext : DbContext
 
             modelBuilder.Entity<Appointment>()
                 .HasQueryFilter(ap => ap.HospitalId == tenantId);
+
+            modelBuilder.Entity<Patient>()
+                .HasQueryFilter(p => p.HospitalId == tenantId);
         }
 
+        // ── UserRole: unique (user_id, role) ─────────────────────────
+        modelBuilder.Entity<UserRole>()
+            .HasIndex(ur => new { ur.UserId, ur.Role })
+            .IsUnique()
+            .HasDatabaseName("ix_user_roles_user_role");
+
         // ── Relationships ───────────────────────────────────────────
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.User)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(ur => ur.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<User>()
             .HasOne(u => u.Hospital)
             .WithMany(h => h.Users)
@@ -90,6 +112,7 @@ public class NalamDbContext : DbContext
             .HasOne(o => o.User)
             .WithMany(u => u.OtpVerifications)
             .HasForeignKey(o => o.UserId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Department>()
@@ -156,7 +179,7 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<Appointment>()
             .HasOne(a => a.Patient)
-            .WithMany(u => u.PatientAppointments)
+            .WithMany(p => p.Appointments)
             .HasForeignKey(a => a.PatientId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -164,6 +187,19 @@ public class NalamDbContext : DbContext
             .HasOne(a => a.DoctorProfile)
             .WithMany(dp => dp.Appointments)
             .HasForeignKey(a => a.DoctorProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ── Patient ──────────────────────────────────────────
+        modelBuilder.Entity<Patient>()
+            .HasOne(p => p.Hospital)
+            .WithMany(h => h.Patients)
+            .HasForeignKey(p => p.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OtpVerification>()
+            .HasOne(o => o.Patient)
+            .WithMany(p => p.OtpVerifications)
+            .HasForeignKey(o => o.PatientId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Prevent double-booking (unique slot per doctor per date, excluding cancelled)

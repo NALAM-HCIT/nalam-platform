@@ -1,23 +1,12 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  Modal,
-  Linking,
-} from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
-import { api } from '@/services/api';
+import { api, HOSPITAL_ID } from '@/services/api';
 import {
   ArrowLeft,
   Stethoscope,
@@ -74,9 +63,11 @@ export default function AdminLoginScreen() {
 
     try {
       const fullPhone = `${selectedCountry.code}${phone}`;
-      
+
+      console.log('[AdminLogin] API base:', api.defaults.baseURL, 'ENV:', process.env.EXPO_PUBLIC_API_URL);
       // Call ASP.NET Core API
-      await api.post('/auth/send-otp', { mobileNumber: fullPhone });
+      const res = await api.post('/auth/send-otp', { mobileNumber: fullPhone, hospitalId: HOSPITAL_ID || undefined, accountType: 'staff' });
+      console.log('[AdminLogin] Response:', JSON.stringify(res.data));
       
       setPhone(fullPhone);
       router.push('/admin/otp');
@@ -92,7 +83,7 @@ export default function AdminLoginScreen() {
   }, [phone, selectedCountry, setPhone, router, validatePhone]);
 
   const handleITSupport = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'IT Support',
       'Contact IT Security for login assistance.\n\nEmail: it-support@arunpriya.com\nPhone: +91 44 2815 0000\nHours: Mon-Sat, 8AM - 8PM',
       [
@@ -110,7 +101,7 @@ export default function AdminLoginScreen() {
   };
 
   const handleHIPAA = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'HIPAA Compliance',
       'This application is HIPAA compliant. All patient data is encrypted in transit and at rest.\n\n- Access is logged and audited\n- Session timeout: 15 minutes\n- Two-factor authentication required\n- Data retention per hospital policy',
       [{ text: 'Understood', style: 'default' }]
@@ -118,7 +109,7 @@ export default function AdminLoginScreen() {
   };
 
   const handlePrivacy = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Privacy Policy',
       'Arun Priya Multispeciality Hospital is committed to protecting your privacy.\n\nYour login activity, session data, and administrative actions are logged for security and compliance purposes.\n\nFor full privacy policy, visit our website or contact the Data Protection Officer.',
       [
@@ -273,7 +264,7 @@ export default function AdminLoginScreen() {
             {/* Security Callout */}
             <Pressable
               onPress={() =>
-                Alert.alert(
+                CustomAlert.alert(
                   'Security Notice',
                   'Admin access is restricted to authorized personnel only.\n\n- All login attempts are logged\n- Unauthorized access will be reported\n- Sessions expire after 15 minutes of inactivity\n- Multi-factor authentication is enforced',
                   [

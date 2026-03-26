@@ -28,7 +28,7 @@ public class User
 
     [Required, MaxLength(30)]
     [Column("role")]
-    public string Role { get; set; } = "admin"; // admin, doctor, pharmacist, receptionist
+    public string Role { get; set; } = "admin"; // admin, doctor, pharmacist, receptionist (patients use separate patients table)
 
     [MaxLength(100)]
     [Column("department")]
@@ -62,5 +62,5 @@ public class User
     public ICollection<OtpVerification> OtpVerifications { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
     public DoctorProfile? DoctorProfile { get; set; }
-    public ICollection<Appointment> PatientAppointments { get; set; } = [];
+    public ICollection<UserRole> UserRoles { get; set; } = [];
 }

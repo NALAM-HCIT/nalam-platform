@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react-native';
-import { api } from '@/services/api';
+import { api, HOSPITAL_ID } from '@/services/api';
 
 export default function PharmacistOTPScreen() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function PharmacistOTPScreen() {
     if (canResend) {
       setError('');
       try {
-        await api.post('/auth/send-otp', { mobileNumber: phone });
+        await api.post('/auth/send-otp', { mobileNumber: phone, hospitalId: HOSPITAL_ID || undefined, accountType: 'staff' });
         setCountdown(30);
         setCanResend(false);
         setOtp(['', '', '', '', '', '']);
@@ -63,6 +63,8 @@ export default function PharmacistOTPScreen() {
       const response = await api.post('/auth/verify-otp', {
         mobileNumber: phone,
         otpCode: otpString,
+        hospitalId: HOSPITAL_ID || undefined,
+        accountType: 'staff',
       });
       const { token, user } = response.data;
       await login({
@@ -70,7 +72,9 @@ export default function PharmacistOTPScreen() {
         userName: user.fullName || 'Pharmacist',
         userId: user.id,
         role: user.role,
+        roles: user.roles || [user.role],
         hospitalId: user.hospitalId,
+        accountType: 'staff',
       });
       router.replace(`/${user.role}/(tabs)` as any);
     } catch (err: any) {

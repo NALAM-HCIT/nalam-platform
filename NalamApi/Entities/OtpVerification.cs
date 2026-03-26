@@ -11,7 +11,10 @@ public class OtpVerification
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Column("user_id")]
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
+
+    [Column("patient_id")]
+    public Guid? PatientId { get; set; }
 
     [Required, MaxLength(20)]
     [Column("mobile_number")]
@@ -38,5 +41,8 @@ public class OtpVerification
 
     // Navigation
     [ForeignKey("UserId")]
-    public User User { get; set; } = null!;
+    public User? User { get; set; }
+
+    [ForeignKey("PatientId")]
+    public Patient? Patient { get; set; }
 }

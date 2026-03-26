@@ -178,7 +178,7 @@ public static class DoctorPortalEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var patient = await db.Users.FindAsync(patientId);
+        var patient = await db.Patients.FindAsync(patientId);
         if (patient == null)
             return Results.NotFound(new { error = "Patient not found." });
 
@@ -225,7 +225,7 @@ public static class DoctorPortalEndpoints
                 initials = GetInitials(patient.FullName),
                 phone = patient.MobileNumber,
                 email = patient.Email,
-                role = patient.Role
+                role = "patient"
             },
             totalVisits = pastAppointments.Count(a => a.status == "completed"),
             recentAppointments = pastAppointments

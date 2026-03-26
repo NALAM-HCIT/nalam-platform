@@ -3,14 +3,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, Vibration } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, UserRole } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { api, HOSPITAL_ID } from '@/services/api';
-import { ArrowLeft, ArrowRight, ShieldCheck, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, ShieldCheck, RotateCcw, BriefcaseMedical } from 'lucide-react-native';
 
 const RESEND_COOLDOWN = 30;
 
-export default function AdminOTPScreen() {
+export default function CareProviderOTPScreen() {
   const router = useRouter();
   const { phone, login } = useAuthStore();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -20,7 +20,6 @@ export default function AdminOTPScreen() {
   const [resendCount, setResendCount] = useState(0);
   const inputs = useRef<(TextInput | null)[]>([]);
 
-  // Resend countdown timer
   useEffect(() => {
     if (resendTimer <= 0) return;
     const interval = setInterval(() => {
@@ -65,22 +64,33 @@ export default function AdminOTPScreen() {
         hospitalId: HOSPITAL_ID || undefined,
         accountType: 'staff',
       });
-      
+
+      if (!response.data.success) {
+        setOtpError(response.data.message || 'Verification failed.');
+        Vibration.vibrate(100);
+        return;
+      }
+
       const { token, user } = response.data;
-      
-      // Persist the token and user session securely
+      const roles: UserRole[] = user.roles || [user.role];
+
       await login({
         token,
-        userName: user.fullName || 'Admin User',
+        userName: user.fullName || 'Care Provider',
         userId: user.id,
         role: user.role,
-        roles: user.roles || [user.role],
+        roles,
         hospitalId: user.hospitalId,
         accountType: 'staff',
       });
-      
-      // Navigate to the respective dashboard based on role
-      router.replace(`/${user.role}/(tabs)` as any);
+
+      if (roles.length > 1) {
+        // Multiple roles — show role selection screen
+        router.replace('/care-provider-role-select');
+      } else {
+        // Single role — go straight to dashboard
+        router.replace(`/${roles[0]}/(tabs)` as any);
+      }
     } catch (error: any) {
       if (error.response?.data?.message) {
         setOtpError(error.response.data.message);
@@ -99,16 +109,14 @@ export default function AdminOTPScreen() {
     if (resendCount >= 5) {
       CustomAlert.alert(
         'Maximum Attempts Reached',
-        'You have exceeded the maximum number of OTP resend attempts. Please try again after 30 minutes or contact IT Support.',
+        'You have exceeded the maximum number of OTP resend attempts. Please try again after 30 minutes.',
         [{ text: 'OK', style: 'cancel' }]
       );
       return;
     }
 
     try {
-      // Re-trigger the send OTP endpoint
       await api.post('/auth/send-otp', { mobileNumber: phone, hospitalId: HOSPITAL_ID || undefined, accountType: 'staff' });
-
       setResendCount((prev) => prev + 1);
       setResendTimer(RESEND_COOLDOWN);
       setOtp(['', '', '', '', '', '']);
@@ -131,10 +139,7 @@ export default function AdminOTPScreen() {
       'Go back to login screen to enter a different number?',
       [
         { text: 'Stay', style: 'cancel' },
-        {
-          text: 'Go Back',
-          onPress: () => router.back(),
-        },
+        { text: 'Go Back', onPress: () => router.back() },
       ]
     );
   };
@@ -172,7 +177,7 @@ export default function AdminOTPScreen() {
           {/* Hero */}
           <View className="items-center mb-8">
             <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-6">
-              <ShieldCheck size={36} color="#1A73E8" />
+              <BriefcaseMedical size={36} color="#1A73E8" />
             </View>
             <Text className="text-[11px] font-light uppercase tracking-[4px] text-primary/60 mb-2">
               Verification
@@ -203,9 +208,7 @@ export default function AdminOTPScreen() {
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => {
-                    inputs.current[index] = ref;
-                  }}
+                  ref={(ref) => { inputs.current[index] = ref; }}
                   className={`w-12 h-14 rounded-xl text-center text-xl font-extrabold border outline-0 ${
                     otpError
                       ? 'bg-red-50 border-red-300 text-red-500'
@@ -217,9 +220,7 @@ export default function AdminOTPScreen() {
                   maxLength={1}
                   value={digit}
                   onChangeText={(text) => handleOtpChange(text, index)}
-                  onKeyPress={({ nativeEvent }) =>
-                    handleKeyPress(nativeEvent.key, index, digit)
-                  }
+                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index, digit)}
                 />
               ))}
             </View>
@@ -236,11 +237,7 @@ export default function AdminOTPScreen() {
               onPress={handleVerify}
               disabled={isVerifying}
               className={`w-full py-4 rounded-full items-center flex-row justify-center gap-2 ${
-                isVerifying
-                  ? 'opacity-70'
-                  : isOtpComplete
-                    ? 'active:opacity-90'
-                    : 'opacity-50'
+                isVerifying ? 'opacity-70' : isOtpComplete ? 'active:opacity-90' : 'opacity-50'
               }`}
               style={[
                 { backgroundColor: '#1A73E8' },
@@ -278,7 +275,7 @@ export default function AdminOTPScreen() {
 
           {/* Footer */}
           <Text className="text-[10px] text-slate-400 tracking-[3px] uppercase text-center mt-8 font-light">
-            Secure Admin Access
+            Secure Staff Access
           </Text>
         </View>
       </View>

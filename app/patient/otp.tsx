@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft } from 'lucide-react-native';
-import { api } from '@/services/api';
+import { api, HOSPITAL_ID } from '@/services/api';
 
 export default function OTPScreen() {
   const router = useRouter();
@@ -62,7 +62,7 @@ export default function OTPScreen() {
     if (canResend) {
       setError('');
       try {
-        await api.post('/auth/send-otp', { mobileNumber: phone });
+        await api.post('/auth/send-otp', { mobileNumber: phone, hospitalId: HOSPITAL_ID || undefined, accountType: 'patient' });
         setCountdown(30);
         setCanResend(false);
         setOtp(['', '', '', '', '', '']);
@@ -82,6 +82,8 @@ export default function OTPScreen() {
       const response = await api.post('/auth/verify-otp', {
         mobileNumber: phone,
         otpCode: otpString,
+        hospitalId: HOSPITAL_ID || undefined,
+        accountType: 'patient',
       });
       const { token, user } = response.data;
       await login({
@@ -89,7 +91,9 @@ export default function OTPScreen() {
         userName: user.fullName || 'Patient',
         userId: user.id,
         role: user.role || 'patient',
+        roles: user.roles || [user.role || 'patient'],
         hospitalId: user.hospitalId,
+        accountType: 'patient',
       });
       router.replace('/patient/(tabs)');
     } catch (err: any) {

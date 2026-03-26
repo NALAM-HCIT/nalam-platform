@@ -416,7 +416,7 @@ public static class AppointmentEndpoints
 
         // Reload with navigation for response
         appointment.DoctorProfile = doctorProfile;
-        appointment.Patient = (await db.Users.FindAsync(patientId))!;
+        appointment.Patient = (await db.Patients.FindAsync(patientId))!;
 
         await auditService.LogAsync(
             hospitalId, patientId,
