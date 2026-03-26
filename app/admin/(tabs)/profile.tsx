@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { Shadows, Colors } from '@/constants/theme';
-import { api } from '@/services/api';
+import { api, isAuthError } from '@/services/api';
 import {
   User, Shield, Bell, LogOut, ChevronRight, Camera, Phone, Mail,
   Calendar, HelpCircle, Globe, Moon, Fingerprint, Lock,
@@ -142,7 +142,7 @@ export default function AdminProfileScreen() {
         joinDate: new Date(res.data.createdAt).toLocaleDateString()
       });
     } catch(e) {
-      console.log('Failed to fetch profile', e);
+      if (!isAuthError(e)) console.log('Failed to fetch profile', e);
     }
   }, [phone]);
 

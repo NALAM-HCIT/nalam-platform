@@ -13,6 +13,7 @@ import {
   getTodayAppointments, getUpcomingAppointments,
   changeAppointmentStatus, DoctorAppointment,
 } from '@/services/doctorService';
+import { isAuthError } from '@/services/api';
 
 /* ───── Helpers ───── */
 
@@ -158,7 +159,9 @@ export default function DoctorDashboard() {
       setTodayAppointments(todayRes.appointments);
       setUpcomingTotal(upcomingRes.total);
     } catch (err) {
-      console.error('Failed to load dashboard:', err);
+      if (!isAuthError(err)) {
+        console.error('Failed to load dashboard:', err);
+      }
     } finally {
       setLoading(false);
     }

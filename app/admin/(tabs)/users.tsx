@@ -10,7 +10,7 @@ import {
 } from 'lucide-react-native';
 import { Shadows, Colors } from '@/constants/theme';
 import { StatusChip } from '@/components';
-import { api } from '@/services/api';
+import { api, isAuthError } from '@/services/api';
 
 /* ───── Types ───── */
 
@@ -192,7 +192,7 @@ export default function UsersScreen() {
       });
       setUsers(apiUsers.filter((u: UserItem) => u.role.toLowerCase() !== 'patient'));
     } catch (e) {
-      console.log('Failed to fetch users', e);
+      if (!isAuthError(e)) console.log('Failed to fetch users', e);
     }
   }, []);
 
@@ -359,12 +359,18 @@ export default function UsersScreen() {
     ]);
   }, [handleUserPress, handleEditRole, handleResetPassword, handleToggleStatus]);
 
-  const handleCall = useCallback((phone: string) => {
-    Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
+  const handleCall = useCallback(async (phone: string) => {
+    const url = `tel:${phone.replace(/\s/g, '')}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) Linking.openURL(url);
+    else CustomAlert.alert('Unavailable', 'Phone calls are not supported on this device.');
   }, []);
 
-  const handleEmail = useCallback((email: string) => {
-    Linking.openURL(`mailto:${email}`);
+  const handleEmail = useCallback(async (email: string) => {
+    const url = `mailto:${email}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) Linking.openURL(url);
+    else CustomAlert.alert('Unavailable', 'Email is not available on this device.');
   }, []);
 
   const closeDetail = useCallback(() => {

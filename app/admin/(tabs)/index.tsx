@@ -11,7 +11,7 @@ import {
   TrendingUp, Server, Wifi, Database, Calendar, BarChart3,
   FileText, Zap, ArrowUpRight, ArrowDownRight, Stethoscope,
 } from 'lucide-react-native';
-import { api } from '@/services/api';
+import { api, isAuthError } from '@/services/api';
 
 /* ───── Types ───── */
 
@@ -167,7 +167,9 @@ export default function AdminDashboard() {
       }));
       if (mappedActivity.length > 0) setActivities(mappedActivity);
     } catch (error) {
-      console.log('Failed to fetch dashboard data', error);
+      if (!isAuthError(error)) {
+        console.log('Failed to fetch dashboard data', error);
+      }
     }
   }, []);
 

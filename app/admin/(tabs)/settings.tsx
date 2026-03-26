@@ -4,7 +4,7 @@ import { View, Text, ScrollView, Pressable, Modal, TextInput, Switch, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Building, Clock, Shield, Database, Bell, Globe, ChevronRight, X, ArrowLeft } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
-import { api } from '@/services/api';
+import { api, isAuthError } from '@/services/api';
 import { cacheDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
@@ -71,7 +71,7 @@ export default function SettingsScreen() {
       setHospitalEmail(d.email || '');
       setHospitalLicenseNo(d.licenseNo || '');
     } catch (e) {
-      console.log('Failed to fetch hospital info', e);
+      if (!isAuthError(e)) console.log('Failed to fetch hospital info', e);
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export default function SettingsScreen() {
       const res = await api.get('/admin/working-hours');
       setWorkingHours(res.data.hours);
     } catch (e) {
-      console.log('Failed to fetch working hours', e);
+      if (!isAuthError(e)) console.log('Failed to fetch working hours', e);
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function SettingsScreen() {
       const getVal = (k: string, fallback: string) => s.find((x) => x.key === k)?.value ?? fallback;
       setAuditLogging(getVal('audit_logging_enabled', 'true') === 'true');
     } catch (e) {
-      console.log('Failed to fetch security settings', e);
+      if (!isAuthError(e)) console.log('Failed to fetch security settings', e);
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export default function SettingsScreen() {
       setUserActivityAlerts(getVal('alert_user_activity', 'true') === 'true');
       setSystemAlerts(getVal('alert_system', 'true') === 'true');
     } catch (e) {
-      console.log('Failed to fetch notification settings', e);
+      if (!isAuthError(e)) console.log('Failed to fetch notification settings', e);
     } finally {
       setLoading(false);
     }
@@ -128,7 +128,7 @@ export default function SettingsScreen() {
       const res = await api.get('/admin/integrations');
       setIntegrations(res.data.integrations);
     } catch (e) {
-      console.log('Failed to fetch integrations', e);
+      if (!isAuthError(e)) console.log('Failed to fetch integrations', e);
     } finally {
       setLoading(false);
     }
