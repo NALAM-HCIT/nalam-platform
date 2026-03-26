@@ -36,9 +36,25 @@ public static class AdminEndpoints
         // ── Activity / Audit Log ─────────────────────────────────
         group.MapGet("/activity", GetActivity);
 
-        // ── Settings ─────────────────────────────────────────────
+        // ── Settings (key-value) ────────────────────────────────
         group.MapGet("/settings", GetSettings);
         group.MapPut("/settings", UpdateSettings);
+
+        // ── Hospital Info (direct table) ────────────────────────
+        group.MapGet("/hospital-info", GetHospitalInfo);
+        group.MapPut("/hospital-info", UpdateHospitalInfo);
+
+        // ── Working Hours ───────────────────────────────────────
+        group.MapGet("/working-hours", GetWorkingHours);
+        group.MapPut("/working-hours", UpdateWorkingHours);
+
+        // ── Data Management ─────────────────────────────────────
+        group.MapGet("/export-data", ExportData);
+        group.MapPost("/clear-cache", ClearCache);
+
+        // ── Integrations ────────────────────────────────────────
+        group.MapGet("/integrations", GetIntegrations);
+        group.MapPatch("/integrations/{id:guid}", UpdateIntegration);
 
         // ── Profile ──────────────────────────────────────────────
         group.MapGet("/profile", GetProfile);
@@ -569,6 +585,278 @@ public static class AdminEndpoints
             "user", "info");
 
         return Results.Ok(new { message = "Profile updated successfully." });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  HOSPITAL INFO (direct table)
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>GET /api/admin/hospital-info — Read hospital details directly from hospitals table.</summary>
+    private static async Task<IResult> GetHospitalInfo(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var hospital = await db.Hospitals.AsNoTracking().FirstOrDefaultAsync(h => h.Id == hospitalId);
+        if (hospital is null) return Results.NotFound(new { error = "Hospital not found." });
+
+        return Results.Ok(new HospitalInfoResponse(
+            hospital.Id, hospital.Name, hospital.LicenseNo, hospital.Address,
+            hospital.City, hospital.State, hospital.Phone, hospital.Email,
+            hospital.LogoUrl, hospital.Status));
+    }
+
+    /// <summary>PUT /api/admin/hospital-info — Update hospital details (partial update).</summary>
+    private static async Task<IResult> UpdateHospitalInfo(
+        UpdateHospitalInfoRequest request, NalamDbContext db,
+        AuditService auditService, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var hospital = await db.Hospitals.FindAsync(hospitalId);
+        if (hospital is null) return Results.NotFound(new { error = "Hospital not found." });
+
+        if (!string.IsNullOrWhiteSpace(request.Name)) hospital.Name = request.Name.Trim();
+        if (request.Address != null) hospital.Address = request.Address.Trim();
+        if (request.City != null) hospital.City = request.City.Trim();
+        if (request.State != null) hospital.State = request.State.Trim();
+        if (request.Phone != null) hospital.Phone = request.Phone.Trim();
+        if (request.Email != null) hospital.Email = request.Email.Trim();
+        if (request.LogoUrl != null) hospital.LogoUrl = request.LogoUrl.Trim();
+        if (request.LicenseNo != null) hospital.LicenseNo = request.LicenseNo.Trim();
+
+        await db.SaveChangesAsync();
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            "Hospital information updated", "system", "info");
+
+        return Results.Ok(new HospitalInfoResponse(
+            hospital.Id, hospital.Name, hospital.LicenseNo, hospital.Address,
+            hospital.City, hospital.State, hospital.Phone, hospital.Email,
+            hospital.LogoUrl, hospital.Status));
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  WORKING HOURS
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>GET /api/admin/working-hours — Load working hours (auto-seeds defaults if empty).</summary>
+    private static async Task<IResult> GetWorkingHours(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+
+        var hours = await db.HospitalWorkingHours.AsNoTracking()
+            .Where(wh => wh.HospitalId == hospitalId)
+            .OrderBy(wh => wh.DayOfWeek)
+            .ToListAsync();
+
+        // Auto-seed defaults on first access
+        if (hours.Count == 0)
+        {
+            for (int d = 0; d <= 6; d++)
+            {
+                db.HospitalWorkingHours.Add(new HospitalWorkingHour
+                {
+                    HospitalId = hospitalId,
+                    DayOfWeek = d,
+                    StartTime = TimeOnly.Parse("08:00"),
+                    EndTime = TimeOnly.Parse("20:00"),
+                    IsEnabled = d != 0, // Sunday off
+                    BreakStart = TimeOnly.Parse("13:00"),
+                    BreakEnd = TimeOnly.Parse("14:00")
+                });
+            }
+            await db.SaveChangesAsync();
+            hours = await db.HospitalWorkingHours.AsNoTracking()
+                .Where(wh => wh.HospitalId == hospitalId)
+                .OrderBy(wh => wh.DayOfWeek)
+                .ToListAsync();
+        }
+
+        return Results.Ok(new
+        {
+            hours = hours.Select(wh => new WorkingHourDto(
+                wh.DayOfWeek,
+                wh.StartTime.ToString("HH:mm"),
+                wh.EndTime.ToString("HH:mm"),
+                wh.IsEnabled,
+                wh.BreakStart?.ToString("HH:mm"),
+                wh.BreakEnd?.ToString("HH:mm")))
+        });
+    }
+
+    /// <summary>PUT /api/admin/working-hours — Bulk upsert all 7 days.</summary>
+    private static async Task<IResult> UpdateWorkingHours(
+        UpdateWorkingHoursRequest request, NalamDbContext db,
+        AuditService auditService, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+
+        foreach (var dto in request.Hours)
+        {
+            if (dto.DayOfWeek < 0 || dto.DayOfWeek > 6) continue;
+
+            var existing = await db.HospitalWorkingHours
+                .FirstOrDefaultAsync(wh => wh.HospitalId == hospitalId && wh.DayOfWeek == dto.DayOfWeek);
+
+            if (existing != null)
+            {
+                existing.StartTime = TimeOnly.Parse(dto.StartTime);
+                existing.EndTime = TimeOnly.Parse(dto.EndTime);
+                existing.IsEnabled = dto.IsEnabled;
+                existing.BreakStart = dto.BreakStart != null ? TimeOnly.Parse(dto.BreakStart) : null;
+                existing.BreakEnd = dto.BreakEnd != null ? TimeOnly.Parse(dto.BreakEnd) : null;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                db.HospitalWorkingHours.Add(new HospitalWorkingHour
+                {
+                    HospitalId = hospitalId,
+                    DayOfWeek = dto.DayOfWeek,
+                    StartTime = TimeOnly.Parse(dto.StartTime),
+                    EndTime = TimeOnly.Parse(dto.EndTime),
+                    IsEnabled = dto.IsEnabled,
+                    BreakStart = dto.BreakStart != null ? TimeOnly.Parse(dto.BreakStart) : null,
+                    BreakEnd = dto.BreakEnd != null ? TimeOnly.Parse(dto.BreakEnd) : null
+                });
+            }
+        }
+
+        await db.SaveChangesAsync();
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            "Working hours updated", "system", "info");
+
+        return Results.Ok(new { message = "Working hours updated." });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  DATA MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>GET /api/admin/export-data — Stream hospital data as JSON file download.</summary>
+    private static async Task<IResult> ExportData(NalamDbContext db, HttpContext ctx, AuditService auditService)
+    {
+        var hospitalId = GetHospitalId(ctx);
+
+        var exportData = new
+        {
+            exportedAt = DateTime.UtcNow,
+            hospitalId,
+            users = await db.Users.AsNoTracking()
+                .Where(u => u.HospitalId == hospitalId)
+                .Select(u => new { u.Id, u.FullName, u.MobileNumber, u.Email, u.Role, u.Status, u.CreatedAt })
+                .ToListAsync(),
+            patients = await db.Patients.AsNoTracking()
+                .Where(p => p.HospitalId == hospitalId)
+                .Select(p => new { p.Id, p.FullName, p.MobileNumber, p.Status, p.CreatedAt })
+                .ToListAsync(),
+            appointments = await db.Appointments.AsNoTracking()
+                .Where(a => a.HospitalId == hospitalId)
+                .Select(a => new { a.Id, a.PatientId, a.DoctorProfileId, a.ScheduleDate, a.StartTime, a.EndTime, a.Status, a.CreatedAt })
+                .ToListAsync(),
+            doctorProfiles = await db.DoctorProfiles.AsNoTracking()
+                .Where(dp => dp.HospitalId == hospitalId)
+                .Select(dp => new { dp.Id, dp.UserId, dp.Specialty, dp.ConsultationFee })
+                .ToListAsync(),
+            auditLogs = await db.AuditLogs.AsNoTracking()
+                .Where(a => a.HospitalId == hospitalId)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(1000)
+                .Select(a => new { a.Id, a.Action, a.Category, a.Severity, a.Details, a.CreatedAt })
+                .ToListAsync()
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(exportData,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        var fileName = $"hospital-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            "Data exported", "system", "info");
+
+        return Results.File(bytes, "application/json", fileName);
+    }
+
+    /// <summary>POST /api/admin/clear-cache — Evict cached data for this hospital.</summary>
+    private static async Task<IResult> ClearCache(
+        IMemoryCache cache, HttpContext ctx, AuditService auditService, NalamDbContext db)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        cache.Remove($"dashboard_{hospitalId}");
+
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            "Cache cleared by admin", "system", "info");
+
+        return Results.Ok(new { message = "Cache cleared successfully." });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  INTEGRATIONS
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>GET /api/admin/integrations — List integrations (auto-seeds defaults if empty).</summary>
+    private static async Task<IResult> GetIntegrations(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+
+        var integrations = await db.HospitalIntegrations.AsNoTracking()
+            .Where(i => i.HospitalId == hospitalId)
+            .OrderBy(i => i.Name)
+            .ToListAsync();
+
+        // Auto-seed defaults on first access
+        if (integrations.Count == 0)
+        {
+            var defaults = new (string Name, string Type)[] {
+                ("ABDM (Ayushman Bharat)", "health_network"),
+                ("Lab Equipment API", "lab"),
+                ("Pharmacy Inventory", "pharmacy"),
+                ("Insurance Gateway", "insurance"),
+                ("SMS Provider (Twilio)", "sms")
+            };
+            foreach (var (name, type) in defaults)
+            {
+                db.HospitalIntegrations.Add(new HospitalIntegration
+                {
+                    HospitalId = hospitalId, Name = name, Type = type,
+                    IsConnected = false, Status = "disconnected"
+                });
+            }
+            await db.SaveChangesAsync();
+            integrations = await db.HospitalIntegrations.AsNoTracking()
+                .Where(i => i.HospitalId == hospitalId)
+                .OrderBy(i => i.Name)
+                .ToListAsync();
+        }
+
+        return Results.Ok(new
+        {
+            integrations = integrations.Select(i => new IntegrationResponse(
+                i.Id, i.Name, i.Type, i.IsConnected,
+                i.ConfigJson, i.LastSyncedAt, i.Status))
+        });
+    }
+
+    /// <summary>PATCH /api/admin/integrations/{id} — Toggle integration connection status.</summary>
+    private static async Task<IResult> UpdateIntegration(
+        Guid id, UpdateIntegrationRequest request,
+        NalamDbContext db, AuditService auditService, HttpContext ctx)
+    {
+        var integration = await db.HospitalIntegrations.FindAsync(id);
+        if (integration is null) return Results.NotFound(new { error = "Integration not found." });
+
+        integration.IsConnected = request.IsConnected;
+        integration.Status = request.IsConnected ? "connected" : "disconnected";
+        if (request.IsConnected) integration.LastSyncedAt = DateTime.UtcNow;
+        integration.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+
+        await auditService.LogAsync(
+            GetHospitalId(ctx), GetUserId(ctx),
+            $"Integration {integration.Name} {(request.IsConnected ? "connected" : "disconnected")}",
+            "system", "info");
+
+        return Results.Ok(new IntegrationResponse(
+            integration.Id, integration.Name, integration.Type, integration.IsConnected,
+            integration.ConfigJson, integration.LastSyncedAt, integration.Status));
     }
 
     // ═══════════════════════════════════════════════════════════

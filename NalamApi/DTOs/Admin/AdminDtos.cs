@@ -168,3 +168,28 @@ public record ProfileResponse(
     DateTime CreatedAt,
     DateTime? LastLogin
 );
+
+// ── Hospital Information (direct table) ─────────────────
+public record HospitalInfoResponse(
+    Guid Id, string Name, string? LicenseNo, string? Address,
+    string? City, string? State, string Phone, string? Email,
+    string? LogoUrl, string Status);
+
+public record UpdateHospitalInfoRequest(
+    string? Name = null, string? Address = null, string? City = null,
+    string? State = null, string? Phone = null, string? Email = null,
+    string? LogoUrl = null, string? LicenseNo = null);
+
+// ── Working Hours ───────────────────────────────────────
+public record WorkingHourDto(
+    int DayOfWeek, string StartTime, string EndTime,
+    bool IsEnabled, string? BreakStart, string? BreakEnd);
+
+public record UpdateWorkingHoursRequest(List<WorkingHourDto> Hours);
+
+// ── Hospital Integrations ───────────────────────────────
+public record IntegrationResponse(
+    Guid Id, string Name, string Type, bool IsConnected,
+    string? ConfigJson, DateTime? LastSyncedAt, string Status);
+
+public record UpdateIntegrationRequest(bool IsConnected);

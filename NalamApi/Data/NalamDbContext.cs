@@ -30,6 +30,8 @@ public class NalamDbContext : DbContext
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<Patient> Patients => Set<Patient>();
+    public DbSet<HospitalWorkingHour> HospitalWorkingHours => Set<HospitalWorkingHour>();
+    public DbSet<HospitalIntegration> HospitalIntegrations => Set<HospitalIntegration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +87,12 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<Patient>()
             .HasQueryFilter(p => !_currentHospitalId.HasValue || p.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<HospitalWorkingHour>()
+            .HasQueryFilter(wh => !_currentHospitalId.HasValue || wh.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<HospitalIntegration>()
+            .HasQueryFilter(hi => !_currentHospitalId.HasValue || hi.HospitalId == _currentHospitalId.Value);
 
         // ── UserRole: unique (user_id, role) ─────────────────────────
         modelBuilder.Entity<UserRole>()
@@ -210,5 +218,29 @@ public class NalamDbContext : DbContext
             .HasIndex(a => a.BookingReference)
             .IsUnique()
             .HasDatabaseName("ix_appointments_booking_reference");
+
+        // ── HospitalWorkingHour ─────────────────────────────────
+        modelBuilder.Entity<HospitalWorkingHour>()
+            .HasIndex(wh => new { wh.HospitalId, wh.DayOfWeek })
+            .IsUnique()
+            .HasDatabaseName("ix_working_hours_hospital_day");
+
+        modelBuilder.Entity<HospitalWorkingHour>()
+            .HasOne(wh => wh.Hospital)
+            .WithMany(h => h.WorkingHours)
+            .HasForeignKey(wh => wh.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ── HospitalIntegration ─────────────────────────────────
+        modelBuilder.Entity<HospitalIntegration>()
+            .HasIndex(hi => new { hi.HospitalId, hi.Name })
+            .IsUnique()
+            .HasDatabaseName("ix_integrations_hospital_name");
+
+        modelBuilder.Entity<HospitalIntegration>()
+            .HasOne(hi => hi.Hospital)
+            .WithMany(h => h.Integrations)
+            .HasForeignKey(hi => hi.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

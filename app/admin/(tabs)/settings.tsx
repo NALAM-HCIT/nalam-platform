@@ -1,10 +1,13 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, TextInput, Switch } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Building, Clock, Shield, Database, Bell, Globe, ChevronRight, X, Save, ArrowLeft } from 'lucide-react-native';
+import { Building, Clock, Shield, Database, Bell, Globe, ChevronRight, X, ArrowLeft } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { api } from '@/services/api';
+import { cacheDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+
 type SettingPanel = null | 'hospital' | 'hours' | 'security' | 'data' | 'notifications' | 'integration';
 
 const settingsItems: { icon: any; label: string; desc: string; color: string; panel: SettingPanel }[] = [
@@ -16,49 +19,34 @@ const settingsItems: { icon: any; label: string; desc: string; color: string; pa
   { icon: Globe, label: 'Integration', desc: 'Third-party services and APIs', color: '#06B6D4', panel: 'integration' },
 ];
 
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 export default function SettingsScreen() {
   const [activePanel, setActivePanel] = useState<SettingPanel>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Hospital Info state
+  // ── Hospital Info state ─────────────────────────────────
   const [hospitalName, setHospitalName] = useState('');
   const [hospitalAddress, setHospitalAddress] = useState('');
+  const [hospitalCity, setHospitalCity] = useState('');
+  const [hospitalState, setHospitalState] = useState('');
   const [hospitalPhone, setHospitalPhone] = useState('');
   const [hospitalEmail, setHospitalEmail] = useState('');
+  const [hospitalLicenseNo, setHospitalLicenseNo] = useState('');
 
-  const fetchSettings = React.useCallback(async () => {
-    try {
-      const res = await api.get('/admin/settings');
-      setHospitalName(res.data.hospitalName || 'My Hospital');
-      const s = res.data.settings || [];
-      const getVal = (k: string) => s.find((x: any) => x.key === k)?.value || '';
-      setHospitalAddress(getVal('address'));
-      setHospitalPhone(getVal('phone'));
-      setHospitalEmail(getVal('email'));
-    } catch(e) {
-      console.log('Failed to fetch settings', e);
-    }
-  }, []);
+  // ── Working Hours state ─────────────────────────────────
+  const [workingHours, setWorkingHours] = useState<
+    { dayOfWeek: number; startTime: string; endTime: string; isEnabled: boolean; breakStart: string | null; breakEnd: string | null }[]
+  >([]);
 
-  React.useEffect(() => { fetchSettings(); }, [fetchSettings]);
-
-  // Working Hours state
-  const [workingHours, setWorkingHours] = useState([
-    { day: 'Monday', open: '08:00 AM', close: '08:00 PM', enabled: true },
-    { day: 'Tuesday', open: '08:00 AM', close: '08:00 PM', enabled: true },
-    { day: 'Wednesday', open: '08:00 AM', close: '08:00 PM', enabled: true },
-    { day: 'Thursday', open: '08:00 AM', close: '08:00 PM', enabled: true },
-    { day: 'Friday', open: '08:00 AM', close: '08:00 PM', enabled: true },
-    { day: 'Saturday', open: '09:00 AM', close: '02:00 PM', enabled: true },
-    { day: 'Sunday', open: '', close: '', enabled: false },
-  ]);
-
-  // Security settings state
+  // ── Security settings state ─────────────────────────────
   const [sessionTimeout, setSessionTimeout] = useState('15');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [loginAttemptsLimit, setLoginAttemptsLimit] = useState('5');
   const [auditLogging, setAuditLogging] = useState(true);
 
-  // Notification settings state
+  // ── Notification settings state ─────────────────────────
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [smsNotif, setSmsNotif] = useState(false);
@@ -66,60 +54,200 @@ export default function SettingsScreen() {
   const [userActivityAlerts, setUserActivityAlerts] = useState(true);
   const [systemAlerts, setSystemAlerts] = useState(true);
 
-  // Integration state
-  const [integrations, setIntegrations] = useState([
-    { name: 'ABDM (Ayushman Bharat)', status: 'Connected', enabled: true },
-    { name: 'Lab Equipment API', status: 'Connected', enabled: true },
-    { name: 'Pharmacy Inventory', status: 'Connected', enabled: true },
-    { name: 'Insurance Gateway', status: 'Disconnected', enabled: false },
-    { name: 'SMS Provider (Twilio)', status: 'Connected', enabled: true },
-  ]);
+  // ── Integration state ───────────────────────────────────
+  const [integrations, setIntegrations] = useState<
+    { id: string; name: string; type: string; isConnected: boolean; status: string }[]
+  >([]);
 
-  const handleSave = async (section: string) => {
-    if (section === 'Hospital Information') {
-      try {
-        await api.put('/admin/settings', { settings: [
-          { key: 'address', value: hospitalAddress },
-          { key: 'phone', value: hospitalPhone },
-          { key: 'email', value: hospitalEmail }
-        ]});
-        CustomAlert.alert('Settings Saved', 'Hospital information has been updated successfully.', [{ text: 'OK' }]);
-      } catch (e) {
-        CustomAlert.alert('Error', 'Failed to save settings.');
-      }
-    } else {
-      CustomAlert.alert('Settings Saved', `${section} settings have been updated successfully.`, [{ text: 'OK' }]);
+  // ── Fetch helpers ───────────────────────────────────────
+
+  const fetchHospitalInfo = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/hospital-info');
+      const d = res.data;
+      setHospitalName(d.name || '');
+      setHospitalAddress(d.address || '');
+      setHospitalCity(d.city || '');
+      setHospitalState(d.state || '');
+      setHospitalPhone(d.phone || '');
+      setHospitalEmail(d.email || '');
+      setHospitalLicenseNo(d.licenseNo || '');
+    } catch (e) {
+      console.log('Failed to fetch hospital info', e);
+    } finally {
+      setLoading(false);
     }
-    setActivePanel(null);
+  }, []);
+
+  const fetchWorkingHours = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/working-hours');
+      setWorkingHours(res.data.hours);
+    } catch (e) {
+      console.log('Failed to fetch working hours', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchSecuritySettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/settings');
+      const s: { key: string; value: string }[] = res.data.settings || [];
+      const getVal = (k: string, fallback: string) => s.find((x) => x.key === k)?.value ?? fallback;
+      setSessionTimeout(getVal('session_timeout_minutes', '15'));
+      setTwoFactorEnabled(getVal('two_factor_enabled', 'true') === 'true');
+      setLoginAttemptsLimit(getVal('max_login_attempts', '5'));
+      setAuditLogging(getVal('audit_logging_enabled', 'true') === 'true');
+    } catch (e) {
+      console.log('Failed to fetch security settings', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchNotificationSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/settings');
+      const s: { key: string; value: string }[] = res.data.settings || [];
+      const getVal = (k: string, fallback: string) => s.find((x) => x.key === k)?.value ?? fallback;
+      setEmailNotif(getVal('notif_email', 'true') === 'true');
+      setPushNotif(getVal('notif_push', 'true') === 'true');
+      setSmsNotif(getVal('notif_sms', 'false') === 'true');
+      setSecurityAlerts(getVal('alert_security', 'true') === 'true');
+      setUserActivityAlerts(getVal('alert_user_activity', 'true') === 'true');
+      setSystemAlerts(getVal('alert_system', 'true') === 'true');
+    } catch (e) {
+      console.log('Failed to fetch notification settings', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchIntegrations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/integrations');
+      setIntegrations(res.data.integrations);
+    } catch (e) {
+      console.log('Failed to fetch integrations', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── Lazy load on panel open ─────────────────────────────
+  useEffect(() => {
+    if (activePanel === 'hospital') fetchHospitalInfo();
+    else if (activePanel === 'hours') fetchWorkingHours();
+    else if (activePanel === 'security') fetchSecuritySettings();
+    else if (activePanel === 'notifications') fetchNotificationSettings();
+    else if (activePanel === 'integration') fetchIntegrations();
+  }, [activePanel]);
+
+  // ── Save handlers ───────────────────────────────────────
+
+  const saveHospitalInfo = async () => {
+    setSaving(true);
+    try {
+      await api.put('/admin/hospital-info', {
+        name: hospitalName,
+        address: hospitalAddress,
+        city: hospitalCity,
+        state: hospitalState,
+        phone: hospitalPhone,
+        email: hospitalEmail,
+        licenseNo: hospitalLicenseNo,
+      });
+      CustomAlert.alert('Saved', 'Hospital information updated successfully.', [{ text: 'OK' }]);
+      setActivePanel(null);
+    } catch (e) {
+      CustomAlert.alert('Error', 'Failed to save hospital information.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleBackup = () => {
-    CustomAlert.alert(
-      'Backup Database',
-      'This will create a full backup of all hospital data. The process may take a few minutes.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Start Backup',
-          onPress: () => {
-            CustomAlert.alert('Backup Started', 'Database backup is in progress. You will be notified when complete.\n\nEstimated size: 2.4 GB\nEstimated time: 3-5 minutes');
-          },
-        },
-      ]
-    );
+  const saveWorkingHours = async () => {
+    setSaving(true);
+    try {
+      await api.put('/admin/working-hours', { hours: workingHours });
+      CustomAlert.alert('Saved', 'Working hours updated successfully.', [{ text: 'OK' }]);
+      setActivePanel(null);
+    } catch (e) {
+      CustomAlert.alert('Error', 'Failed to save working hours.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleExport = () => {
-    CustomAlert.alert(
-      'Export Data',
-      'Select the data format for export:',
-      [
-        { text: 'CSV', onPress: () => CustomAlert.alert('Export Started', 'CSV export will be emailed to admin@arunpriya.com when ready.') },
-        { text: 'JSON', onPress: () => CustomAlert.alert('Export Started', 'JSON export will be emailed to admin@arunpriya.com when ready.') },
-        { text: 'PDF Report', onPress: () => CustomAlert.alert('Export Started', 'PDF report will be emailed to admin@arunpriya.com when ready.') },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const saveSecuritySettings = async () => {
+    setSaving(true);
+    try {
+      await api.put('/admin/settings', {
+        settings: [
+          { key: 'session_timeout_minutes', value: sessionTimeout },
+          { key: 'two_factor_enabled', value: String(twoFactorEnabled) },
+          { key: 'max_login_attempts', value: loginAttemptsLimit },
+          { key: 'audit_logging_enabled', value: String(auditLogging) },
+        ],
+      });
+      CustomAlert.alert('Saved', 'Security settings updated successfully.', [{ text: 'OK' }]);
+      setActivePanel(null);
+    } catch (e) {
+      CustomAlert.alert('Error', 'Failed to save security settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveNotificationSettings = async () => {
+    setSaving(true);
+    try {
+      await api.put('/admin/settings', {
+        settings: [
+          { key: 'notif_email', value: String(emailNotif) },
+          { key: 'notif_push', value: String(pushNotif) },
+          { key: 'notif_sms', value: String(smsNotif) },
+          { key: 'alert_security', value: String(securityAlerts) },
+          { key: 'alert_user_activity', value: String(userActivityAlerts) },
+          { key: 'alert_system', value: String(systemAlerts) },
+        ],
+      });
+      CustomAlert.alert('Saved', 'Notification preferences updated successfully.', [{ text: 'OK' }]);
+      setActivePanel(null);
+    } catch (e) {
+      CustomAlert.alert('Error', 'Failed to save notification preferences.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setSaving(true);
+    try {
+      const res = await api.get('/admin/export-data', { responseType: 'blob' });
+      const fileUri = cacheDirectory + 'hospital-export.json';
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        await writeAsStringAsync(fileUri, base64, { encoding: EncodingType.Base64 });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Export Hospital Data' });
+        } else {
+          CustomAlert.alert('Exported', `Data saved to ${fileUri}`);
+        }
+      };
+      reader.readAsDataURL(res.data);
+    } catch (e) {
+      CustomAlert.alert('Error', 'Failed to export data.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleClearCache = () => {
@@ -128,28 +256,46 @@ export default function SettingsScreen() {
       'This will clear all cached data. Users may experience slower load times temporarily.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: () => CustomAlert.alert('Cache Cleared', 'All cached data has been cleared successfully.') },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.post('/admin/clear-cache');
+              CustomAlert.alert('Done', 'Cache cleared successfully.');
+            } catch (e) {
+              CustomAlert.alert('Error', 'Failed to clear cache.');
+            }
+          },
+        },
       ]
     );
   };
 
-  const toggleIntegration = (index: number) => {
-    const item = integrations[index];
+  const toggleIntegration = (item: typeof integrations[0]) => {
     CustomAlert.alert(
-      `${item.enabled ? 'Disconnect' : 'Connect'} ${item.name}`,
-      `Are you sure you want to ${item.enabled ? 'disconnect' : 'connect'} ${item.name}?`,
+      `${item.isConnected ? 'Disconnect' : 'Connect'} ${item.name}`,
+      `Are you sure you want to ${item.isConnected ? 'disconnect' : 'connect'} ${item.name}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Confirm',
-          onPress: () => {
-            setIntegrations((prev) =>
-              prev.map((it, i) =>
-                i === index
-                  ? { ...it, enabled: !it.enabled, status: it.enabled ? 'Disconnected' : 'Connected' }
-                  : it
-              )
-            );
+          onPress: async () => {
+            try {
+              const res = await api.patch(`/admin/integrations/${item.id}`, {
+                isConnected: !item.isConnected,
+              });
+              const updated = res.data;
+              setIntegrations((prev) =>
+                prev.map((it) =>
+                  it.id === item.id
+                    ? { ...it, isConnected: updated.isConnected, status: updated.status }
+                    : it
+                )
+              );
+            } catch (e) {
+              CustomAlert.alert('Error', 'Failed to update integration.');
+            }
           },
         },
       ]
@@ -158,11 +304,29 @@ export default function SettingsScreen() {
 
   const toggleDay = (index: number) => {
     setWorkingHours((prev) =>
-      prev.map((h, i) => (i === index ? { ...h, enabled: !h.enabled } : h))
+      prev.map((h, i) => (i === index ? { ...h, isEnabled: !h.isEnabled } : h))
     );
   };
 
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const [h, m] = time.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
+  };
+
+  // ── Panel renderers ─────────────────────────────────────
+
   const renderPanelContent = () => {
+    if (loading) {
+      return (
+        <View className="py-20 items-center">
+          <ActivityIndicator size="large" color="#1A73E8" />
+        </View>
+      );
+    }
+
     switch (activePanel) {
       case 'hospital':
         return (
@@ -171,8 +335,11 @@ export default function SettingsScreen() {
             {[
               { label: 'Hospital Name', value: hospitalName, setter: setHospitalName },
               { label: 'Address', value: hospitalAddress, setter: setHospitalAddress },
+              { label: 'City', value: hospitalCity, setter: setHospitalCity },
+              { label: 'State', value: hospitalState, setter: setHospitalState },
               { label: 'Phone', value: hospitalPhone, setter: setHospitalPhone, keyboard: 'phone-pad' as const },
               { label: 'Email', value: hospitalEmail, setter: setHospitalEmail, keyboard: 'email-address' as const },
+              { label: 'License No', value: hospitalLicenseNo, setter: setHospitalLicenseNo },
             ].map((field, i) => (
               <View key={i} className="mb-4">
                 <Text className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 ml-1">{field.label}</Text>
@@ -185,11 +352,12 @@ export default function SettingsScreen() {
               </View>
             ))}
             <Pressable
-              onPress={() => handleSave('Hospital Information')}
+              onPress={saveHospitalInfo}
+              disabled={saving}
               className="bg-primary py-4 rounded-2xl items-center mt-2 active:opacity-90"
               style={Shadows.focus}
             >
-              <Text className="text-white font-bold">Save Changes</Text>
+              {saving ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold">Save Changes</Text>}
             </Pressable>
           </>
         );
@@ -198,33 +366,38 @@ export default function SettingsScreen() {
         return (
           <>
             <Text className="text-lg font-bold text-midnight mb-5">Working Hours</Text>
-            {workingHours.map((h, i) => (
-              <View
-                key={i}
-                className={`flex-row items-center justify-between py-3.5 ${i < workingHours.length - 1 ? 'border-b border-slate-100' : ''}`}
-              >
-                <View className="flex-row items-center gap-3 flex-1">
-                  <Switch
-                    value={h.enabled}
-                    onValueChange={() => toggleDay(i)}
-                    trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-                    thumbColor={h.enabled ? '#1A73E8' : '#94A3B8'}
-                  />
-                  <Text className={`font-semibold text-sm ${h.enabled ? 'text-midnight' : 'text-slate-400'}`}>{h.day}</Text>
+            {workingHours
+              .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+              .map((h, i) => (
+                <View
+                  key={h.dayOfWeek}
+                  className={`flex-row items-center justify-between py-3.5 ${i < workingHours.length - 1 ? 'border-b border-slate-100' : ''}`}
+                >
+                  <View className="flex-row items-center gap-3 flex-1">
+                    <Switch
+                      value={h.isEnabled}
+                      onValueChange={() => toggleDay(i)}
+                      trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
+                      thumbColor={h.isEnabled ? '#1A73E8' : '#94A3B8'}
+                    />
+                    <Text className={`font-semibold text-sm ${h.isEnabled ? 'text-midnight' : 'text-slate-400'}`}>
+                      {DAY_NAMES[h.dayOfWeek]}
+                    </Text>
+                  </View>
+                  {h.isEnabled ? (
+                    <Text className="text-slate-500 text-xs">{formatTime(h.startTime)} - {formatTime(h.endTime)}</Text>
+                  ) : (
+                    <Text className="text-rose-400 text-xs font-medium">Closed</Text>
+                  )}
                 </View>
-                {h.enabled ? (
-                  <Text className="text-slate-500 text-xs">{h.open} - {h.close}</Text>
-                ) : (
-                  <Text className="text-rose-400 text-xs font-medium">Closed</Text>
-                )}
-              </View>
-            ))}
+              ))}
             <Pressable
-              onPress={() => handleSave('Working Hours')}
+              onPress={saveWorkingHours}
+              disabled={saving}
               className="bg-primary py-4 rounded-2xl items-center mt-5 active:opacity-90"
               style={Shadows.focus}
             >
-              <Text className="text-white font-bold">Save Hours</Text>
+              {saving ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold">Save Hours</Text>}
             </Pressable>
           </>
         );
@@ -278,11 +451,12 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Pressable
-              onPress={() => handleSave('Security')}
+              onPress={saveSecuritySettings}
+              disabled={saving}
               className="bg-primary py-4 rounded-2xl items-center mt-4 active:opacity-90"
               style={Shadows.focus}
             >
-              <Text className="text-white font-bold">Save Security Settings</Text>
+              {saving ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold">Save Security Settings</Text>}
             </Pressable>
           </>
         );
@@ -291,39 +465,14 @@ export default function SettingsScreen() {
         return (
           <>
             <Text className="text-lg font-bold text-midnight mb-5">Data Management</Text>
-            <View className="bg-slate-50 rounded-2xl p-4 mb-4">
-              <Text className="font-semibold text-midnight text-sm">Storage Overview</Text>
-              <View className="mt-3 gap-2">
-                <View className="flex-row justify-between">
-                  <Text className="text-slate-500 text-xs">Total Storage</Text>
-                  <Text className="text-midnight text-xs font-semibold">50 GB</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-slate-500 text-xs">Used</Text>
-                  <Text className="text-midnight text-xs font-semibold">12.4 GB (24.8%)</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-slate-500 text-xs">Last Backup</Text>
-                  <Text className="text-midnight text-xs font-semibold">Today, 08:00 AM</Text>
-                </View>
-                <View className="h-2 bg-slate-200 rounded-full mt-2 overflow-hidden">
-                  <View className="h-full bg-primary rounded-full" style={{ width: '25%' }} />
-                </View>
-              </View>
-            </View>
             <View className="gap-3">
               <Pressable
-                onPress={handleBackup}
+                onPress={handleExport}
+                disabled={saving}
                 className="bg-primary py-4 rounded-2xl items-center active:opacity-90"
                 style={Shadows.focus}
               >
-                <Text className="text-white font-bold">Create Backup</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleExport}
-                className="bg-white py-4 rounded-2xl items-center border border-primary/20 active:opacity-90"
-              >
-                <Text className="text-primary font-bold">Export Data</Text>
+                {saving ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold">Export Data (JSON)</Text>}
               </Pressable>
               <Pressable
                 onPress={handleClearCache}
@@ -378,11 +527,12 @@ export default function SettingsScreen() {
               </View>
             ))}
             <Pressable
-              onPress={() => handleSave('Notification')}
+              onPress={saveNotificationSettings}
+              disabled={saving}
               className="bg-primary py-4 rounded-2xl items-center mt-5 active:opacity-90"
               style={Shadows.focus}
             >
-              <Text className="text-white font-bold">Save Preferences</Text>
+              {saving ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold">Save Preferences</Text>}
             </Pressable>
           </>
         );
@@ -393,32 +543,28 @@ export default function SettingsScreen() {
             <Text className="text-lg font-bold text-midnight mb-5">Integrations</Text>
             {integrations.map((item, i) => (
               <Pressable
-                key={i}
-                onPress={() => toggleIntegration(i)}
+                key={item.id}
+                onPress={() => toggleIntegration(item)}
                 className="flex-row items-center justify-between py-4 active:opacity-80"
                 style={i < integrations.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' } : undefined}
               >
                 <View className="flex-1">
                   <Text className="font-semibold text-midnight text-sm">{item.name}</Text>
                   <View className="flex-row items-center gap-1.5 mt-1">
-                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: item.enabled ? '#22C55E' : '#EF4444' }} />
-                    <Text className="text-xs" style={{ color: item.enabled ? '#22C55E' : '#EF4444' }}>{item.status}</Text>
+                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: item.isConnected ? '#22C55E' : '#EF4444' }} />
+                    <Text className="text-xs" style={{ color: item.isConnected ? '#22C55E' : '#EF4444' }}>
+                      {item.isConnected ? 'Connected' : 'Disconnected'}
+                    </Text>
                   </View>
                 </View>
                 <Switch
-                  value={item.enabled}
-                  onValueChange={() => toggleIntegration(i)}
+                  value={item.isConnected}
+                  onValueChange={() => toggleIntegration(item)}
                   trackColor={{ false: '#E2E8F0', true: '#BFDBFE' }}
-                  thumbColor={item.enabled ? '#1A73E8' : '#94A3B8'}
+                  thumbColor={item.isConnected ? '#1A73E8' : '#94A3B8'}
                 />
               </Pressable>
             ))}
-            <Pressable
-              onPress={() => CustomAlert.alert('Add Integration', 'Contact IT to set up new integrations.\n\nEmail: it-support@arunpriya.com', [{ text: 'OK' }])}
-              className="bg-white py-4 rounded-2xl items-center border border-dashed border-primary/30 mt-4 active:opacity-90"
-            >
-              <Text className="text-primary font-semibold">+ Add New Integration</Text>
-            </Pressable>
           </>
         );
 

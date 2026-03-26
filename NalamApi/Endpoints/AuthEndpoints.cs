@@ -344,13 +344,23 @@ public static class AuthEndpoints
             return Results.Ok(new AuthResponse(false, "OTP has expired. Please request a new one."));
         }
 
-        // Check attempt limit (max 5)
-        if (otpRecord.AttemptCount >= 5)
+        // Read max login attempts from hospital settings (default 5)
+        var maxAttempts = 5;
+        var maxAttemptsSetting = await db.HospitalSettings
+            .IgnoreQueryFilters()
+            .Where(s => s.HospitalId == otpRecord.User!.HospitalId && s.Key == "max_login_attempts")
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync();
+        if (int.TryParse(maxAttemptsSetting, out var parsed) && parsed > 0)
+            maxAttempts = parsed;
+
+        // Check attempt limit
+        if (otpRecord.AttemptCount >= maxAttempts)
         {
             otpRecord.IsUsed = true;
             auditService.Log(
                 otpRecord.User!.HospitalId, otpRecord.UserId,
-                "OTP locked after 5 failed attempts",
+                $"OTP locked after {maxAttempts} failed attempts",
                 "security", "critical",
                 $"Mobile: {mobile}");
             await db.SaveChangesAsync();
@@ -362,10 +372,10 @@ public static class AuthEndpoints
         {
             otpRecord.AttemptCount++;
             otpRecord.LastAttemptAt = DateTime.UtcNow;
-            var remaining = 5 - otpRecord.AttemptCount;
+            var remaining = maxAttempts - otpRecord.AttemptCount;
             auditService.Log(
                 otpRecord.User!.HospitalId, otpRecord.UserId,
-                $"Invalid OTP attempt ({otpRecord.AttemptCount}/5)",
+                $"Invalid OTP attempt ({otpRecord.AttemptCount}/{maxAttempts})",
                 "security", "warning",
                 $"Mobile: {mobile}");
             await db.SaveChangesAsync();

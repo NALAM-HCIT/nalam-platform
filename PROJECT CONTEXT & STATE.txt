@@ -204,6 +204,62 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] 4-layer tenant isolation intact: JWT Claims → TenantMiddleware → EF Core Filters → PostgreSQL RLS
   * [x] Backend build: 0 errors | TypeScript build: 0 new errors
 
+* [x] Phase 18: Admin Settings Module (Full Stack — 6 Panels) - COMPLETED
+  * ── Phase 18.1: Database Design & Schema ──
+  * [x] hospitals table already contains all needed columns (name, address, city, state, phone, email, logo_url, license_no, status) — no migration needed
+  * [x] New Entity: HospitalWorkingHour (hospital_working_hours table) — day_of_week, start_time (TimeOnly), end_time, is_enabled, break_start, break_end, updated_at
+  * [x] New Entity: HospitalIntegration (hospital_integrations table) — name, type, is_connected, config_json, last_synced_at, status, created_at, updated_at
+  * [x] Existing Entity: HospitalSetting (hospital_settings table) — key-value store for security + notification settings per hospital
+  * [x] Unique index: ix_working_hours_hospital_day (hospital_id, day_of_week) — one row per day per hospital
+  * [x] Unique index: ix_integrations_hospital_name (hospital_id, name) — prevents duplicate integrations per hospital
+  * [x] FK constraints: hospital_working_hours.hospital_id → hospitals.id (CASCADE), hospital_integrations.hospital_id → hospitals.id (CASCADE)
+  * [x] Global Query Filters added for HospitalWorkingHour and HospitalIntegration (tenant isolation layer 3)
+  * [x] Hospital entity updated with navigation: WorkingHours and Integrations collections
+  * [x] Migration: 20260326102248_AddSettingsModuleTables — creates tables + seeds default data for existing hospitals
+  * [x] Seed SQL: 7 default working hours per hospital (08:00-20:00, Sunday off, 13:00-14:00 break)
+  * [x] Seed SQL: 5 default integrations per hospital (ABDM, Lab, Pharmacy, Insurance, SMS/Twilio)
+  * ── Phase 18.2: Backend API Implementation (10 Endpoints) ──
+  * [x] GET  /api/admin/hospital-info — Read hospital details from hospitals table (tenant-scoped via JWT hospitalId claim)
+  * [x] PUT  /api/admin/hospital-info — Partial update hospital (null fields skipped), audit logged
+  * [x] GET  /api/admin/working-hours — Load 7 working hour records (auto-seeds defaults on first access)
+  * [x] PUT  /api/admin/working-hours — Bulk upsert all 7 days (validates DayOfWeek 0-6, parses TimeOnly), audit logged
+  * [x] GET  /api/admin/settings — Fetch all key-value settings for hospital (security + notification settings)
+  * [x] PUT  /api/admin/settings — Upsert key-value settings (session_timeout, 2FA, max_attempts, audit_logging, notif_email/push/sms, alerts), audit logged
+  * [x] GET  /api/admin/export-data — Streams hospital-specific JSON export (users, patients, appointments, doctor profiles, audit logs last 1000) as file download
+  * [x] POST /api/admin/clear-cache — Evicts IMemoryCache for hospital dashboard, audit logged
+  * [x] GET  /api/admin/integrations — List integrations (auto-seeds 5 defaults on first access), ordered by name
+  * [x] PATCH /api/admin/integrations/{id} — Toggle connection status, sets last_synced_at on connect, audit logged
+  * [x] All endpoints extract hospitalId from JWT claim (never from request body) — RULE 7 enforced
+  * [x] All endpoints wrapped in AdminOnly authorization policy
+  * [x] Security settings stored as key-value pairs: session_timeout_minutes, two_factor_enabled, max_login_attempts, audit_logging_enabled
+  * [x] Notification settings stored as key-value pairs: notif_email, notif_push, notif_sms, alert_security, alert_user_activity, alert_system
+  * ── Phase 18.3: Frontend / Mobile App (6 Settings Panels) ──
+  * [x] Hospital Information panel — fetches GET /admin/hospital-info, editable fields, saves via PUT
+  * [x] Working Hours panel — fetches GET /admin/working-hours, day-wise toggles + formatted times, saves via PUT
+  * [x] Security Settings panel — fetches from /admin/settings, manages 2FA toggle, audit logging toggle, session timeout, max login attempts
+  * [x] Notification Settings panel — fetches from /admin/settings, manages email/push/SMS channels + security/user-activity/system alert types
+  * [x] Data Management panel — Export Data (JSON file download via expo-file-system + expo-sharing), Clear Cache (confirmation dialog)
+  * [x] Integration panel — fetches GET /admin/integrations, toggle connect/disconnect with confirmation dialog, live status indicator
+  * [x] Lazy loading: data fetched only when panel is opened (useEffect on activePanel)
+  * [x] Modal-based UI with slide animation, back/close buttons, loading spinners
+  * [x] Fixed response unwrapping bugs: res.data.hours (not res.data) for working hours, res.data.integrations for integrations
+  * [x] Fixed expo-file-system import for SDK 53+ (use expo-file-system/legacy for cacheDirectory, writeAsStringAsync, EncodingType)
+  * ── Phase 18.4: Security, Multi-Tenancy & Testing ──
+  * [x] 4-layer tenant isolation intact for all settings data:
+    - Layer 1: JWT hospitalId claim injected at login
+    - Layer 2: TenantMiddleware validates hospitalId on every request
+    - Layer 3: EF Core Global Query Filters on HospitalWorkingHour + HospitalIntegration + HospitalSetting
+    - Layer 4: PostgreSQL RLS policies
+  * [x] Hospital admins can only view/modify their own hospital's data
+  * [x] All mutations audit-logged via AuditService (action, category, severity, userId, hospitalId)
+  * [x] Auto-seeding prevents null state: working hours + integrations created on first GET if empty
+  * [x] Composite unique indexes prevent duplicate settings/hours/integrations per hospital
+  * [x] Export data excludes sensitive fields (passwords, OTP codes)
+  * [x] Backend build: 0 errors, 0 warnings | TypeScript build: 0 errors
+  * ── Pending: Apply migration to Supabase production ──
+  * [ ] Run AddSettingsModuleTables migration on Supabase (auto-migration on Railway deploy, or manual SQL)
+  * [ ] Add RLS policies for hospital_working_hours and hospital_integrations tables in Supabase
+
 4. CURRENT DATABASE SCHEMA SNAPSHOT
 ------------------------------------------------------
 * hospitals: [id (PK/UUID), name, license_no, address, city, state, phone, email, logo_url, status, created_at]
@@ -216,6 +272,8 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * doctor_schedules: [id (PK/UUID), hospital_id (FK), doctor_profile_id (FK), day_of_week (0-6), start_time, end_time, slot_duration_minutes, consultation_type, is_active]
 * user_roles: [id (PK/UUID), user_id (FK), role, assigned_at, is_active] — unique index on (user_id, role)
 * appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, prescription_status (null/pending/dispensed/rejected), created_at, updated_at]
+* hospital_working_hours: [id (PK/UUID), hospital_id (FK), day_of_week (0-6), start_time (TIME), end_time (TIME), is_enabled, break_start (TIME nullable), break_end (TIME nullable), updated_at] — unique index on (hospital_id, day_of_week)
+* hospital_integrations: [id (PK/UUID), hospital_id (FK), name, type, is_connected, config_json (nullable), last_synced_at (nullable), status, created_at, updated_at] — unique index on (hospital_id, name)
 
 5. COMPLETED API ROUTES
 ------------------------------------------------------
@@ -266,6 +324,14 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * GET  /api/doctor-portal/my-profile        — Doctor's own profile + appointment stats
 * GET  /api/doctor-portal/patient-summary/{id} — Patient summary with appointment history
 * POST /api/auth/switch-role             — Switch active role (issues new JWT, requires auth)
+* GET  /api/admin/hospital-info          — Read hospital details from hospitals table
+* PUT  /api/admin/hospital-info          — Update hospital info (partial update, null fields skipped)
+* GET  /api/admin/working-hours          — Load working hours (auto-seeds 7 defaults on first access)
+* PUT  /api/admin/working-hours          — Bulk upsert working hours for all 7 days
+* GET  /api/admin/export-data            — Stream hospital data as JSON file download
+* POST /api/admin/clear-cache            — Evict dashboard cache for hospital
+* GET  /api/admin/integrations           — List integrations (auto-seeds 5 defaults on first access)
+* PATCH /api/admin/integrations/{id}     — Toggle integration connection status
 
 6. INSTALLED PACKAGES (NalamApi)
 ------------------------------------------------------
@@ -291,7 +357,7 @@ NalamApi/
 ├── Dockerfile
 ├── .env.example
 ├── Data/NalamDbContext.cs
-├── Entities/ (Hospital, User, UserRole, OtpVerification, Department, HospitalSetting, AuditLog, DoctorProfile, DoctorSchedule, Appointment)
+├── Entities/ (Hospital, User, UserRole, OtpVerification, Department, HospitalSetting, AuditLog, DoctorProfile, DoctorSchedule, Appointment, Patient, HospitalWorkingHour, HospitalIntegration)
 ├── DTOs/Auth/ DTOs/Admin/ DTOs/Hospital/ DTOs/Appointment/
 ├── Endpoints/ (AuthEndpoints, AdminEndpoints, HospitalEndpoints, AppointmentEndpoints, ReceptionistEndpoints, PharmacistEndpoints, PatientEndpoints, DoctorPortalEndpoints)
 ├── Services/ (JwtService, OtpService, AuditService)
@@ -353,6 +419,16 @@ Mobile App Key Files (Hospital-Specific Deployment — Phase 17):
 ├── config/hospital.ts (centralized hospital branding config)
 ├── .env.arunpriya (first hospital env template)
 └── eas.json (per-hospital build profiles)
+
+Admin Settings Module Files (Phase 18):
+Backend:
+├── NalamApi/Entities/HospitalWorkingHour.cs (working hours entity)
+├── NalamApi/Entities/HospitalIntegration.cs (integrations entity)
+├── NalamApi/Migrations/20260326102248_AddSettingsModuleTables.cs (creates tables + seeds data)
+├── NalamApi/Endpoints/AdminEndpoints.cs (10 settings endpoints added: hospital-info, working-hours, settings, export-data, clear-cache, integrations)
+└── NalamApi/DTOs/Admin/AdminDtos.cs (HospitalInfoResponse, WorkingHourDto, IntegrationResponse, UpdateRequests)
+Frontend:
+└── app/admin/(tabs)/settings.tsx (6 panels: Hospital Info, Working Hours, Security, Data Mgmt, Notifications, Integrations)
 
 ======================================================
 END OF PROJECT STATE. AWAITING USER PROMPT.
