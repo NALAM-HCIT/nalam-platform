@@ -48,3 +48,7 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/** Returns true if the error is a 401 (handled by auto-logout interceptor). */
+export const isAuthError = (err: unknown): boolean =>
+  axios.isAxiosError(err) && err.response?.status === 401;

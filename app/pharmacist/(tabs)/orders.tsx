@@ -6,6 +6,7 @@ import { Package, Clock, CheckCircle, Search, X, Pill } from 'lucide-react-nativ
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
 import { pharmacistService, PrescriptionItem } from '@/services/pharmacistService';
+import { isAuthError } from '@/services/api';
 type OrderFilter = 'all' | 'dispensed' | 'rejected';
 
 const filterTabs: { label: string; value: OrderFilter }[] = [
@@ -40,8 +41,10 @@ export default function OrdersScreen() {
       }
       setOrders(data);
     } catch (err) {
-      console.error(err);
-      CustomAlert.alert('Error', 'Failed to load orders.');
+      if (!isAuthError(err)) {
+        console.error(err);
+        CustomAlert.alert('Error', 'Failed to load orders.');
+      }
     } finally {
       setLoading(false);
     }

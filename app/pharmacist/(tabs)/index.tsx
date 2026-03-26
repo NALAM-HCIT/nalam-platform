@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { pharmacistService, PharmacyDashboardStats, PrescriptionItem } from '@/services/pharmacistService';
+import { isAuthError } from '@/services/api';
 import {
   Bell, Clock, CheckCircle, Package, X,
   ChevronRight, Building2, FileText, AlertTriangle, Pill,
@@ -27,8 +28,10 @@ export default function PharmacistDashboard() {
       setStats(dashStats);
       setPrescriptions(rxQueue);
     } catch (err) {
-      console.error(err);
-      CustomAlert.alert('Error', 'Failed to load pharmacy dashboard.');
+      if (!isAuthError(err)) {
+        console.error(err);
+        CustomAlert.alert('Error', 'Failed to load pharmacy dashboard.');
+      }
     }
   };
 

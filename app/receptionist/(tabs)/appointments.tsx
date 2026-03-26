@@ -7,6 +7,7 @@ import { Calendar, Clock, User, Search, Plus, Phone } from 'lucide-react-native'
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
 import { receptionistService, QueuePatient } from '@/services/receptionistService';
+import { isAuthError } from '@/services/api';
 
 type AppointmentStatus = 'all' | 'pending' | 'confirmed' | 'arrived' | 'in_consultation' | 'completed';
 
@@ -30,8 +31,10 @@ export default function AppointmentsScreen() {
       const data = await receptionistService.getQueue();
       setAppointments(data);
     } catch (err) {
-      console.error(err);
-      CustomAlert.alert('Error', 'Failed to load live appointments for today.');
+      if (!isAuthError(err)) {
+        console.error(err);
+        CustomAlert.alert('Error', 'Failed to load live appointments for today.');
+      }
     }
   };
 

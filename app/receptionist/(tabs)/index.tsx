@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { receptionistService, ReceptionDashboardStats, QueuePatient } from '@/services/receptionistService';
+import { isAuthError } from '@/services/api';
 import { Shadows } from '@/constants/theme';
 import {
   Bell, LogIn, UserCheck, Clock, Stethoscope, Building2,
@@ -59,8 +60,10 @@ export default function ReceptionistDashboard() {
       setStats(dashStats);
       setAppointments(queue.slice(0, 5)); // Dashboard shows top 5
     } catch (err) {
-      console.error(err);
-      CustomAlert.alert('Error', 'Failed to load dashboard data.');
+      if (!isAuthError(err)) {
+        console.error(err);
+        CustomAlert.alert('Error', 'Failed to load dashboard data.');
+      }
     }
   };
 
