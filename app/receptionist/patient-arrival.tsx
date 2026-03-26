@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows } from '@/constants/theme';
@@ -132,21 +133,21 @@ export default function PatientArrivalScreen() {
     setTokenAssigned(true);
     setTokenModalVisible(false);
 
-    Alert.alert(
+    CustomAlert.alert(
       'Token Assigned',
       `Token: ${token}\nQueue Position: ${pos} of ${total}\nEstimated Wait: ~${wait} min\n\n${priority === 'priority' ? 'Priority queue - patient moved to front.' : 'Added to regular queue.'}`,
       [
         { text: 'OK' },
         {
           text: 'Print Token',
-          onPress: () => Alert.alert('Printing', `Token slip printing...\n\n${token}\n${arrivalData.patientName}\n${arrivalData.doctorName}\n${arrivalData.department}\nQueue: ${pos}\nEst. Wait: ~${wait} min`),
+          onPress: () => CustomAlert.alert('Printing', `Token slip printing...\n\n${token}\n${arrivalData.patientName}\n${arrivalData.doctorName}\n${arrivalData.department}\nQueue: ${pos}\nEst. Wait: ~${wait} min`),
         },
       ]
     );
   };
 
   const handleRecordVitals = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Record Vitals',
       `Patient: ${arrivalData.patientName}`,
       [
@@ -155,7 +156,7 @@ export default function PatientArrivalScreen() {
           text: 'Record',
           onPress: () => {
             setVitalsRecorded(true);
-            Alert.alert('Vitals Recorded', 'BP: 120/80 mmHg\nPulse: 72 bpm\nTemp: 98.4°F\nSpO2: 98%\nWeight: 72 kg');
+            CustomAlert.alert('Vitals Recorded', 'BP: 120/80 mmHg\nPulse: 72 bpm\nTemp: 98.4°F\nSpO2: 98%\nWeight: 72 kg');
           },
         },
       ]
@@ -163,7 +164,7 @@ export default function PatientArrivalScreen() {
   };
 
   const handleAssignRoom = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Assign Room',
       `Assign a consultation room for ${arrivalData.patientName}:`,
       [
@@ -172,21 +173,21 @@ export default function PatientArrivalScreen() {
           text: 'Room 3',
           onPress: () => {
             setRoomAssigned('Room 3');
-            Alert.alert('Room Assigned', `${arrivalData.patientName} → Room 3\n${arrivalData.doctorName} has been notified.`);
+            CustomAlert.alert('Room Assigned', `${arrivalData.patientName} → Room 3\n${arrivalData.doctorName} has been notified.`);
           },
         },
         {
           text: 'Room 5',
           onPress: () => {
             setRoomAssigned('Room 5');
-            Alert.alert('Room Assigned', `${arrivalData.patientName} → Room 5\n${arrivalData.doctorName} has been notified.`);
+            CustomAlert.alert('Room Assigned', `${arrivalData.patientName} → Room 5\n${arrivalData.doctorName} has been notified.`);
           },
         },
         {
           text: 'Room 8',
           onPress: () => {
             setRoomAssigned('Room 8');
-            Alert.alert('Room Assigned', `${arrivalData.patientName} → Room 8\n${arrivalData.doctorName} has been notified.`);
+            CustomAlert.alert('Room Assigned', `${arrivalData.patientName} → Room 8\n${arrivalData.doctorName} has been notified.`);
           },
         },
       ]
@@ -194,7 +195,7 @@ export default function PatientArrivalScreen() {
   };
 
   const handleNotifyDoctor = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Notify Doctor',
       `Send notification to ${arrivalData.doctorName}?`,
       [
@@ -203,7 +204,7 @@ export default function PatientArrivalScreen() {
           text: 'Send',
           onPress: () => {
             setDoctorNotified(true);
-            Alert.alert('Notified', `${arrivalData.doctorName} has been notified.\n\nPatient: ${arrivalData.patientName}\nToken: ${tokenNumber}\n${roomAssigned ? `Room: ${roomAssigned}` : 'Room: Not yet assigned'}`);
+            CustomAlert.alert('Notified', `${arrivalData.doctorName} has been notified.\n\nPatient: ${arrivalData.patientName}\nToken: ${tokenNumber}\n${roomAssigned ? `Room: ${roomAssigned}` : 'Room: Not yet assigned'}`);
           },
         },
       ]
@@ -212,14 +213,14 @@ export default function PatientArrivalScreen() {
 
   const handleSendToDoctor = () => {
     if (!tokenAssigned) {
-      Alert.alert('Token Required', 'Please assign a token before sending the patient to the doctor.');
+      CustomAlert.alert('Token Required', 'Please assign a token before sending the patient to the doctor.');
       return;
     }
     if (!roomAssigned) {
-      Alert.alert('Room Required', 'Please assign a room before sending the patient to the doctor.');
+      CustomAlert.alert('Room Required', 'Please assign a room before sending the patient to the doctor.');
       return;
     }
-    Alert.alert(
+    CustomAlert.alert(
       'Confirm',
       `Send ${arrivalData.patientName} to ${arrivalData.doctorName} in ${roomAssigned}?`,
       [
@@ -227,7 +228,7 @@ export default function PatientArrivalScreen() {
         {
           text: 'Send Now',
           onPress: () => {
-            Alert.alert(
+            CustomAlert.alert(
               'Patient Sent',
               `${arrivalData.patientName} has been directed to ${roomAssigned}.\n\nDoctor: ${arrivalData.doctorName}\nToken: ${tokenNumber}\nVitals: ${vitalsRecorded ? 'Recorded' : 'Pending'}`,
               [{ text: 'OK', onPress: () => router.back() }]
@@ -341,9 +342,9 @@ export default function PatientArrivalScreen() {
                 Token Assigned
               </Text>
               <Pressable
-                onPress={() => Alert.alert('Print Token', `Printing token slip for ${tokenNumber}...`, [
+                onPress={() => CustomAlert.alert('Print Token', `Printing token slip for ${tokenNumber}...`, [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Print', onPress: () => Alert.alert('Sent', 'Token slip sent to printer.') },
+                  { text: 'Print', onPress: () => CustomAlert.alert('Sent', 'Token slip sent to printer.') },
                 ])}
                 className="flex-row items-center gap-1"
               >

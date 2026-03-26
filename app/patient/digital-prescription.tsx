@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -26,21 +27,21 @@ export default function DigitalPrescriptionScreen() {
       .then(setPrescription)
       .catch((err) => {
         console.error(err);
-        Alert.alert('Error', 'Failed to load prescription.');
+        CustomAlert.alert('Error', 'Failed to load prescription.');
       })
       .finally(() => setLoading(false));
   }, [appointmentId]);
 
   const handleDownload = () => {
     setDownloaded(true);
-    Alert.alert('Downloaded', `Prescription ${prescription?.bookingReference || ''} saved.`);
+    CustomAlert.alert('Downloaded', `Prescription ${prescription?.bookingReference || ''} saved.`);
   };
 
   const handleShare = () => {
-    Alert.alert('Share Prescription', 'Share via:', [
+    CustomAlert.alert('Share Prescription', 'Share via:', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'WhatsApp', onPress: () => Alert.alert('Shared', 'Prescription shared via WhatsApp.') },
-      { text: 'Email', onPress: () => Alert.alert('Shared', 'Prescription sent to email.') },
+      { text: 'WhatsApp', onPress: () => CustomAlert.alert('Shared', 'Prescription shared via WhatsApp.') },
+      { text: 'Email', onPress: () => CustomAlert.alert('Shared', 'Prescription sent to email.') },
     ]);
   };
 
@@ -220,7 +221,7 @@ export default function DigitalPrescriptionScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => Alert.alert('Printing', 'Prescription sent to printer.')}
+                onPress={() => CustomAlert.alert('Printing', 'Prescription sent to printer.')}
                 className="flex-1 py-3.5 rounded-full items-center flex-row justify-center gap-2 border-2 border-slate-200"
               >
                 <Printer size={18} color="#64748B" />

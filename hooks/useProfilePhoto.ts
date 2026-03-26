@@ -1,9 +1,9 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import * as ImagePicker from 'expo-image-picker';
 import { uploadService, UploadProgress } from '@/services/uploadService';
 import { useAuthStore } from '@/stores/authStore';
-
 /**
  * Shared hook for profile photo upload with Firebase Storage.
  * Handles camera/gallery picking, Firebase upload with progress, and state management.
@@ -23,7 +23,7 @@ export function useProfilePhoto(existingImageUrl?: string | null) {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
+      CustomAlert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
       return;
     }
 
@@ -39,7 +39,7 @@ export function useProfilePhoto(existingImageUrl?: string | null) {
     setProfileImage(localUri);
 
     if (!userId) {
-      Alert.alert('Success', 'Profile photo updated locally.');
+      CustomAlert.alert('Success', 'Profile photo updated locally.');
       return;
     }
 
@@ -54,10 +54,10 @@ export function useProfilePhoto(existingImageUrl?: string | null) {
         (progress: UploadProgress) => setUploadProgress(progress.progress),
       );
       setProfileImage(url);
-      Alert.alert('Success', 'Profile photo uploaded!');
+      CustomAlert.alert('Success', 'Profile photo uploaded!');
     } catch (err) {
       console.error('Upload failed:', err);
-      Alert.alert('Upload Failed', 'Photo saved locally but could not be uploaded. Please try again later.');
+      CustomAlert.alert('Upload Failed', 'Photo saved locally but could not be uploaded. Please try again later.');
       // Keep local image as fallback
     } finally {
       setUploading(false);
@@ -66,7 +66,7 @@ export function useProfilePhoto(existingImageUrl?: string | null) {
   }, [userId]);
 
   const handleChangePhoto = useCallback(() => {
-    Alert.alert('Update Profile Photo', 'Choose a source:', [
+    CustomAlert.alert('Update Profile Photo', 'Choose a source:', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Take Photo', onPress: () => pickAndUpload(true) },
       { text: 'Choose from Gallery', onPress: () => pickAndUpload(false) },

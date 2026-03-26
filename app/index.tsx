@@ -20,9 +20,9 @@ export default function SplashRoleScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       {/* Background decorations */}
-      <View className="absolute -top-24 -left-24 w-[320px] h-[320px] rounded-full bg-primary/5" />
-      <View className="absolute bottom-32 -right-24 w-[280px] h-[280px] rounded-full bg-tertiary/5" />
-      <View className="absolute top-1/3 right-0 w-[200px] h-[200px] rounded-full bg-primary/[0.03]" />
+      <View pointerEvents="none" className="absolute -top-24 -left-24 w-[320px] h-[320px] rounded-full bg-primary/5" />
+      <View pointerEvents="none" className="absolute bottom-32 -right-24 w-[280px] h-[280px] rounded-full bg-tertiary/5" />
+      <View pointerEvents="none" className="absolute top-1/3 right-0 w-[200px] h-[200px] rounded-full bg-primary/[0.03]" />
 
       <View className="flex-1 items-center justify-center px-6">
         {/* Logo Section - standalone, not in card */}

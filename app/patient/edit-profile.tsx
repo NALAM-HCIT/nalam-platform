@@ -1,7 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, Image,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -146,7 +145,7 @@ export default function EditProfileScreen() {
 
   const handleSelectPress = useCallback((field: FormField) => {
     if (field.type === 'date') {
-      Alert.alert('Select Date of Birth', 'Choose your date of birth:', [
+      CustomAlert.alert('Select Date of Birth', 'Choose your date of birth:', [
         { text: 'Cancel', style: 'cancel' },
         ...['15/06/1993', '20/03/1990', '01/01/1985', '10/12/1995'].map((d) => ({
           text: d,
@@ -156,7 +155,7 @@ export default function EditProfileScreen() {
       return;
     }
     if (field.options) {
-      Alert.alert(`Select ${field.label}`, '', [
+      CustomAlert.alert(`Select ${field.label}`, '', [
         { text: 'Cancel', style: 'cancel' },
         ...field.options.map((opt) => ({
           text: opt,
@@ -169,27 +168,27 @@ export default function EditProfileScreen() {
   const handleSave = useCallback(() => {
     // Validate required fields
     if (!formData.fullName.trim()) {
-      Alert.alert('Required', 'Full name is required.');
+      CustomAlert.alert('Required', 'Full name is required.');
       return;
     }
     if (!formData.phone.trim()) {
-      Alert.alert('Required', 'Phone number is required.');
+      CustomAlert.alert('Required', 'Phone number is required.');
       return;
     }
     if (!formData.email.trim()) {
-      Alert.alert('Required', 'Email address is required.');
+      CustomAlert.alert('Required', 'Email address is required.');
       return;
     }
     if (formData.email && !formData.email.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      CustomAlert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
     if (!formData.emergencyPhone.trim()) {
-      Alert.alert('Required', 'Emergency contact phone is required.');
+      CustomAlert.alert('Required', 'Emergency contact phone is required.');
       return;
     }
 
-    Alert.alert(
+    CustomAlert.alert(
       'Save Changes',
       'Are you sure you want to update your profile?',
       [
@@ -198,7 +197,7 @@ export default function EditProfileScreen() {
           text: 'Save',
           onPress: () => {
             // In production, this would call an API
-            Alert.alert(
+            CustomAlert.alert(
               'Profile Updated',
               'Your profile has been updated successfully.',
               [{ text: 'OK', onPress: () => router.back() }],
@@ -214,7 +213,7 @@ export default function EditProfileScreen() {
       router.back();
       return;
     }
-    Alert.alert(
+    CustomAlert.alert(
       'Discard Changes?',
       'You have unsaved changes. Are you sure you want to go back?',
       [
@@ -230,7 +229,7 @@ export default function EditProfileScreen() {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
+      CustomAlert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
       return;
     }
 
@@ -267,7 +266,7 @@ export default function EditProfileScreen() {
         onPress: () => { setProfileImage(null); setHasChanges(true); },
       });
     }
-    Alert.alert('Update Profile Photo', 'Choose a source:', buttons);
+    CustomAlert.alert('Update Profile Photo', 'Choose a source:', buttons);
   }, [pickImage, profileImage]);
 
   const initials = useMemo(() => {
@@ -392,7 +391,7 @@ export default function EditProfileScreen() {
           <View className="px-6 mt-4">
             <Pressable
               onPress={() =>
-                Alert.alert(
+                CustomAlert.alert(
                   'Delete Account',
                   'This action is permanent and cannot be undone.\n\nAll your data including medical records, appointments, prescriptions, and order history will be permanently deleted.\n\nAre you absolutely sure?',
                   [
@@ -401,7 +400,7 @@ export default function EditProfileScreen() {
                       text: 'Delete My Account',
                       style: 'destructive',
                       onPress: () =>
-                        Alert.alert(
+                        CustomAlert.alert(
                           'Final Confirmation',
                           'Your account will be scheduled for deletion in 30 days. You can cancel by logging in within this period.',
                           [

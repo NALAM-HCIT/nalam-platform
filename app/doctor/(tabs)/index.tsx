@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, Alert,
-  RefreshControl, ActivityIndicator,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -199,7 +197,7 @@ export default function DoctorDashboard() {
   const handleStatusChange = useCallback(
     (id: string, newStatus: string) => {
       const labels: Record<string, string> = { completed: 'Complete', no_show: 'No Show' };
-      Alert.alert(
+      CustomAlert.alert(
         `Mark as ${labels[newStatus]}?`,
         'This action cannot be undone.',
         [
@@ -211,7 +209,7 @@ export default function DoctorDashboard() {
                 await changeAppointmentStatus(id, newStatus);
                 await fetchData();
               } catch (err: any) {
-                Alert.alert('Error', err.response?.data?.error || 'Failed to update status.');
+                CustomAlert.alert('Error', err.response?.data?.error || 'Failed to update status.');
               }
             },
           },
@@ -222,7 +220,7 @@ export default function DoctorDashboard() {
   );
 
   const handleAppointmentPress = useCallback((item: DoctorAppointment) => {
-    Alert.alert(
+    CustomAlert.alert(
       item.patientName || 'Patient',
       `Booking: ${item.bookingReference}\nTime: ${formatTime(item.startTime)} - ${formatTime(item.endTime)}\nType: ${item.consultationType === 'video' ? 'Video Consultation' : 'In-Person Visit'}\nStatus: ${item.status}\nFee: \u20B9${item.consultationFee}`,
       [{ text: 'Close' }]

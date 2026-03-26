@@ -6,10 +6,11 @@ public record CreateUserRequest(
     string FullName,
     string MobileNumber,
     string? Email,
-    string Role,        // doctor, pharmacist, receptionist
+    string Role,              // primary role: doctor, pharmacist, receptionist, admin
+    List<string>? Roles,      // optional additional roles (if null, defaults to [Role])
     string? Department,
     string? EmployeeId,
-    // Doctor-specific fields (used only when Role = "doctor")
+    // Doctor-specific fields (used when Role="doctor" or Roles contains "doctor")
     string? Specialty,
     int? ExperienceYears,
     decimal? ConsultationFee,
@@ -24,7 +25,7 @@ public record UpdateUserRequest(
     string? EmployeeId
 );
 
-public record ChangeRoleRequest(string Role);
+public record ChangeRoleRequest(List<string> Roles);
 
 public record ChangeStatusRequest(string Status); // active, inactive
 
@@ -34,6 +35,7 @@ public record UserResponse(
     string MobileNumber,
     string? Email,
     string Role,
+    List<string> Roles,
     string? Department,
     string? EmployeeId,
     string? ProfilePhotoUrl,
@@ -157,6 +159,7 @@ public record ProfileResponse(
     string MobileNumber,
     string? Email,
     string Role,
+    List<string> Roles,
     string? Department,
     string? EmployeeId,
     string? ProfilePhotoUrl,

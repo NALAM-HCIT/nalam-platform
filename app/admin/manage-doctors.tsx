@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, Alert, ActivityIndicator,
-  Modal, RefreshControl, KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Modal, RefreshControl, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -62,13 +60,11 @@ const ScheduleBadge = React.memo(function ScheduleBadge({
   onDelete: () => void;
 }) {
   return (
-    <View className="flex-row items-center bg-slate-50 rounded-xl px-3 py-2 mr-2 mb-2">
-      <View className="flex-1">
-        <Text className="text-xs font-bold text-midnight">{DAY_NAMES[schedule.dayOfWeek]}</Text>
-        <Text className="text-[10px] text-slate-400">{schedule.startTime}-{schedule.endTime}</Text>
-        <Text className="text-[9px] text-primary font-medium">{schedule.consultationType} ({schedule.slotDurationMinutes}min)</Text>
-      </View>
-      <Pressable onPress={onDelete} className="p-1.5 rounded-full bg-rose-50 active:opacity-70">
+    <View className="bg-slate-50 rounded-xl px-3 py-2 mr-2 mb-2" style={{ minWidth: 100 }}>
+      <Text className="text-xs font-bold text-midnight">{DAY_NAMES[schedule.dayOfWeek]}</Text>
+      <Text className="text-[10px] text-slate-400">{schedule.startTime} - {schedule.endTime}</Text>
+      <Text className="text-[9px] text-primary font-medium mb-1.5">{schedule.consultationType} ({schedule.slotDurationMinutes}min)</Text>
+      <Pressable onPress={onDelete} className="p-1.5 rounded-full bg-rose-50 self-start active:opacity-70">
         <Trash2 size={12} color="#E11D48" />
       </Pressable>
     </View>
@@ -241,13 +237,13 @@ export default function ManageDoctorsScreen() {
       if (available.length > 0) setSelectedUserId(available[0].id);
       setShowCreateModal(true);
     } catch (err: any) {
-      Alert.alert('Error', 'Failed to load doctor users.');
+      CustomAlert.alert('Error', 'Failed to load doctor users.');
     }
   }, [profiles]);
 
   const handleCreateProfile = useCallback(async () => {
     if (!selectedUserId || !specialty.trim() || !fee.trim()) {
-      Alert.alert('Validation', 'Please fill in User, Specialty, and Fee.');
+      CustomAlert.alert('Validation', 'Please fill in User, Specialty, and Fee.');
       return;
     }
     setCreating(true);
@@ -265,16 +261,16 @@ export default function ManageDoctorsScreen() {
       setShowCreateModal(false);
       setSpecialty(''); setExpYears(''); setFee(''); setLanguages(''); setBio('');
       fetchProfiles(true);
-      Alert.alert('Success', 'Doctor profile created.');
+      CustomAlert.alert('Success', 'Doctor profile created.');
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to create profile.');
+      CustomAlert.alert('Error', err.response?.data?.error || 'Failed to create profile.');
     } finally {
       setCreating(false);
     }
   }, [selectedUserId, specialty, expYears, fee, videoEnabled, inPersonEnabled, languages, bio, fetchProfiles]);
 
   const handleDeleteProfile = useCallback((profile: DoctorProfile) => {
-    Alert.alert('Delete Profile', `Remove doctor profile for ${profile.doctorName}? This will also delete all schedules.`, [
+    CustomAlert.alert('Delete Profile', `Remove doctor profile for ${profile.doctorName}? This will also delete all schedules.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -283,7 +279,7 @@ export default function ManageDoctorsScreen() {
             await api.delete(`/admin/doctor-profiles/${profile.id}`);
             fetchProfiles(true);
           } catch (err: any) {
-            Alert.alert('Error', err.response?.data?.error || 'Failed to delete.');
+            CustomAlert.alert('Error', err.response?.data?.error || 'Failed to delete.');
           }
         },
       },
@@ -314,7 +310,7 @@ export default function ManageDoctorsScreen() {
       setShowScheduleModal(false);
       fetchProfiles(true);
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to add schedule.');
+      CustomAlert.alert('Error', err.response?.data?.error || 'Failed to add schedule.');
     } finally {
       setAddingSchedule(false);
     }
@@ -325,7 +321,7 @@ export default function ManageDoctorsScreen() {
       await api.delete(`/admin/doctor-schedules/${scheduleId}`);
       fetchProfiles(true);
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to delete schedule.');
+      CustomAlert.alert('Error', err.response?.data?.error || 'Failed to delete schedule.');
     }
   }, [fetchProfiles]);
 
@@ -381,7 +377,7 @@ export default function ManageDoctorsScreen() {
             <DoctorProfileCard
               key={p.id}
               profile={p}
-              onEdit={() => Alert.alert('Edit', 'Edit functionality coming soon.')}
+              onEdit={() => CustomAlert.alert('Edit', 'Edit functionality coming soon.')}
               onDelete={() => handleDeleteProfile(p)}
               onAddSchedule={() => openAddSchedule(p.id)}
               onDeleteSchedule={handleDeleteSchedule}

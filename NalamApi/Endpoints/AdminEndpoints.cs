@@ -70,7 +70,9 @@ public static class AdminEndpoints
 
     private static UserResponse ToUserResponse(User u) => new(
         u.Id, u.FullName, u.MobileNumber, u.Email,
-        u.Role, u.Department, u.EmployeeId, u.ProfilePhotoUrl,
+        u.Role,
+        u.UserRoles?.Where(ur => ur.IsActive).Select(ur => ur.Role).ToList() ?? [u.Role],
+        u.Department, u.EmployeeId, u.ProfilePhotoUrl,
         u.Status, u.IsVerified, u.CreatedAt, u.LastLogin);
 
     // ═══════════════════════════════════════════════════════════
@@ -86,7 +88,7 @@ public static class AdminEndpoints
         int page = 1,
         int pageSize = 50)
     {
-        var query = db.Users.AsNoTracking().AsQueryable();
+        var query = db.Users.AsNoTracking().Include(u => u.UserRoles).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(role) && role.ToLower() != "all")
             query = query.Where(u => u.Role == role.ToLower());
@@ -158,9 +160,31 @@ public static class AdminEndpoints
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        // Auto-create DoctorProfile when role is "doctor"
+        // Insert into user_roles table — support multiple roles if provided
+        var rolesToAssign = request.Roles?.Select(r => r.ToLower()).Distinct().ToList()
+                            ?? [request.Role.ToLower()];
+        // Ensure primary role is always included
+        if (!rolesToAssign.Contains(user.Role))
+            rolesToAssign.Insert(0, user.Role);
+
+        foreach (var role in rolesToAssign)
+        {
+            db.UserRoles.Add(new UserRole
+            {
+                UserId = user.Id,
+                Role = role,
+                IsActive = true
+            });
+        }
+        await db.SaveChangesAsync();
+
+        // Reload user_roles for the response
+        user.UserRoles = await db.UserRoles.Where(ur => ur.UserId == user.Id).ToListAsync();
+
+        // Auto-create DoctorProfile when any assigned role is "doctor"
+        var hasDoctorRole = rolesToAssign.Contains("doctor");
         DoctorProfile? doctorProfile = null;
-        if (user.Role == "doctor")
+        if (hasDoctorRole)
         {
             var specialty = request.Specialty?.Trim() ?? request.Department?.Trim() ?? "General Medicine";
             var fee = request.ConsultationFee ?? 500m;
@@ -276,7 +300,7 @@ public static class AdminEndpoints
         return Results.Ok(ToUserResponse(user));
     }
 
-    /// <summary>PATCH /api/admin/users/{id}/role — Change user role.</summary>
+    /// <summary>PATCH /api/admin/users/{id}/role — Manage user roles (add/remove).</summary>
     private static async Task<IResult> ChangeUserRole(
         Guid id,
         ChangeRoleRequest request,
@@ -284,20 +308,51 @@ public static class AdminEndpoints
         AuditService auditService,
         HttpContext ctx)
     {
-        var user = await db.Users.FindAsync(id);
+        var user = await db.Users.Include(u => u.UserRoles).FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return Results.NotFound(new { error = "User not found." });
 
-        var validRoles = new[] { "doctor", "pharmacist", "receptionist", "admin" };
-        if (!validRoles.Contains(request.Role.ToLower()))
-            return Results.BadRequest(new { error = $"Invalid role. Valid: {string.Join(", ", validRoles)}" });
+        if (request.Roles == null || request.Roles.Count == 0)
+            return Results.BadRequest(new { error = "At least one role is required." });
 
-        var oldRole = user.Role;
-        user.Role = request.Role.ToLower();
+        var validRoles = new[] { "doctor", "pharmacist", "receptionist", "admin" };
+        var normalizedRoles = request.Roles.Select(r => r.ToLower()).Distinct().ToList();
+
+        foreach (var role in normalizedRoles)
+        {
+            if (!validRoles.Contains(role))
+                return Results.BadRequest(new { error = $"Invalid role '{role}'. Valid: {string.Join(", ", validRoles)}" });
+        }
+
+        var oldRoles = user.UserRoles.Where(ur => ur.IsActive).Select(ur => ur.Role).ToList();
+
+        // Deactivate roles that are no longer in the list
+        foreach (var ur in user.UserRoles)
+        {
+            ur.IsActive = normalizedRoles.Contains(ur.Role);
+        }
+
+        // Add new roles that don't exist yet
+        foreach (var role in normalizedRoles)
+        {
+            if (!user.UserRoles.Any(ur => ur.Role == role))
+            {
+                user.UserRoles.Add(new UserRole
+                {
+                    UserId = user.Id,
+                    Role = role,
+                    IsActive = true
+                });
+            }
+        }
+
+        // Update primary role to the first in the list
+        user.Role = normalizedRoles[0];
+
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(
             GetHospitalId(ctx), GetUserId(ctx),
-            $"User {user.FullName} role changed: {oldRole} → {request.Role}",
+            $"User {user.FullName} roles changed: [{string.Join(", ", oldRoles)}] → [{string.Join(", ", normalizedRoles)}]",
             "user", "warning");
 
         return Results.Ok(ToUserResponse(user));
@@ -465,13 +520,19 @@ public static class AdminEndpoints
     private static async Task<IResult> GetProfile(NalamDbContext db, HttpContext ctx)
     {
         var userId = GetUserId(ctx);
-        var user = await db.Users.AsNoTracking().Include(u => u.Hospital).FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await db.Users.AsNoTracking()
+            .Include(u => u.Hospital)
+            .Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user is null) return Results.NotFound(new { error = "Profile not found." });
 
+        var roles = user.UserRoles.Where(ur => ur.IsActive).Select(ur => ur.Role).ToList();
+        if (roles.Count == 0) roles = [user.Role];
+
         return Results.Ok(new ProfileResponse(
             user.Id, user.FullName, user.MobileNumber, user.Email,
-            user.Role, user.Department, user.EmployeeId, user.ProfilePhotoUrl,
+            user.Role, roles, user.Department, user.EmployeeId, user.ProfilePhotoUrl,
             user.HospitalId, user.Hospital.Name, user.CreatedAt, user.LastLogin));
     }
 
@@ -540,10 +601,11 @@ public static class AdminEndpoints
         var hospitalId = GetHospitalId(ctx);
 
         // Verify the user exists, belongs to this hospital, and has role "doctor"
-        var user = await db.Users.FindAsync(request.UserId);
+        var user = await db.Users.Include(u => u.UserRoles).FirstOrDefaultAsync(u => u.Id == request.UserId);
         if (user is null)
             return Results.NotFound(new { error = "User not found." });
-        if (user.Role != "doctor")
+        var isDoctorRole = user.UserRoles.Any(ur => ur.Role == "doctor" && ur.IsActive) || user.Role == "doctor";
+        if (!isDoctorRole)
             return Results.BadRequest(new { error = "User must have role 'doctor' to create a doctor profile." });
 
         // Check if profile already exists

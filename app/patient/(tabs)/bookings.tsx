@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -399,7 +400,7 @@ export default function BookingsScreen() {
   }, [router]);
 
   const handleCancel = useCallback((booking: Booking) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Cancel Appointment',
       `Are you sure you want to cancel your appointment with ${booking.doctor} on ${booking.date}?`,
       [
@@ -410,10 +411,10 @@ export default function BookingsScreen() {
           onPress: async () => {
             try {
               await cancelAppointment(booking.id, 'Cancelled by patient');
-              Alert.alert('Cancelled', 'Your appointment has been cancelled. Refund will be processed within 3-5 business days.');
+              CustomAlert.alert('Cancelled', 'Your appointment has been cancelled. Refund will be processed within 3-5 business days.');
               fetchBookings(true);
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.error || 'Failed to cancel appointment.');
+              CustomAlert.alert('Error', err.response?.data?.error || 'Failed to cancel appointment.');
             }
           },
         },
@@ -422,11 +423,11 @@ export default function BookingsScreen() {
   }, [fetchBookings]);
 
   const handleCall = useCallback((booking: Booking) => {
-    Alert.alert('Call Hospital', `Calling reception for ${booking.doctor}'s clinic...`, [{ text: 'OK' }]);
+    CustomAlert.alert('Call Hospital', `Calling reception for ${booking.doctor}'s clinic...`, [{ text: 'OK' }]);
   }, []);
 
   const handleMessage = useCallback((booking: Booking) => {
-    Alert.alert('Message', `Opening chat with ${booking.doctor}'s clinic...`, [{ text: 'OK' }]);
+    CustomAlert.alert('Message', `Opening chat with ${booking.doctor}'s clinic...`, [{ text: 'OK' }]);
   }, []);
 
   const handleRebook = useCallback((booking: Booking) => {

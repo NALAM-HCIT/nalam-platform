@@ -1,16 +1,14 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
 import {
   Mic, MicOff, Video, VideoOff, User, FileText, ArrowLeft, Clock,
 } from 'lucide-react-native';
-import { RtcSurfaceView } from 'react-native-agora';
 import { agoraService } from '@/services/agoraService';
+import { AgoraSurfaceView, isAgoraAvailable } from '@/components/AgoraSurface';
 import { getAppointmentDetail, DoctorAppointment } from '@/services/doctorService';
 
 function formatTime(t: string): string {
@@ -76,7 +74,7 @@ export default function ActiveConsultationScreen() {
         setAppointment(data);
       } catch (err) {
         console.error('Failed to load appointment:', err);
-        Alert.alert('Error', 'Could not load appointment details.');
+        CustomAlert.alert('Error', 'Could not load appointment details.');
       } finally {
         setLoading(false);
       }
@@ -107,7 +105,7 @@ export default function ActiveConsultationScreen() {
 
   const handleEndConsultation = () => {
     if (!chiefComplaint.trim()) {
-      Alert.alert('Required', 'Please enter the chief complaint before proceeding.');
+      CustomAlert.alert('Required', 'Please enter the chief complaint before proceeding.');
       return;
     }
     router.push({
@@ -196,22 +194,24 @@ export default function ActiveConsultationScreen() {
         {/* Video Call Area */}
         {isVideo && (
           <View className="w-full aspect-video bg-slate-800 rounded-2xl overflow-hidden items-center justify-center" style={Shadows.card}>
-            {remoteUid ? (
-              <RtcSurfaceView
+            {remoteUid && isAgoraAvailable() ? (
+              <AgoraSurfaceView
                 canvas={{ uid: remoteUid }}
                 style={{ flex: 1, width: '100%' }}
               />
             ) : (
               <View className="items-center justify-center">
                 <Video size={40} color="#64748B" />
-                <Text className="text-slate-400 font-semibold text-sm mt-3">Waiting for Patient...</Text>
+                <Text className="text-slate-400 font-semibold text-sm mt-3">
+                  {!isAgoraAvailable() ? 'Video requires a development build' : 'Waiting for Patient...'}
+                </Text>
               </View>
             )}
 
             {/* Local PIP for Doctor */}
             <View className="absolute top-4 right-4 w-32 aspect-video bg-slate-900 rounded-lg border border-white/20 overflow-hidden">
-               {isVideoOn ? (
-                 <RtcSurfaceView
+               {isVideoOn && isAgoraAvailable() ? (
+                 <AgoraSurfaceView
                    canvas={{ uid: 0 }}
                    style={{ flex: 1 }}
                  />

@@ -7,8 +7,8 @@ import {
   Mic, MicOff, Video as VideoIcon, VideoOff, Phone, MessageSquare,
   Heart, Wind, AlertTriangle, Clock, X,
 } from 'lucide-react-native';
-import { RtcSurfaceView, RenderModeType } from 'react-native-agora';
 import { agoraService } from '@/services/agoraService';
+import { AgoraSurfaceView, isAgoraAvailable } from '@/components/AgoraSurface';
 
 // Mock data
 const doctorData = {
@@ -50,10 +50,11 @@ export default function VideoConsultationScreen() {
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
 
   // Use the appointment ID for the channel name to match the doctor
-  const channelName = id ? `consultation_${id}` : 'consultation_default'; 
+  const channelName = id ? `consultation_${id}` : 'consultation_default';
 
   useEffect(() => {
     if (!id && !__DEV__) return; // Ensure we have an ID unless in dev mode
+    if (!agoraService.isAvailable) return; // Skip if Agora not available
     let mounted = true;
 
     async function setupAgora() {
@@ -144,15 +145,21 @@ export default function VideoConsultationScreen() {
             elevation: 8,
           }}
         >
-          {remoteUid ? (
-            <RtcSurfaceView
+          {remoteUid && isAgoraAvailable() ? (
+            <AgoraSurfaceView
               canvas={{ uid: remoteUid }}
               style={{ flex: 1 }}
             />
           ) : (
             <View className="flex-1 items-center justify-center">
-               <ActivityIndicator size="large" color="#1A73E8" />
-               <Text className="text-white mt-4 font-medium">Waiting for doctor...</Text>
+               {!isAgoraAvailable() ? (
+                 <Text className="text-white mt-4 font-medium">Video calls require a development build (not Expo Go).</Text>
+               ) : (
+                 <>
+                   <ActivityIndicator size="large" color="#1A73E8" />
+                   <Text className="text-white mt-4 font-medium">Waiting for doctor...</Text>
+                 </>
+               )}
             </View>
           )}
 
@@ -175,8 +182,8 @@ export default function VideoConsultationScreen() {
               elevation: 10,
             }}
           >
-            {isVideoOn ? (
-              <RtcSurfaceView
+            {isVideoOn && isAgoraAvailable() ? (
+              <AgoraSurfaceView
                 canvas={{ uid: 0 }}
                 style={{ flex: 1 }}
               />

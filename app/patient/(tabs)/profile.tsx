@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -189,7 +190,7 @@ export default function ProfileScreen() {
   /* ── Action Handlers ── */
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
+    CustomAlert.alert(
       'Log Out',
       'Are you sure you want to log out? You can log back in anytime.',
       [
@@ -210,7 +211,7 @@ export default function ProfileScreen() {
   // Image picker logic is now handled by useProfilePhoto hook
 
   const handleEmergencyContact = useCallback(() => {
-    Alert.alert(
+    CustomAlert.alert(
       'Emergency Contact',
       `Name: ${PATIENT_INFO.emergencyContact}\nPhone: ${PATIENT_INFO.emergencyPhone}\n\nThis contact will be notified during SOS emergencies and critical alerts.`,
       [
@@ -218,9 +219,9 @@ export default function ProfileScreen() {
         {
           text: 'Edit',
           onPress: () =>
-            Alert.alert('Edit Emergency Contact', 'Update your emergency contact details:\n\n- Contact Name\n- Phone Number\n- Relationship\n- Secondary Contact (optional)', [
+            CustomAlert.alert('Edit Emergency Contact', 'Update your emergency contact details:\n\n- Contact Name\n- Phone Number\n- Relationship\n- Secondary Contact (optional)', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Save', onPress: () => Alert.alert('Saved', 'Emergency contact updated successfully.') },
+              { text: 'Save', onPress: () => CustomAlert.alert('Saved', 'Emergency contact updated successfully.') },
             ]),
         },
         { text: 'Call Now', onPress: () => Linking.openURL('tel:+919876543210') },
@@ -257,12 +258,12 @@ export default function ProfileScreen() {
         break;
 
       case 'my_doctors':
-        Alert.alert('My Doctors', 'Doctors you have consulted:', [
+        CustomAlert.alert('My Doctors', 'Doctors you have consulted:', [
           { text: 'OK' },
           {
             text: 'View All',
             onPress: () =>
-              Alert.alert(
+              CustomAlert.alert(
                 'Consulted Doctors',
                 '1. Dr. Aruna Devi — Cardiologist\n   Last visit: Mar 10, 2026\n   Next follow-up: Mar 24, 2026\n\n2. Dr. Rajesh Kumar — Neurologist\n   Last visit: Feb 25, 2026\n\n3. Dr. Shalini Singh — Dermatologist\n   Last visit: Feb 25, 2026\n\n4. Dr. Elena Gomez — Pediatrician\n   Last visit: Jan 28, 2026',
                 [
@@ -275,7 +276,7 @@ export default function ProfileScreen() {
         break;
 
       case 'insurance':
-        Alert.alert(
+        CustomAlert.alert(
           'Insurance Details',
           'Provider: Star Health Insurance\nPolicy No: SHI-2024-78456\nType: Family Floater\nSum Insured: Rs. 10,00,000\nValid Till: Dec 31, 2026\nStatus: Active\n\nCovered Members:\n- John Doe (Self)\n- Jane Doe (Spouse)\n\nCashless Hospitals: 14,000+ network hospitals\nClaim Status: No pending claims',
           [
@@ -283,18 +284,18 @@ export default function ProfileScreen() {
             {
               text: 'Update Policy',
               onPress: () =>
-                Alert.alert('Update Insurance', 'Upload your updated insurance card or policy document.', [
+                CustomAlert.alert('Update Insurance', 'Upload your updated insurance card or policy document.', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Take Photo', onPress: () => Alert.alert('Camera', 'Camera would open to capture insurance card.') },
-                  { text: 'Upload PDF', onPress: () => Alert.alert('Upload', 'File picker would open to select insurance document.') },
+                  { text: 'Take Photo', onPress: () => CustomAlert.alert('Camera', 'Camera would open to capture insurance card.') },
+                  { text: 'Upload PDF', onPress: () => CustomAlert.alert('Upload', 'File picker would open to select insurance document.') },
                 ]),
             },
             {
               text: 'File Claim',
               onPress: () =>
-                Alert.alert('File Claim', 'To file an insurance claim, you need:\n\n1. Hospital bills & receipts\n2. Discharge summary\n3. Doctor prescription\n4. Investigation reports\n\nWould you like to proceed?', [
+                CustomAlert.alert('File Claim', 'To file an insurance claim, you need:\n\n1. Hospital bills & receipts\n2. Discharge summary\n3. Doctor prescription\n4. Investigation reports\n\nWould you like to proceed?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Start Claim', onPress: () => Alert.alert('Claim Initiated', 'Your claim request has been initiated. Track status in the Insurance section.\n\nReference: CLM-2026-0321') },
+                  { text: 'Start Claim', onPress: () => CustomAlert.alert('Claim Initiated', 'Your claim request has been initiated. Track status in the Insurance section.\n\nReference: CLM-2026-0321') },
                 ]),
             },
           ],
@@ -316,29 +317,29 @@ export default function ProfileScreen() {
 
       // ── Preferences ──
       case 'notifications':
-        Alert.alert('Notification Settings', 'Manage your notification preferences:', [
+        CustomAlert.alert('Notification Settings', 'Manage your notification preferences:', [
           {
             text: 'Appointment Reminders',
             onPress: () =>
-              Alert.alert('Appointment Reminders', 'Current settings:\n\n- 24 hours before: ON\n- 1 hour before: ON\n- 15 minutes before: ON\n- SMS reminders: ON\n- Email reminders: OFF', [
+              CustomAlert.alert('Appointment Reminders', 'Current settings:\n\n- 24 hours before: ON\n- 1 hour before: ON\n- 15 minutes before: ON\n- SMS reminders: ON\n- Email reminders: OFF', [
                 { text: 'OK' },
-                { text: 'Edit', onPress: () => Alert.alert('Updated', 'Notification preferences saved.') },
+                { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Notification preferences saved.') },
               ]),
           },
           {
             text: 'Medicine Reminders',
             onPress: () =>
-              Alert.alert('Medicine Reminders', 'Current settings:\n\n- Amlodipine 5mg: 8:00 AM daily\n- Metformin 500mg: 8:00 AM & 8:00 PM daily\n- Missed dose alert: ON\n- Refill reminder: 3 days before', [
+              CustomAlert.alert('Medicine Reminders', 'Current settings:\n\n- Amlodipine 5mg: 8:00 AM daily\n- Metformin 500mg: 8:00 AM & 8:00 PM daily\n- Missed dose alert: ON\n- Refill reminder: 3 days before', [
                 { text: 'OK' },
-                { text: 'Edit', onPress: () => Alert.alert('Updated', 'Medicine reminder preferences saved.') },
+                { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Medicine reminder preferences saved.') },
               ]),
           },
           {
             text: 'Promotions & Offers',
             onPress: () =>
-              Alert.alert('Promotions', 'Current settings:\n\n- Health tips: ON\n- Pharmacy offers: ON\n- New features: ON\n\nYou have 3 unread notifications.', [
+              CustomAlert.alert('Promotions', 'Current settings:\n\n- Health tips: ON\n- Pharmacy offers: ON\n- New features: ON\n\nYou have 3 unread notifications.', [
                 { text: 'OK' },
-                { text: 'Turn Off All', onPress: () => Alert.alert('Updated', 'Promotional notifications turned off.') },
+                { text: 'Turn Off All', onPress: () => CustomAlert.alert('Updated', 'Promotional notifications turned off.') },
               ]),
           },
           { text: 'Close', style: 'cancel' },
@@ -346,25 +347,25 @@ export default function ProfileScreen() {
         break;
 
       case 'language':
-        Alert.alert('Select Language', 'Choose your preferred language:', [
+        CustomAlert.alert('Select Language', 'Choose your preferred language:', [
           { text: 'English (Current)', style: 'cancel' },
-          { text: 'Tamil (தமிழ்)', onPress: () => Alert.alert('Language Changed', 'App language will switch to Tamil on next restart.') },
-          { text: 'Hindi (हिन्दी)', onPress: () => Alert.alert('Language Changed', 'App language will switch to Hindi on next restart.') },
-          { text: 'Telugu (తెలుగు)', onPress: () => Alert.alert('Language Changed', 'App language will switch to Telugu on next restart.') },
+          { text: 'Tamil (தமிழ்)', onPress: () => CustomAlert.alert('Language Changed', 'App language will switch to Tamil on next restart.') },
+          { text: 'Hindi (हिन्दी)', onPress: () => CustomAlert.alert('Language Changed', 'App language will switch to Hindi on next restart.') },
+          { text: 'Telugu (తెలుగు)', onPress: () => CustomAlert.alert('Language Changed', 'App language will switch to Telugu on next restart.') },
         ]);
         break;
 
       case 'appearance':
-        Alert.alert('Appearance', 'Choose your preferred theme:', [
+        CustomAlert.alert('Appearance', 'Choose your preferred theme:', [
           { text: 'System Default (Current)', style: 'cancel' },
-          { text: 'Light Mode', onPress: () => Alert.alert('Theme Updated', 'Light mode activated. The app will use a bright theme.') },
-          { text: 'Dark Mode', onPress: () => Alert.alert('Theme Updated', 'Dark mode activated. The app will use a dark theme for comfortable viewing at night.') },
+          { text: 'Light Mode', onPress: () => CustomAlert.alert('Theme Updated', 'Light mode activated. The app will use a bright theme.') },
+          { text: 'Dark Mode', onPress: () => CustomAlert.alert('Theme Updated', 'Dark mode activated. The app will use a dark theme for comfortable viewing at night.') },
         ]);
         break;
 
       // ── Security ──
       case 'biometric':
-        Alert.alert(
+        CustomAlert.alert(
           'Biometric Login',
           'Face ID is currently enabled for quick login.\n\nBiometric authentication adds an extra layer of security to your account.',
           [
@@ -373,21 +374,21 @@ export default function ProfileScreen() {
               text: 'Disable',
               style: 'destructive',
               onPress: () =>
-                Alert.alert('Disable Face ID?', 'You will need to enter your password each time you log in.', [
+                CustomAlert.alert('Disable Face ID?', 'You will need to enter your password each time you log in.', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Disable', style: 'destructive', onPress: () => Alert.alert('Disabled', 'Face ID login has been disabled. You can re-enable it anytime.') },
+                  { text: 'Disable', style: 'destructive', onPress: () => CustomAlert.alert('Disabled', 'Face ID login has been disabled. You can re-enable it anytime.') },
                 ]),
             },
             {
               text: 'Re-register',
-              onPress: () => Alert.alert('Re-register Face ID', 'Please look at the camera to register your face again.\n\n(Face ID registration would start in production)'),
+              onPress: () => CustomAlert.alert('Re-register Face ID', 'Please look at the camera to register your face again.\n\n(Face ID registration would start in production)'),
             },
           ],
         );
         break;
 
       case 'change_password':
-        Alert.alert(
+        CustomAlert.alert(
           'Change Password',
           'For your security, you\'ll need to verify your identity first.',
           [
@@ -395,7 +396,7 @@ export default function ProfileScreen() {
             {
               text: 'Send OTP',
               onPress: () =>
-                Alert.alert(
+                CustomAlert.alert(
                   'OTP Sent',
                   `A 6-digit OTP has been sent to ${phone || '+91 ****0000'}.\n\nEnter the OTP to verify your identity and set a new password.`,
                   [
@@ -403,9 +404,9 @@ export default function ProfileScreen() {
                     {
                       text: 'Verify',
                       onPress: () =>
-                        Alert.alert('Set New Password', 'Password requirements:\n\n- Minimum 8 characters\n- At least one uppercase letter\n- At least one number\n- At least one special character', [
+                        CustomAlert.alert('Set New Password', 'Password requirements:\n\n- Minimum 8 characters\n- At least one uppercase letter\n- At least one number\n- At least one special character', [
                           { text: 'Cancel', style: 'cancel' },
-                          { text: 'Update', onPress: () => Alert.alert('Success', 'Your password has been updated successfully. Please use your new password for your next login.') },
+                          { text: 'Update', onPress: () => CustomAlert.alert('Success', 'Your password has been updated successfully. Please use your new password for your next login.') },
                         ]),
                     },
                   ],
@@ -416,32 +417,32 @@ export default function ProfileScreen() {
         break;
 
       case 'privacy':
-        Alert.alert('Privacy & Data', 'Manage your privacy settings:', [
+        CustomAlert.alert('Privacy & Data', 'Manage your privacy settings:', [
           {
             text: 'Data Sharing',
             onPress: () =>
-              Alert.alert(
+              CustomAlert.alert(
                 'Data Sharing Preferences',
                 'Control who can access your health data:\n\n- Share with treating doctors: ON\n- Share with pharmacy: ON (for prescriptions)\n- Share with insurance: OFF\n- Share with family members: OFF\n- Anonymous data for research: OFF',
                 [
                   { text: 'OK' },
-                  { text: 'Edit', onPress: () => Alert.alert('Updated', 'Data sharing preferences saved.') },
+                  { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Data sharing preferences saved.') },
                 ],
               ),
           },
           {
             text: 'Download My Data',
             onPress: () =>
-              Alert.alert('Download My Data', 'We\'ll compile all your data including:\n\n- Personal information\n- Medical records\n- Appointment history\n- Prescriptions\n- Order history\n\nThis may take up to 24 hours. You\'ll receive an email when ready.', [
+              CustomAlert.alert('Download My Data', 'We\'ll compile all your data including:\n\n- Personal information\n- Medical records\n- Appointment history\n- Prescriptions\n- Order history\n\nThis may take up to 24 hours. You\'ll receive an email when ready.', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Request Download', onPress: () => Alert.alert('Request Submitted', 'Your data download request has been submitted. You\'ll receive an email at john.doe@email.com within 24 hours.') },
+                { text: 'Request Download', onPress: () => CustomAlert.alert('Request Submitted', 'Your data download request has been submitted. You\'ll receive an email at john.doe@email.com within 24 hours.') },
               ]),
           },
           {
             text: 'Delete Account',
             style: 'destructive',
             onPress: () =>
-              Alert.alert(
+              CustomAlert.alert(
                 'Delete Account',
                 'This action is permanent and cannot be undone.\n\nAll your data including medical records, appointments, prescriptions, and order history will be permanently deleted.\n\nAre you absolutely sure?',
                 [
@@ -450,7 +451,7 @@ export default function ProfileScreen() {
                     text: 'Delete Permanently',
                     style: 'destructive',
                     onPress: () =>
-                      Alert.alert('Confirm Deletion', 'Type "DELETE" to confirm. Your account will be scheduled for deletion in 30 days. You can cancel within this period by logging in.', [
+                      CustomAlert.alert('Confirm Deletion', 'Type "DELETE" to confirm. Your account will be scheduled for deletion in 30 days. You can cancel within this period by logging in.', [
                         { text: 'Cancel', style: 'cancel' },
                         { text: 'Confirm', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
                       ]),
@@ -464,11 +465,11 @@ export default function ProfileScreen() {
 
       // ── Support ──
       case 'help':
-        Alert.alert('Help & Support', 'How can we help you?', [
+        CustomAlert.alert('Help & Support', 'How can we help you?', [
           {
             text: 'FAQs',
             onPress: () =>
-              Alert.alert(
+              CustomAlert.alert(
                 'Frequently Asked Questions',
                 'Q: How do I book an appointment?\nA: Go to Bookings tab > Book New > Select Doctor > Choose Slot > Pay & Confirm.\n\nQ: How do I order medicines?\nA: Go to Pharmacy tab > Upload prescription or search medicines > Add to cart > Checkout.\n\nQ: How to cancel an appointment?\nA: Go to Bookings > Select appointment > Cancel. Free cancellation up to 4 hrs before.\n\nQ: Is my data secure?\nA: Yes, all data is encrypted and stored securely. We comply with HIPAA and Indian healthcare data regulations.',
                 [{ text: 'OK' }],
@@ -477,23 +478,23 @@ export default function ProfileScreen() {
           {
             text: 'Call Support',
             onPress: () =>
-              Alert.alert('Call Support', 'Our support team is available 24/7.\n\nToll-free: 1800-123-NALAM\nWhatsApp: +91 98765 00000', [
+              CustomAlert.alert('Call Support', 'Our support team is available 24/7.\n\nToll-free: 1800-123-NALAM\nWhatsApp: +91 98765 00000', [
                 { text: 'OK' },
                 { text: 'Call Now', onPress: () => Linking.openURL('tel:1800123625') },
               ]),
           },
           {
             text: 'Chat with Us',
-            onPress: () => Alert.alert('Live Chat', 'Connecting you to a support agent...\n\nAverage wait time: < 2 minutes\n\n(Live chat would open in production)'),
+            onPress: () => CustomAlert.alert('Live Chat', 'Connecting you to a support agent...\n\nAverage wait time: < 2 minutes\n\n(Live chat would open in production)'),
           },
           {
             text: 'Report a Problem',
             onPress: () =>
-              Alert.alert('Report a Problem', 'Select the category:', [
+              CustomAlert.alert('Report a Problem', 'Select the category:', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'App Bug', onPress: () => Alert.alert('Bug Report', 'Please describe the issue you encountered. Include steps to reproduce if possible.\n\n(Bug report form would open in production)\n\nYour report helps us improve Nalam for everyone.', [{ text: 'Submit', onPress: () => Alert.alert('Submitted', 'Thank you for your report! Our team will investigate and get back to you within 24 hours.\n\nTicket: SUP-2026-0321') }]) },
-                { text: 'Billing Issue', onPress: () => Alert.alert('Billing Support', 'For billing issues, our finance team will review your case.\n\nPlease have your order/booking ID ready.\n\n(Billing support form would open in production)', [{ text: 'Submit', onPress: () => Alert.alert('Submitted', 'Billing inquiry submitted. You\'ll hear back within 48 hours.\n\nTicket: BIL-2026-0321') }]) },
-                { text: 'Other', onPress: () => Alert.alert('General Inquiry', 'Our team will get back to you shortly.\n\n(General support form would open in production)', [{ text: 'Submit', onPress: () => Alert.alert('Submitted', 'Inquiry submitted. Reference: GEN-2026-0321') }]) },
+                { text: 'App Bug', onPress: () => CustomAlert.alert('Bug Report', 'Please describe the issue you encountered. Include steps to reproduce if possible.\n\n(Bug report form would open in production)\n\nYour report helps us improve Nalam for everyone.', [{ text: 'Submit', onPress: () => CustomAlert.alert('Submitted', 'Thank you for your report! Our team will investigate and get back to you within 24 hours.\n\nTicket: SUP-2026-0321') }]) },
+                { text: 'Billing Issue', onPress: () => CustomAlert.alert('Billing Support', 'For billing issues, our finance team will review your case.\n\nPlease have your order/booking ID ready.\n\n(Billing support form would open in production)', [{ text: 'Submit', onPress: () => CustomAlert.alert('Submitted', 'Billing inquiry submitted. You\'ll hear back within 48 hours.\n\nTicket: BIL-2026-0321') }]) },
+                { text: 'Other', onPress: () => CustomAlert.alert('General Inquiry', 'Our team will get back to you shortly.\n\n(General support form would open in production)', [{ text: 'Submit', onPress: () => CustomAlert.alert('Submitted', 'Inquiry submitted. Reference: GEN-2026-0321') }]) },
               ]),
           },
           { text: 'Close', style: 'cancel' },
@@ -501,7 +502,7 @@ export default function ProfileScreen() {
         break;
 
       case 'rate_app':
-        Alert.alert(
+        CustomAlert.alert(
           'Rate Nalam',
           'How would you rate your experience with Nalam?\n\nYour feedback helps us improve the app for millions of patients.',
           [
@@ -509,14 +510,14 @@ export default function ProfileScreen() {
             {
               text: 'Rate on App Store',
               onPress: () =>
-                Alert.alert('Thank You!', 'You\'ll be redirected to the App Store to leave a review.\n\n(App Store would open in production)', [{ text: 'OK' }]),
+                CustomAlert.alert('Thank You!', 'You\'ll be redirected to the App Store to leave a review.\n\n(App Store would open in production)', [{ text: 'OK' }]),
             },
             {
               text: 'Send Feedback',
               onPress: () =>
-                Alert.alert('Send Feedback', 'What can we improve?\n\n- App performance\n- Feature requests\n- UI/UX suggestions\n- Doctor experience\n- Pharmacy service\n\n(Feedback form would open in production)', [
+                CustomAlert.alert('Send Feedback', 'What can we improve?\n\n- App performance\n- Feature requests\n- UI/UX suggestions\n- Doctor experience\n- Pharmacy service\n\n(Feedback form would open in production)', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Submit', onPress: () => Alert.alert('Thank You!', 'Your feedback has been submitted. We truly appreciate your input!') },
+                  { text: 'Submit', onPress: () => CustomAlert.alert('Thank You!', 'Your feedback has been submitted. We truly appreciate your input!') },
                 ]),
             },
           ],
@@ -524,20 +525,20 @@ export default function ProfileScreen() {
         break;
 
       case 'refer':
-        Alert.alert(
+        CustomAlert.alert(
           'Refer a Friend',
           'Share Nalam with friends and family!\n\nYour referral code: NALAM-JOHN100\n\nBenefits:\n- You get Rs. 100 credit per referral\n- Your friend gets Rs. 100 off their first consultation\n- No limit on referrals!\n\nTotal earned so far: Rs. 200 (2 referrals)',
           [
             { text: 'OK' },
             {
               text: 'Copy Code',
-              onPress: () => Alert.alert('Copied!', 'Referral code NALAM-JOHN100 copied to clipboard.'),
+              onPress: () => CustomAlert.alert('Copied!', 'Referral code NALAM-JOHN100 copied to clipboard.'),
             },
             {
               text: 'Share via WhatsApp',
               onPress: () =>
                 Linking.openURL('whatsapp://send?text=Hey! Try Nalam for doctor consultations and medicine delivery. Use my code NALAM-JOHN100 to get Rs. 100 off your first visit!').catch(() =>
-                  Alert.alert('WhatsApp not available', 'Please install WhatsApp to share via WhatsApp.'),
+                  CustomAlert.alert('WhatsApp not available', 'Please install WhatsApp to share via WhatsApp.'),
                 ),
             },
           ],
@@ -545,18 +546,18 @@ export default function ProfileScreen() {
         break;
 
       case 'about':
-        Alert.alert(
+        CustomAlert.alert(
           'About Nalam',
           'Nalam — Your Health Companion\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\nNalam is a comprehensive healthcare platform that connects patients with doctors, pharmacies, and diagnostic centers.\n\nFeatures:\n- Video & In-person consultations\n- Digital prescriptions\n- Medicine delivery\n- Health records management\n- Lab report tracking\n- SOS Emergency\n\nMade with care in Chennai, India.\n\n© 2026 Nalam Healthcare Pvt. Ltd.\nAll rights reserved.',
           [
             { text: 'OK' },
             {
               text: 'Terms & Conditions',
-              onPress: () => Alert.alert('Terms & Conditions', 'Our Terms of Service govern your use of Nalam.\n\nKey points:\n- You must be 18+ to create an account\n- Medical advice is provided by licensed doctors\n- Prescriptions are digitally signed and legally valid\n- Cancellation policy: Free up to 4 hours before appointment\n- Medicine returns: Within 7 days if unopened\n\n(Full terms document would open in production)'),
+              onPress: () => CustomAlert.alert('Terms & Conditions', 'Our Terms of Service govern your use of Nalam.\n\nKey points:\n- You must be 18+ to create an account\n- Medical advice is provided by licensed doctors\n- Prescriptions are digitally signed and legally valid\n- Cancellation policy: Free up to 4 hours before appointment\n- Medicine returns: Within 7 days if unopened\n\n(Full terms document would open in production)'),
             },
             {
               text: 'Privacy Policy',
-              onPress: () => Alert.alert('Privacy Policy', 'We take your privacy seriously.\n\n- Data is encrypted at rest and in transit\n- We never sell your health data\n- You can request data deletion anytime\n- Compliant with Indian healthcare data regulations\n- HIPAA-aligned security practices\n\n(Full privacy policy would open in production)'),
+              onPress: () => CustomAlert.alert('Privacy Policy', 'We take your privacy seriously.\n\n- Data is encrypted at rest and in transit\n- We never sell your health data\n- You can request data deletion anytime\n- Compliant with Indian healthcare data regulations\n- HIPAA-aligned security practices\n\n(Full privacy policy would open in production)'),
             },
           ],
         );
@@ -639,9 +640,9 @@ export default function ProfileScreen() {
               </Pressable>
               <Pressable
                 onPress={() =>
-                  Alert.alert('Address', `${PATIENT_INFO.address}\n\nThis is your saved delivery address for pharmacy orders.`, [
+                  CustomAlert.alert('Address', `${PATIENT_INFO.address}\n\nThis is your saved delivery address for pharmacy orders.`, [
                     { text: 'OK' },
-                    { text: 'Edit', onPress: () => Alert.alert('Edit Address', 'Address edit form would open here with map picker for accurate location.', [{ text: 'OK' }]) },
+                    { text: 'Edit', onPress: () => CustomAlert.alert('Edit Address', 'Address edit form would open here with map picker for accurate location.', [{ text: 'OK' }]) },
                     { text: 'Open in Maps', onPress: () => Linking.openURL('maps://app?q=12+Anna+Nagar+Main+Road+Chennai') },
                   ])
                 }

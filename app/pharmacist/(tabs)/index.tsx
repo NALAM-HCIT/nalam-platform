@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Modal, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,7 +28,7 @@ export default function PharmacistDashboard() {
       setPrescriptions(rxQueue);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load pharmacy dashboard.');
+      CustomAlert.alert('Error', 'Failed to load pharmacy dashboard.');
     }
   };
 
@@ -40,7 +41,7 @@ export default function PharmacistDashboard() {
   }, []);
 
   const handleReviewPrescription = (rx: PrescriptionItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       `${rx.bookingReference} - Prescription`,
       `Patient: ${rx.patientName}\nDoctor: ${rx.doctorName} (${rx.doctorSpecialty})\nTime: ${rx.time}\n\nPrescription Notes:\n${rx.prescriptionNotes || 'No notes available'}`,
       [
@@ -48,7 +49,7 @@ export default function PharmacistDashboard() {
           text: 'Reject',
           style: 'destructive',
           onPress: () => {
-            Alert.alert('Reject Prescription', 'Select a reason:', [
+            CustomAlert.alert('Reject Prescription', 'Select a reason:', [
               { text: 'Cancel', style: 'cancel' },
               {
                 text: 'Duplicate Rx',
@@ -57,8 +58,8 @@ export default function PharmacistDashboard() {
                   try {
                     await pharmacistService.rejectPrescription(rx.id, 'Duplicate prescription');
                     loadDashboard();
-                    Alert.alert('Rejected', `${rx.bookingReference} has been rejected.`);
-                  } catch (e) { Alert.alert('Error', 'Failed to reject prescription.'); }
+                    CustomAlert.alert('Rejected', `${rx.bookingReference} has been rejected.`);
+                  } catch (e) { CustomAlert.alert('Error', 'Failed to reject prescription.'); }
                 },
               },
               {
@@ -68,8 +69,8 @@ export default function PharmacistDashboard() {
                   try {
                     await pharmacistService.rejectPrescription(rx.id, 'Medication unavailable');
                     loadDashboard();
-                    Alert.alert('Rejected', `${rx.bookingReference} rejected — medication unavailable.`);
-                  } catch (e) { Alert.alert('Error', 'Failed to reject prescription.'); }
+                    CustomAlert.alert('Rejected', `${rx.bookingReference} rejected — medication unavailable.`);
+                  } catch (e) { CustomAlert.alert('Error', 'Failed to reject prescription.'); }
                 },
               },
             ]);
@@ -81,8 +82,8 @@ export default function PharmacistDashboard() {
             try {
               await pharmacistService.dispensePrescription(rx.id);
               loadDashboard();
-              Alert.alert('Dispensed', `${rx.bookingReference} has been dispensed successfully.`);
-            } catch (e) { Alert.alert('Error', 'Failed to dispense prescription.'); }
+              CustomAlert.alert('Dispensed', `${rx.bookingReference} has been dispensed successfully.`);
+            } catch (e) { CustomAlert.alert('Error', 'Failed to dispense prescription.'); }
           },
         },
         { text: 'Close', style: 'cancel' },

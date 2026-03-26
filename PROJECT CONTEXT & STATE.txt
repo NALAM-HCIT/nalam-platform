@@ -9,7 +9,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   - Live URL: https://nalamapp-webportal.vercel.app
   - Repo: https://github.com/Sureshb11/nalamapp-webportal
 * Mobile App: React Native / Expo (Patient & Doctor interaction).
-* Backend API: ASP.NET Core 9.0 (Minimal APIs) - Hosted on Railway.
+* Backend API: ASP.NET Core 10.0 (Minimal APIs) - Hosted on Railway.
   - Live URL: https://nalam-api-production.up.railway.app/api
   - Repo: https://github.com/NALAM-HCIT/nalam-platform
 * Database: PostgreSQL - Managed by Supabase (Free Tier).
@@ -155,6 +155,54 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] Web Portal: Repo moved to https://github.com/Sureshb11/nalamapp-webportal
   * [x] Web Portal: Step-by-step progress indicator added to hospital registration form
   * [x] Railway Root Directory set to NalamApi (fixes Metro bundler misdeployment)
+* [x] Phase 14: .NET 10 Upgrade - COMPLETED
+  * [x] Upgraded NalamApi.csproj target framework to net10.0.
+  * [x] Configured mixpacks.toml for Railway to use .NET 10 SDK.
+* [x] Phase 15: Web Portal UI/UX Enhancement - COMPLETED
+  * [x] Revamped page.tsx with premium Glassmorphism and responsive layout.
+  * [x] Upgraded globals.css with new Emerald-Teal brand palette and keyframe animations.
+  * [x] Built and verified React components locally (0 Next.js errors).
+
+* [x] Phase 16: Multi-Role Login & Role Switching (Full Stack) - COMPLETED
+  * [x] Backend: New UserRole entity + user_roles junction table (many-to-many user↔role)
+  * [x] Backend: EF Core migration (AddUserRolesTable) with data seed SQL (copies existing roles)
+  * [x] Backend: User entity updated with UserRoles navigation property
+  * [x] Backend: AuthDtos updated — UserInfo includes List<string> Roles, added SwitchRoleRequest
+  * [x] Backend: verify-otp endpoint loads all active roles from user_roles, returns roles array
+  * [x] Backend: patient-register also creates UserRole record
+  * [x] Backend: New POST /api/auth/switch-role — validates role, issues new JWT, audit logs
+  * [x] Backend: AdminDtos updated — CreateUserRequest gets Roles[], ChangeRoleRequest accepts List<string>
+  * [x] Backend: AdminEndpoints — CreateUser inserts user_roles, ChangeUserRole syncs roles, GetUsers/GetProfile include roles
+  * [x] Mobile: stores/authStore.ts — roles[] persisted in SecureStore, new switchRole() method
+  * [x] Mobile: Unified care-provider login (care-provider-select.tsx → phone+OTP for all staff)
+  * [x] Mobile: New care-provider-otp.tsx (6-digit OTP, routes to role-select if multiple roles)
+  * [x] Mobile: New care-provider-role-select.tsx (role cards with icons, calls switchRole on selection)
+  * [x] Mobile: New components/RoleSwitcher.tsx (pill badge + bottom sheet, only shows if 2+ roles)
+  * [x] Mobile: RoleSwitcher integrated into admin, doctor, receptionist, pharmacist profile screens
+  * [x] Mobile: app/_layout.tsx AuthGate updated for transitional screens (OTP, role-select)
+  * [x] Mobile: admin/create-user.tsx sends roles[] array to backend
+  * [x] Mobile: admin/(tabs)/users.tsx shows multiple role badges per user
+  * [x] Mobile: All 6 OTP screens updated to pass roles array to login()
+  * [x] Backend build: 0 errors, 0 warnings
+  * [x] Patient login flow completely unchanged
+
+* [x] Phase 17: Hospital-Specific App Deployment (Multi-Tenant Build System) - COMPLETED
+  * [x] Backend: SendOtpRequest & VerifyOtpRequest DTOs accept optional Guid? HospitalId
+  * [x] Backend: send-otp endpoint scopes user lookup by hospitalId when provided (backward compatible)
+  * [x] Backend: verify-otp endpoint scopes OTP lookup by user's hospitalId when provided
+  * [x] Backend: Same mobile number across hospitals now correctly resolves to the right user
+  * [x] Mobile: Converted static app.json → dynamic app.config.ts (reads EXPO_PUBLIC_* env vars)
+  * [x] Mobile: New config/hospital.ts — centralized hospital branding (name, tagline, ID from env)
+  * [x] Mobile: Patient login header uses HospitalConfig.name instead of hardcoded hospital name
+  * [x] Mobile: Care provider login header uses HospitalConfig.name
+  * [x] Mobile: All 11 login/OTP screens pass hospitalId to send-otp and verify-otp calls
+  * [x] Mobile: Created .env.arunpriya template (first hospital env config)
+  * [x] Mobile: Updated .env with hospital identity variables (HOSPITAL_ID, NAME, TAGLINE, SLUG, BUNDLE_ID)
+  * [x] Mobile: eas.json updated with per-hospital build profiles (arunpriya extends production)
+  * [x] Mobile: package.json build scripts — build:hospital, build:arunpriya:android, build:arunpriya:ios
+  * [x] No database migration needed — existing (hospital_id, mobile_number) composite unique already supports multi-hospital patients
+  * [x] 4-layer tenant isolation intact: JWT Claims → TenantMiddleware → EF Core Filters → PostgreSQL RLS
+  * [x] Backend build: 0 errors | TypeScript build: 0 new errors
 
 4. CURRENT DATABASE SCHEMA SNAPSHOT
 ------------------------------------------------------
@@ -166,6 +214,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * audit_logs: [id (PK/UUID), hospital_id (FK), user_id (FK), action, category, severity, details, created_at]
 * doctor_profiles: [id (PK/UUID), hospital_id (FK), user_id (FK/unique), specialty, experience_years, consultation_fee, available_for_video, available_for_in_person, languages, rating, review_count, bio, is_accepting_appointments, created_at, updated_at]
 * doctor_schedules: [id (PK/UUID), hospital_id (FK), doctor_profile_id (FK), day_of_week (0-6), start_time, end_time, slot_duration_minutes, consultation_type, is_active]
+* user_roles: [id (PK/UUID), user_id (FK), role, assigned_at, is_active] — unique index on (user_id, role)
 * appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, prescription_status (null/pending/dispensed/rejected), created_at, updated_at]
 
 5. COMPLETED API ROUTES
@@ -216,6 +265,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * GET  /api/doctor-portal/directory         — Hospital staff list grouped by role
 * GET  /api/doctor-portal/my-profile        — Doctor's own profile + appointment stats
 * GET  /api/doctor-portal/patient-summary/{id} — Patient summary with appointment history
+* POST /api/auth/switch-role             — Switch active role (issues new JWT, requires auth)
 
 6. INSTALLED PACKAGES (NalamApi)
 ------------------------------------------------------
@@ -241,7 +291,7 @@ NalamApi/
 ├── Dockerfile
 ├── .env.example
 ├── Data/NalamDbContext.cs
-├── Entities/ (Hospital, User, OtpVerification, Department, HospitalSetting, AuditLog, DoctorProfile, DoctorSchedule, Appointment)
+├── Entities/ (Hospital, User, UserRole, OtpVerification, Department, HospitalSetting, AuditLog, DoctorProfile, DoctorSchedule, Appointment)
 ├── DTOs/Auth/ DTOs/Admin/ DTOs/Hospital/ DTOs/Appointment/
 ├── Endpoints/ (AuthEndpoints, AdminEndpoints, HospitalEndpoints, AppointmentEndpoints, ReceptionistEndpoints, PharmacistEndpoints, PatientEndpoints, DoctorPortalEndpoints)
 ├── Services/ (JwtService, OtpService, AuditService)
@@ -291,6 +341,18 @@ Mobile App Key Files (Pharmacist Flow):
 ├── app/pharmacist/(tabs)/index.tsx (API-driven dashboard)
 ├── app/pharmacist/(tabs)/inventory.tsx (live prescriptions list)
 └── app/pharmacist/(tabs)/orders.tsx (processed orders history)
+
+Mobile App Key Files (Multi-Role Login — Phase 16):
+├── app/care-provider-select.tsx (unified staff phone login)
+├── app/care-provider-otp.tsx (staff OTP verification)
+├── app/care-provider-role-select.tsx (multi-role selection screen)
+└── components/RoleSwitcher.tsx (role switching from profile screens)
+
+Mobile App Key Files (Hospital-Specific Deployment — Phase 17):
+├── app.config.ts (dynamic Expo config — reads env vars for hospital name, slug, bundle ID)
+├── config/hospital.ts (centralized hospital branding config)
+├── .env.arunpriya (first hospital env template)
+└── eas.json (per-hospital build profiles)
 
 ======================================================
 END OF PROJECT STATE. AWAITING USER PROMPT.

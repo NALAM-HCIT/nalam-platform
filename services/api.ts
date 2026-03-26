@@ -29,15 +29,21 @@ api.interceptors.request.use(async (config) => {
 });
 
 // Response interceptor for handling 401s (token expiration)
+let isLoggingOut = false;
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, auto-logout logic can be added here
-      await SecureStore.deleteItemAsync('token');
-      await SecureStore.deleteItemAsync('userRole');
-      await SecureStore.deleteItemAsync('hospitalId');
-      // In a full app, you might dispatch an event to redirect to Login
+    if (error.response?.status === 401 && !isLoggingOut) {
+      isLoggingOut = true;
+      // Defer logout to next tick to avoid state updates during render
+      setTimeout(async () => {
+        try {
+          const { useAuthStore } = require('@/stores/authStore');
+          await useAuthStore.getState().logout();
+        } finally {
+          isLoggingOut = false;
+        }
+      }, 0);
     }
     return Promise.reject(error);
   }

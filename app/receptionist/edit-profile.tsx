@@ -1,7 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, Image,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -115,7 +114,7 @@ export default function ReceptionistEditProfileScreen() {
 
   const handleSelectPress = useCallback((field: FormField) => {
     if (field.options) {
-      Alert.alert(`Select ${field.label}`, '', [
+      CustomAlert.alert(`Select ${field.label}`, '', [
         { text: 'Cancel', style: 'cancel' },
         ...field.options.map((opt) => ({ text: opt, onPress: () => updateField(field.key, opt) })),
       ]);
@@ -123,18 +122,18 @@ export default function ReceptionistEditProfileScreen() {
   }, [updateField]);
 
   const handleSave = useCallback(() => {
-    if (!formData.fullName.trim()) { Alert.alert('Required', 'Full name is required.'); return; }
-    if (!formData.phone.trim()) { Alert.alert('Required', 'Phone number is required.'); return; }
-    if (formData.email && !formData.email.includes('@')) { Alert.alert('Invalid Email', 'Please enter a valid email.'); return; }
-    Alert.alert('Save Changes', 'Update your profile?', [
+    if (!formData.fullName.trim()) { CustomAlert.alert('Required', 'Full name is required.'); return; }
+    if (!formData.phone.trim()) { CustomAlert.alert('Required', 'Phone number is required.'); return; }
+    if (formData.email && !formData.email.includes('@')) { CustomAlert.alert('Invalid Email', 'Please enter a valid email.'); return; }
+    CustomAlert.alert('Save Changes', 'Update your profile?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Save', onPress: () => Alert.alert('Updated', 'Profile updated successfully.', [{ text: 'OK', onPress: () => router.back() }]) },
+      { text: 'Save', onPress: () => CustomAlert.alert('Updated', 'Profile updated successfully.', [{ text: 'OK', onPress: () => router.back() }]) },
     ]);
   }, [formData, router]);
 
   const handleDiscard = useCallback(() => {
     if (!hasChanges) { router.back(); return; }
-    Alert.alert('Discard Changes?', 'You have unsaved changes.', [
+    CustomAlert.alert('Discard Changes?', 'You have unsaved changes.', [
       { text: 'Keep Editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: () => router.back() },
     ]);
@@ -142,7 +141,7 @@ export default function ReceptionistEditProfileScreen() {
 
   const pickImage = useCallback(async (useCamera: boolean) => {
     const perm = useCamera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission Required', 'Please allow access in settings.'); return; }
+    if (!perm.granted) { CustomAlert.alert('Permission Required', 'Please allow access in settings.'); return; }
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 })
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
@@ -156,7 +155,7 @@ export default function ReceptionistEditProfileScreen() {
       { text: 'Choose from Gallery', onPress: () => pickImage(false) },
     ];
     if (profileImage) buttons.push({ text: 'Remove', style: 'destructive' as const, onPress: () => { setProfileImage(null); setHasChanges(true); } });
-    Alert.alert('Update Photo', 'Choose a source:', buttons);
+    CustomAlert.alert('Update Photo', 'Choose a source:', buttons);
   }, [pickImage, profileImage]);
 
   const initials = useMemo(() => {

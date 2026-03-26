@@ -1,10 +1,12 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import {
   User, Shield, Bell, LogOut, ChevronRight, Camera, Phone, Mail,
   Calendar, HelpCircle, Globe, Moon, Fingerprint, Lock,
@@ -154,7 +156,7 @@ export default function ReceptionistProfileScreen() {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access.`);
+      CustomAlert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access.`);
       return;
     }
     const result = useCamera
@@ -162,12 +164,12 @@ export default function ReceptionistProfileScreen() {
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
     if (!result.canceled && result.assets[0]) {
       setProfileImage(result.assets[0].uri);
-      Alert.alert('Success', 'Profile photo updated!');
+      CustomAlert.alert('Success', 'Profile photo updated!');
     }
   }, []);
 
   const handleChangePhoto = useCallback(() => {
-    Alert.alert('Update Profile Photo', 'Choose a source:', [
+    CustomAlert.alert('Update Profile Photo', 'Choose a source:', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Take Photo', onPress: () => pickImage(true) },
       { text: 'Choose from Gallery', onPress: () => pickImage(false) },
@@ -181,7 +183,7 @@ export default function ReceptionistProfileScreen() {
   }, [router]);
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+    CustomAlert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log Out', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
     ]);
@@ -190,16 +192,16 @@ export default function ReceptionistProfileScreen() {
   const handleStatPress = useCallback((label: string) => {
     switch (label) {
       case 'Registered':
-        Alert.alert('Patients Registered Today', 'Total: 12\n\nNew patients: 5\nReturning patients: 7\nPending registrations: 2');
+        CustomAlert.alert('Patients Registered Today', 'Total: 12\n\nNew patients: 5\nReturning patients: 7\nPending registrations: 2');
         break;
       case 'Appointments':
-        Alert.alert('Appointments Managed', 'Total today: 28\n\nChecked in: 15\nRescheduled: 4\nCancelled: 2\nPending: 7');
+        CustomAlert.alert('Appointments Managed', 'Total today: 28\n\nChecked in: 15\nRescheduled: 4\nCancelled: 2\nPending: 7');
         break;
       case 'Walk-ins':
-        Alert.alert('Walk-in Patients', 'Today: 5\n\nRegistered: 3\nWaiting: 2\n\nAvg. wait time: 12 minutes');
+        CustomAlert.alert('Walk-in Patients', 'Today: 5\n\nRegistered: 3\nWaiting: 2\n\nAvg. wait time: 12 minutes');
         break;
       case 'Pending':
-        Alert.alert('Pending Actions', '3 items need attention:\n\n1. Patient ID verification (Room 4)\n2. Insurance approval (Rajesh K.)\n3. Appointment confirmation (Dr. Aruna)');
+        CustomAlert.alert('Pending Actions', '3 items need attention:\n\n1. Patient ID verification (Room 4)\n2. Insurance approval (Rajesh K.)\n3. Appointment confirmation (Dr. Aruna)');
         break;
     }
   }, []);
@@ -207,47 +209,47 @@ export default function ReceptionistProfileScreen() {
   const handleMenuPress = useCallback((actionId: string) => {
     switch (actionId) {
       case 'shift_schedule':
-        Alert.alert('Shift Schedule', 'This Week:\n\nMon: Morning (8 AM - 4 PM)\nTue: Morning (8 AM - 4 PM)\nWed: Morning (8 AM - 4 PM)\nThu: Afternoon (12 PM - 8 PM)\nFri: Morning (8 AM - 4 PM)\nSat: Morning (8 AM - 1 PM)\nSun: OFF', [
+        CustomAlert.alert('Shift Schedule', 'This Week:\n\nMon: Morning (8 AM - 4 PM)\nTue: Morning (8 AM - 4 PM)\nWed: Morning (8 AM - 4 PM)\nThu: Afternoon (12 PM - 8 PM)\nFri: Morning (8 AM - 4 PM)\nSat: Morning (8 AM - 1 PM)\nSun: OFF', [
           { text: 'OK' },
-          { text: 'Request Swap', onPress: () => Alert.alert('Shift Swap', 'Shift swap request sent to supervisor.\nRef: SWP-2026-0321') },
+          { text: 'Request Swap', onPress: () => CustomAlert.alert('Shift Swap', 'Shift swap request sent to supervisor.\nRef: SWP-2026-0321') },
         ]);
         break;
 
       case 'leave':
-        Alert.alert('Leave Management', 'Leave Balance:\n\nCasual Leave: 6/12 remaining\nSick Leave: 8/8 remaining\nEarned Leave: 10/15 remaining\n\nUpcoming:\n- Mar 28: Casual Leave (Pending)', [
+        CustomAlert.alert('Leave Management', 'Leave Balance:\n\nCasual Leave: 6/12 remaining\nSick Leave: 8/8 remaining\nEarned Leave: 10/15 remaining\n\nUpcoming:\n- Mar 28: Casual Leave (Pending)', [
           { text: 'OK' },
-          { text: 'Apply Leave', onPress: () => Alert.alert('Apply Leave', 'Leave application requires:\n- Leave type\n- Date range\n- Reason\n- Cover staff', [
+          { text: 'Apply Leave', onPress: () => CustomAlert.alert('Apply Leave', 'Leave application requires:\n- Leave type\n- Date range\n- Reason\n- Cover staff', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Submit', onPress: () => Alert.alert('Submitted', 'Leave application submitted.\nRef: LV-2026-0321') },
+            { text: 'Submit', onPress: () => CustomAlert.alert('Submitted', 'Leave application submitted.\nRef: LV-2026-0321') },
           ]) },
         ]);
         break;
 
       case 'stats':
-        Alert.alert('Registration Stats', 'This Month:\n\nTotal Registrations: 186\nNew Patients: 64\nReturning: 122\n\nDaily Avg: 9.3\nBusiest Day: Monday (15 avg)\n\nPerformance: Above Average');
+        CustomAlert.alert('Registration Stats', 'This Month:\n\nTotal Registrations: 186\nNew Patients: 64\nReturning: 122\n\nDaily Avg: 9.3\nBusiest Day: Monday (15 avg)\n\nPerformance: Above Average');
         break;
 
       case 'notifications':
-        Alert.alert('Notification Settings', 'Manage notifications:', [
+        CustomAlert.alert('Notification Settings', 'Manage notifications:', [
           {
             text: 'Patient Arrivals',
-            onPress: () => Alert.alert('Patient Arrivals', 'New arrivals: ON\nCheck-in confirmations: ON\nNo-show alerts: ON', [
+            onPress: () => CustomAlert.alert('Patient Arrivals', 'New arrivals: ON\nCheck-in confirmations: ON\nNo-show alerts: ON', [
               { text: 'OK' },
-              { text: 'Edit', onPress: () => Alert.alert('Updated', 'Notification preferences saved.') },
+              { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Notification preferences saved.') },
             ]),
           },
           {
             text: 'Appointment Alerts',
-            onPress: () => Alert.alert('Appointments', 'New bookings: ON\nCancellations: ON\nReschedules: ON\nDoctor availability changes: ON', [
+            onPress: () => CustomAlert.alert('Appointments', 'New bookings: ON\nCancellations: ON\nReschedules: ON\nDoctor availability changes: ON', [
               { text: 'OK' },
-              { text: 'Edit', onPress: () => Alert.alert('Updated', 'Notification preferences saved.') },
+              { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Notification preferences saved.') },
             ]),
           },
           {
             text: 'System Alerts',
-            onPress: () => Alert.alert('System', 'Shift reminders: ON\nSchedule changes: ON\nAdmin announcements: ON', [
+            onPress: () => CustomAlert.alert('System', 'Shift reminders: ON\nSchedule changes: ON\nAdmin announcements: ON', [
               { text: 'OK' },
-              { text: 'Edit', onPress: () => Alert.alert('Updated', 'Preferences saved.') },
+              { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Preferences saved.') },
             ]),
           },
           { text: 'Close', style: 'cancel' },
@@ -255,42 +257,42 @@ export default function ReceptionistProfileScreen() {
         break;
 
       case 'language':
-        Alert.alert('Select Language', '', [
+        CustomAlert.alert('Select Language', '', [
           { text: 'English (Current)', style: 'cancel' },
-          { text: 'Tamil (தமிழ்)', onPress: () => Alert.alert('Changed', 'Language will switch on next restart.') },
-          { text: 'Hindi (हिन्दी)', onPress: () => Alert.alert('Changed', 'Language will switch on next restart.') },
+          { text: 'Tamil (தமிழ்)', onPress: () => CustomAlert.alert('Changed', 'Language will switch on next restart.') },
+          { text: 'Hindi (हिन्दी)', onPress: () => CustomAlert.alert('Changed', 'Language will switch on next restart.') },
         ]);
         break;
 
       case 'appearance':
-        Alert.alert('Appearance', '', [
+        CustomAlert.alert('Appearance', '', [
           { text: 'System Default (Current)', style: 'cancel' },
-          { text: 'Light Mode', onPress: () => Alert.alert('Updated', 'Light mode activated.') },
-          { text: 'Dark Mode', onPress: () => Alert.alert('Updated', 'Dark mode activated.') },
+          { text: 'Light Mode', onPress: () => CustomAlert.alert('Updated', 'Light mode activated.') },
+          { text: 'Dark Mode', onPress: () => CustomAlert.alert('Updated', 'Dark mode activated.') },
         ]);
         break;
 
       case 'biometric':
-        Alert.alert('Biometric Login', 'Fingerprint login is currently enabled.', [
+        CustomAlert.alert('Biometric Login', 'Fingerprint login is currently enabled.', [
           { text: 'OK' },
           {
             text: 'Disable',
             style: 'destructive',
-            onPress: () => Alert.alert('Disabled', 'Biometric login has been disabled.'),
+            onPress: () => CustomAlert.alert('Disabled', 'Biometric login has been disabled.'),
           },
         ]);
         break;
 
       case 'change_password':
-        Alert.alert('Change Password', 'Verify your identity first.', [
+        CustomAlert.alert('Change Password', 'Verify your identity first.', [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Send OTP',
-            onPress: () => Alert.alert('OTP Sent', `OTP sent to ${RECEPTIONIST_INFO.phone}.`, [
+            onPress: () => CustomAlert.alert('OTP Sent', `OTP sent to ${RECEPTIONIST_INFO.phone}.`, [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Verify', onPress: () => Alert.alert('Set New Password', 'Requirements:\n- Min 8 characters\n- 1 uppercase, 1 number, 1 special char', [
+              { text: 'Verify', onPress: () => CustomAlert.alert('Set New Password', 'Requirements:\n- Min 8 characters\n- 1 uppercase, 1 number, 1 special char', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Update', onPress: () => Alert.alert('Success', 'Password updated successfully.') },
+                { text: 'Update', onPress: () => CustomAlert.alert('Success', 'Password updated successfully.') },
               ]) },
             ]),
           },
@@ -298,34 +300,34 @@ export default function ReceptionistProfileScreen() {
         break;
 
       case 'privacy':
-        Alert.alert('Privacy & Data', 'Manage your data:', [
-          { text: 'Data Sharing', onPress: () => Alert.alert('Data Sharing', 'Patient data access: Read-only\nAppointment data: Full access\nBilling data: Limited\n\nAll access is logged and auditable.') },
-          { text: 'Download My Data', onPress: () => Alert.alert('Download', 'Your data download will be sent to your registered email within 24 hours.', [
+        CustomAlert.alert('Privacy & Data', 'Manage your data:', [
+          { text: 'Data Sharing', onPress: () => CustomAlert.alert('Data Sharing', 'Patient data access: Read-only\nAppointment data: Full access\nBilling data: Limited\n\nAll access is logged and auditable.') },
+          { text: 'Download My Data', onPress: () => CustomAlert.alert('Download', 'Your data download will be sent to your registered email within 24 hours.', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Request', onPress: () => Alert.alert('Submitted', 'Data download request submitted.') },
+            { text: 'Request', onPress: () => CustomAlert.alert('Submitted', 'Data download request submitted.') },
           ]) },
           { text: 'Close', style: 'cancel' },
         ]);
         break;
 
       case 'help':
-        Alert.alert('Help & Support', '', [
+        CustomAlert.alert('Help & Support', '', [
           {
             text: 'Contact IT',
-            onPress: () => Alert.alert('IT Support', 'Phone: +91 44 2345 6789\nExt: 501\nEmail: it.support@arunpriya.com\n\nAvailable: Mon-Sat, 8 AM - 8 PM', [
+            onPress: () => CustomAlert.alert('IT Support', 'Phone: +91 44 2345 6789\nExt: 501\nEmail: it.support@arunpriya.com\n\nAvailable: Mon-Sat, 8 AM - 8 PM', [
               { text: 'OK' },
               { text: 'Call Now', onPress: () => Linking.openURL('tel:+914423456789') },
             ]),
           },
           {
             text: 'FAQ',
-            onPress: () => Alert.alert('FAQ', '1. How to check in a patient?\n   → Tap appointment > "Check In"\n\n2. How to register a walk-in?\n   → Quick Actions > New Reg\n\n3. How to reschedule?\n   → Tap appointment > Reschedule\n\n4. Reset password?\n   → Settings > Change Password'),
+            onPress: () => CustomAlert.alert('FAQ', '1. How to check in a patient?\n   → Tap appointment > "Check In"\n\n2. How to register a walk-in?\n   → Quick Actions > New Reg\n\n3. How to reschedule?\n   → Tap appointment > Reschedule\n\n4. Reset password?\n   → Settings > Change Password'),
           },
           {
             text: 'Report Bug',
-            onPress: () => Alert.alert('Report Bug', 'Bug report form:', [
+            onPress: () => CustomAlert.alert('Report Bug', 'Bug report form:', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Send', onPress: () => Alert.alert('Submitted', 'Bug report submitted.\nTicket: BUG-2026-0321') },
+              { text: 'Send', onPress: () => CustomAlert.alert('Submitted', 'Bug report submitted.\nTicket: BUG-2026-0321') },
             ]),
           },
           { text: 'Close', style: 'cancel' },
@@ -333,10 +335,10 @@ export default function ReceptionistProfileScreen() {
         break;
 
       case 'about':
-        Alert.alert('About Nalam', 'Nalam — Receptionist Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\n© 2026 Nalam Healthcare Pvt. Ltd.', [
+        CustomAlert.alert('About Nalam', 'Nalam — Receptionist Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\n© 2026 Nalam Healthcare Pvt. Ltd.', [
           { text: 'OK' },
-          { text: 'Terms', onPress: () => Alert.alert('Terms', 'Usage terms for the Receptionist Portal. All patient interactions are logged.') },
-          { text: 'Privacy', onPress: () => Alert.alert('Privacy', 'Data is encrypted end-to-end. Access logs are maintained for compliance.') },
+          { text: 'Terms', onPress: () => CustomAlert.alert('Terms', 'Usage terms for the Receptionist Portal. All patient interactions are logged.') },
+          { text: 'Privacy', onPress: () => CustomAlert.alert('Privacy', 'Data is encrypted end-to-end. Access logs are maintained for compliance.') },
         ]);
         break;
     }
@@ -378,6 +380,7 @@ export default function ReceptionistProfileScreen() {
                 <Shield size={12} color={Colors.primary} />
                 <Text className="text-primary text-xs font-bold">Receptionist</Text>
               </View>
+              <RoleSwitcher />
               <View className="bg-slate-100 px-3 py-1.5 rounded-full">
                 <Text className="text-slate-600 text-xs font-bold">{RECEPTIONIST_INFO.empId}</Text>
               </View>

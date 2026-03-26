@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -544,24 +545,24 @@ export default function HealthScreen() {
   const showVitalDetail = useCallback((key: string) => {
     const m = VITAL_METRICS[key as keyof typeof VITAL_METRICS];
     const lines = Object.entries(m.detail).map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`);
-    Alert.alert(`${m.label} Details`, lines.join('\n'), [{ text: 'OK' }]);
+    CustomAlert.alert(`${m.label} Details`, lines.join('\n'), [{ text: 'OK' }]);
   }, []);
 
   const showLabDetail = useCallback((report: typeof LAB_REPORTS[0]) => {
-    Alert.alert(report.name, `Date: ${report.date}\nDoctor: ${report.doctor}\nStatus: ${report.status}\n\n${report.values}`, [{ text: 'OK' }]);
+    CustomAlert.alert(report.name, `Date: ${report.date}\nDoctor: ${report.doctor}\nStatus: ${report.status}\n\n${report.values}`, [{ text: 'OK' }]);
   }, []);
 
   const showLabPdf = useCallback((report: typeof LAB_REPORTS[0]) => {
-    Alert.alert('View Result', `Opening ${report.name} report (PDF viewer).\n\nDate: ${report.date}\nOrdered by: ${report.doctor}`, [{ text: 'OK' }]);
+    CustomAlert.alert('View Result', `Opening ${report.name} report (PDF viewer).\n\nDate: ${report.date}\nOrdered by: ${report.doctor}`, [{ text: 'OK' }]);
   }, []);
 
   const handleDownload = useCallback(() => {
-    Alert.alert('Generating Report', 'Generating your comprehensive health report...', [
+    CustomAlert.alert('Generating Report', 'Generating your comprehensive health report...', [
       {
         text: 'OK',
         onPress: () =>
           setTimeout(() => {
-            Alert.alert(
+            CustomAlert.alert(
               'Report Downloaded',
               'Report downloaded successfully.\n\nIncludes:\n• Vitals summary\n• Lab reports\n• Medication adherence\n• Care plan progress',
               [{ text: 'OK' }],
@@ -572,16 +573,16 @@ export default function HealthScreen() {
   }, []);
 
   const handleShare = useCallback(() => {
-    Alert.alert('Share Health Report', 'Choose an option:', [
-      { text: 'Share with Dr. Aruna Devi', onPress: () => Alert.alert('Shared', 'Report sent to Dr. Aruna Devi securely.') },
-      { text: 'Share with Family', onPress: () => Alert.alert('Shared', 'Report shared with your family members.') },
-      { text: 'Export as PDF', onPress: () => Alert.alert('Exported', 'PDF exported to your device.') },
+    CustomAlert.alert('Share Health Report', 'Choose an option:', [
+      { text: 'Share with Dr. Aruna Devi', onPress: () => CustomAlert.alert('Shared', 'Report sent to Dr. Aruna Devi securely.') },
+      { text: 'Share with Family', onPress: () => CustomAlert.alert('Shared', 'Report shared with your family members.') },
+      { text: 'Export as PDF', onPress: () => CustomAlert.alert('Exported', 'PDF exported to your device.') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   }, []);
 
   const showMedDetail = useCallback((med: typeof MEDICATIONS[0]) => {
-    Alert.alert(
+    CustomAlert.alert(
       med.name,
       `Adherence: ${med.adherence}% (${med.label})\n\nMissed dates: ${med.missedDates}\n\n${med.pattern}`,
       [{ text: 'OK' }],
@@ -589,43 +590,43 @@ export default function HealthScreen() {
   }, []);
 
   const handleUploadResult = useCallback((testName: string) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Upload Result',
       `Upload result for: ${testName}`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: () => Alert.alert('Camera', 'Camera would open to capture the lab report.\n\nSupported formats: PDF, JPG, PNG\nMax size: 10 MB') },
-        { text: 'Choose File', onPress: () => Alert.alert('File Picker', 'File picker would open to select a document.\n\nSupported formats: PDF, JPG, PNG\nMax size: 10 MB') },
+        { text: 'Take Photo', onPress: () => CustomAlert.alert('Camera', 'Camera would open to capture the lab report.\n\nSupported formats: PDF, JPG, PNG\nMax size: 10 MB') },
+        { text: 'Choose File', onPress: () => CustomAlert.alert('File Picker', 'File picker would open to select a document.\n\nSupported formats: PDF, JPG, PNG\nMax size: 10 MB') },
       ],
     );
   }, []);
 
   const handleViewResult = useCallback((testName: string) => {
-    Alert.alert(
+    CustomAlert.alert(
       testName,
       'Opening document viewer...\n\n(In production, this would open the PDF/image viewer with the lab report)',
       [
         { text: 'OK' },
-        { text: 'Share with Doctor', onPress: () => Alert.alert('Shared', `${testName} report shared with your doctor.`) },
+        { text: 'Share with Doctor', onPress: () => CustomAlert.alert('Shared', `${testName} report shared with your doctor.`) },
       ],
     );
   }, []);
 
   const handleUploadNew = useCallback(() => {
-    Alert.alert(
+    CustomAlert.alert(
       'Upload Document',
       'What type of document are you uploading?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Lab Report', onPress: () => Alert.alert('Upload Lab Report', 'Select source:\n\n- Camera (take photo of report)\n- Files (select PDF/image)\n\n(File picker would open in production)') },
-        { text: 'Prescription', onPress: () => Alert.alert('Upload Prescription', 'Select source:\n\n- Camera (take photo of prescription)\n- Files (select PDF/image)\n\n(File picker would open in production)') },
-        { text: 'Other Document', onPress: () => Alert.alert('Upload Document', 'Select source:\n\n- Camera\n- Files\n\nYou can add a label after uploading.') },
+        { text: 'Lab Report', onPress: () => CustomAlert.alert('Upload Lab Report', 'Select source:\n\n- Camera (take photo of report)\n- Files (select PDF/image)\n\n(File picker would open in production)') },
+        { text: 'Prescription', onPress: () => CustomAlert.alert('Upload Prescription', 'Select source:\n\n- Camera (take photo of prescription)\n- Files (select PDF/image)\n\n(File picker would open in production)') },
+        { text: 'Other Document', onPress: () => CustomAlert.alert('Upload Document', 'Select source:\n\n- Camera\n- Files\n\nYou can add a label after uploading.') },
       ],
     );
   }, []);
 
   const handleConsultationTap = useCallback((item: ConsultationItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       item.doctorName,
       `Specialty: ${item.specialty}\nDate: ${item.scheduleDate}\nTime: ${item.time}\n\n${item.notes ? `Notes: ${item.notes}` : 'No notes recorded.'}`,
       [
@@ -703,7 +704,7 @@ export default function HealthScreen() {
         <View className="px-6 mb-2">
           <View className="flex-row items-center gap-2 mb-4">
             <Text className="text-lg font-semibold tracking-tight text-midnight">Vitals Trends</Text>
-            <Pressable onPress={() => Alert.alert('Vitals Trends', 'Charts show your recorded vitals over the selected time period. Tap any card for detailed statistics.')}>
+            <Pressable onPress={() => CustomAlert.alert('Vitals Trends', 'Charts show your recorded vitals over the selected time period. Tap any card for detailed statistics.')}>
               <Info size={16} color="#94A3B8" />
             </Pressable>
           </View>
@@ -723,7 +724,7 @@ export default function HealthScreen() {
         <View className="px-6 mt-4 mb-2">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-lg font-semibold tracking-tight text-midnight">Lab Reports</Text>
-            <Pressable onPress={() => Alert.alert('Filter', 'Filter by date, doctor, or status.')}>
+            <Pressable onPress={() => CustomAlert.alert('Filter', 'Filter by date, doctor, or status.')}>
               <Filter size={18} color="#94A3B8" />
             </Pressable>
           </View>
@@ -839,7 +840,7 @@ export default function HealthScreen() {
             <View className="mx-6 mb-4">
               <Pressable
                 onPress={() => {
-                  Alert.alert('Annual Checkup', 'You haven\'t had a complete body checkup in 12 months.\n\nRecommended tests:\n- Complete Blood Count\n- Comprehensive Metabolic Panel\n- Lipid Panel\n- Thyroid Function\n- HbA1c\n- Chest X-Ray\n- ECG', [
+                  CustomAlert.alert('Annual Checkup', 'You haven\'t had a complete body checkup in 12 months.\n\nRecommended tests:\n- Complete Blood Count\n- Comprehensive Metabolic Panel\n- Lipid Panel\n- Thyroid Function\n- HbA1c\n- Chest X-Ray\n- ECG', [
                     { text: 'Later' },
                     { text: 'Book Now', onPress: () => router.push('/patient/consultation-type') },
                   ]);
@@ -862,12 +863,12 @@ export default function HealthScreen() {
             {MY_UPLOADS.map((upload, idx) => (
               <Pressable
                 key={idx}
-                onPress={() => Alert.alert(upload.name, `Type: ${upload.type}\nDate: ${upload.date}\nPages: ${upload.pages}\n\n(Document viewer would open in production)`, [
+                onPress={() => CustomAlert.alert(upload.name, `Type: ${upload.type}\nDate: ${upload.date}\nPages: ${upload.pages}\n\n(Document viewer would open in production)`, [
                   { text: 'OK' },
-                  { text: 'Share', onPress: () => Alert.alert('Share', `Sharing "${upload.name}" with your care team.`) },
-                  { text: 'Delete', style: 'destructive', onPress: () => Alert.alert('Confirm Delete', `Are you sure you want to delete "${upload.name}"?`, [
+                  { text: 'Share', onPress: () => CustomAlert.alert('Share', `Sharing "${upload.name}" with your care team.`) },
+                  { text: 'Delete', style: 'destructive', onPress: () => CustomAlert.alert('Confirm Delete', `Are you sure you want to delete "${upload.name}"?`, [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => Alert.alert('Deleted', 'Document has been removed.') },
+                    { text: 'Delete', style: 'destructive', onPress: () => CustomAlert.alert('Deleted', 'Document has been removed.') },
                   ]) },
                 ])}
                 className="mx-6 mb-3 bg-white rounded-2xl p-4 active:opacity-80"
@@ -904,7 +905,7 @@ export default function HealthScreen() {
         <View className="px-6 mt-4 mb-2">
           <View className="flex-row items-center gap-2 mb-4">
             <Text className="text-lg font-semibold tracking-tight text-midnight">Medication Adherence</Text>
-            <Pressable onPress={() => Alert.alert('Medication Adherence', 'Shows how consistently you take your prescribed medications. Tap a medication for details.')}>
+            <Pressable onPress={() => CustomAlert.alert('Medication Adherence', 'Shows how consistently you take your prescribed medications. Tap a medication for details.')}>
               <Info size={16} color="#94A3B8" />
             </Pressable>
           </View>
@@ -912,7 +913,7 @@ export default function HealthScreen() {
 
         {/* Overall adherence */}
         <Pressable
-          onPress={() => Alert.alert('Overall Adherence', 'Your overall medication adherence is 93% for the past 30 days.\n\nThis is calculated across all active prescriptions. Keep it up!')}
+          onPress={() => CustomAlert.alert('Overall Adherence', 'Your overall medication adherence is 93% for the past 30 days.\n\nThis is calculated across all active prescriptions. Keep it up!')}
           className="mx-6 mb-3 bg-white rounded-2xl p-4 active:opacity-80"
           style={Shadows.card}
         >

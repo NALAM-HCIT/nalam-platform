@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -25,7 +26,7 @@ export default function PatientClinicalSummaryScreen() {
       .then(setSummary)
       .catch((err) => {
         console.error(err);
-        Alert.alert('Error', 'Failed to load patient summary.');
+        CustomAlert.alert('Error', 'Failed to load patient summary.');
       })
       .finally(() => setLoading(false));
   }, [patientId]);
@@ -124,7 +125,7 @@ export default function PatientClinicalSummaryScreen() {
                 <Pressable
                   key={appt.id}
                   onPress={() => {
-                    Alert.alert(
+                    CustomAlert.alert(
                       `${appt.scheduleDate} — ${appt.time}`,
                       `Type: ${appt.consultationType}\nStatus: ${appt.status}${appt.notes ? `\n\nNotes:\n${appt.notes}` : '\n\nNo notes recorded.'}${appt.prescriptionStatus ? `\n\nPrescription: ${appt.prescriptionStatus}` : ''}`,
                       [{ text: 'OK' }],

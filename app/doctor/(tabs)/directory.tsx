@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Alert, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shadows, Colors } from '@/constants/theme';
 import { ArrowLeft, Bell, Search, Phone, MessageCircle, User } from 'lucide-react-native';
@@ -36,7 +37,7 @@ export default function DirectoryScreen() {
   }, [searchQuery, fetchDirectory]);
 
   const handleCallPress = (member: DirectoryMember) => {
-    Alert.alert(
+    CustomAlert.alert(
       `Call ${member.name}?`,
       `Phone: ${member.phone}`,
       [
@@ -47,7 +48,7 @@ export default function DirectoryScreen() {
             const phoneUrl = `tel:${member.phone.replace(/\s/g, '')}`;
             Linking.canOpenURL(phoneUrl).then((supported) => {
               if (supported) Linking.openURL(phoneUrl);
-              else Alert.alert('Calling...', `Dialing ${member.name} at ${member.phone}`);
+              else CustomAlert.alert('Calling...', `Dialing ${member.name} at ${member.phone}`);
             });
           },
         },
@@ -56,18 +57,18 @@ export default function DirectoryScreen() {
   };
 
   const handleMessagePress = (member: DirectoryMember) => {
-    Alert.alert(
+    CustomAlert.alert(
       `Send message to ${member.name}?`,
       `This will open a chat with ${member.name} (${member.role}).`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Send', onPress: () => Alert.alert('Message Sent', `Your message has been sent to ${member.name}.`) },
+        { text: 'Send', onPress: () => CustomAlert.alert('Message Sent', `Your message has been sent to ${member.name}.`) },
       ]
     );
   };
 
   const handleStaffCardPress = (member: DirectoryMember) => {
-    Alert.alert(
+    CustomAlert.alert(
       member.name,
       `Role: ${member.role}${member.department ? `\nDepartment: ${member.department}` : ''}${member.email ? `\nEmail: ${member.email}` : ''}\nPhone: ${member.phone}`,
       [

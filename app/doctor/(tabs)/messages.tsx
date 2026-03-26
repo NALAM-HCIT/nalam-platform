@@ -1,9 +1,9 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shadows } from '@/constants/theme';
 import { Search, SquarePen } from 'lucide-react-native';
-
 const tabs = ['All', 'Doctors', 'Staff'] as const;
 type TabType = (typeof tabs)[number];
 type ConvType = 'doctor' | 'staff';
@@ -137,14 +137,14 @@ export default function MessagesScreen() {
     const options = recipientList.map((name) => ({
       text: name,
       onPress: () => {
-        Alert.alert(
+        CustomAlert.alert(
           `New Message to ${name}`,
           'Type your message below:',
           [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Send "Hello"',
-              onPress: () => Alert.alert('Message Sent', `Your message has been sent to ${name}.`),
+              onPress: () => CustomAlert.alert('Message Sent', `Your message has been sent to ${name}.`),
             },
           ]
         );
@@ -152,7 +152,7 @@ export default function MessagesScreen() {
     }));
 
     // Alert can show limited buttons, so show the first few plus cancel
-    Alert.alert('New Message', 'Select a recipient:', [
+    CustomAlert.alert('New Message', 'Select a recipient:', [
       ...options.slice(0, 5),
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -167,7 +167,7 @@ export default function MessagesScreen() {
     }
 
     const messagesText = conv.recentMessages.join('\n\n');
-    Alert.alert(
+    CustomAlert.alert(
       conv.name,
       `${conv.online ? '(Online)' : '(Offline)'}\n\nRecent Messages:\n\n${messagesText}`,
       [
@@ -175,21 +175,21 @@ export default function MessagesScreen() {
         {
           text: 'Reply',
           onPress: () => {
-            Alert.alert(
+            CustomAlert.alert(
               `Reply to ${conv.name}`,
               'Choose a quick reply:',
               [
                 {
                   text: 'Will follow up shortly.',
-                  onPress: () => Alert.alert('Sent', `Reply sent to ${conv.name}: "Will follow up shortly."`),
+                  onPress: () => CustomAlert.alert('Sent', `Reply sent to ${conv.name}: "Will follow up shortly."`),
                 },
                 {
                   text: 'Thanks, noted.',
-                  onPress: () => Alert.alert('Sent', `Reply sent to ${conv.name}: "Thanks, noted."`),
+                  onPress: () => CustomAlert.alert('Sent', `Reply sent to ${conv.name}: "Thanks, noted."`),
                 },
                 {
                   text: 'Please schedule a meeting.',
-                  onPress: () => Alert.alert('Sent', `Reply sent to ${conv.name}: "Please schedule a meeting."`),
+                  onPress: () => CustomAlert.alert('Sent', `Reply sent to ${conv.name}: "Please schedule a meeting."`),
                 },
                 { text: 'Cancel', style: 'cancel' },
               ]

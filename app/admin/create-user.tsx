@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -165,7 +163,7 @@ export default function CreateUserScreen() {
 
   const handleSelectPress = useCallback((field: FormField) => {
     if (field.options) {
-      Alert.alert(`Select ${field.label}`, '', [
+      CustomAlert.alert(`Select ${field.label}`, '', [
         { text: 'Cancel', style: 'cancel' },
         ...field.options.map((opt) => ({ text: opt, onPress: () => updateField(field.key, opt) })),
       ]);
@@ -194,24 +192,25 @@ export default function CreateUserScreen() {
 
   const handleCreate = useCallback(async () => {
     if (!validate()) {
-      Alert.alert('Validation Error', 'Please fix the highlighted fields.');
+      CustomAlert.alert('Validation Error', 'Please fix the highlighted fields.');
       return;
     }
     setIsSubmitting(true);
     try {
-      // Create a user for each selected role (API expects one role per user)
-      const primaryRole = selectedRoles[0].toLowerCase();
+      const allRoles = selectedRoles.map((r) => r.toLowerCase());
+      const primaryRole = allRoles[0];
       const payload: Record<string, any> = {
         fullName: formData.name.trim(),
         mobileNumber: formData.phone.replace(/[^0-9]/g, ''),
         email: formData.email.trim(),
         role: primaryRole,
+        roles: allRoles,
         department: formData.department,
         employeeId: formData.employeeId.trim(),
       };
 
-      // Include doctor-specific fields when creating a doctor
-      if (primaryRole === 'doctor') {
+      // Include doctor-specific fields when any role includes doctor
+      if (allRoles.includes('doctor')) {
         if (formData.specialty) payload.specialty = formData.specialty;
         if (formData.experienceYears) payload.experienceYears = parseInt(formData.experienceYears, 10) || 0;
         if (formData.consultationFee) payload.consultationFee = parseFloat(formData.consultationFee) || 500;
@@ -225,7 +224,7 @@ export default function CreateUserScreen() {
         ? '\n\nDoctor profile & default schedule (Mon-Sat) have been auto-created.'
         : '';
 
-      Alert.alert(
+      CustomAlert.alert(
         'User Created',
         `${formData.name} has been registered as ${selectedRoles.join(', ')}.\n\nEmployee ID: ${formData.employeeId}\nDepartment: ${formData.department}\n\nThe user can now login with their phone number.${doctorNote}`,
         [
@@ -242,7 +241,7 @@ export default function CreateUserScreen() {
       );
     } catch (error: any) {
       const msg = error.response?.data?.error || error.message || 'Failed to create user.';
-      Alert.alert('Error', msg);
+      CustomAlert.alert('Error', msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -255,7 +254,7 @@ export default function CreateUserScreen() {
 
   const handleDiscard = useCallback(() => {
     if (hasData) {
-      Alert.alert('Discard Changes', 'You have unsaved changes. Discard them?', [
+      CustomAlert.alert('Discard Changes', 'You have unsaved changes. Discard them?', [
         { text: 'Keep Editing', style: 'cancel' },
         { text: 'Discard', style: 'destructive', onPress: () => router.back() },
       ]);

@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -87,14 +88,14 @@ export default function EditBookingScreen() {
 
   const handleConfirm = useCallback(() => {
     if (!hasChanges) {
-      Alert.alert('No Changes', 'You haven\'t made any changes to your booking.');
+      CustomAlert.alert('No Changes', 'You haven\'t made any changes to your booking.');
       return;
     }
     router.push('/patient/edit-success');
   }, [hasChanges, router]);
 
   const handleChangeDoctor = useCallback(() => {
-    Alert.alert(
+    CustomAlert.alert(
       'Change Doctor',
       'This will take you to the doctor listing to select a new consultant.',
       [

@@ -1,11 +1,11 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, TextInput, Alert, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, Clock, CheckCircle, Search, X, Pill } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
 import { pharmacistService, PrescriptionItem } from '@/services/pharmacistService';
-
 type OrderFilter = 'all' | 'dispensed' | 'rejected';
 
 const filterTabs: { label: string; value: OrderFilter }[] = [
@@ -41,7 +41,7 @@ export default function OrdersScreen() {
       setOrders(data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load orders.');
+      CustomAlert.alert('Error', 'Failed to load orders.');
     } finally {
       setLoading(false);
     }

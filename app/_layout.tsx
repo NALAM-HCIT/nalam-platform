@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
+import { CustomAlertProvider } from '@/components/CustomAlert';
 
 // Known Fabric compatibility issue with react-native-svg — suppress the thrown error
 LogBox.ignoreLogs(['Unsupported top level event type "topSvgLayout"']);
@@ -32,10 +33,14 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
     // "Auth flow" = screens where a logged-in user should be redirected to their dashboard
     const isLoginScreen = segments[1] === 'login' || segments[1] === 'otp';
-    const inAuthFlow = segments[0] === '(index)' || !segments[0] || isLoginScreen;
+    const inAuthFlow = segments[0] === '(index)' || !segments[0] || isLoginScreen || segments[0] === 'care-provider-select';
     const inProtectedRoute = ['patient', 'doctor', 'receptionist', 'pharmacist', 'admin'].includes(segments[0] as string) && !isLoginScreen;
+    // Role select & care-provider OTP are transitional — don't redirect away from them
+    const inTransition = segments[0] === 'care-provider-role-select' || segments[0] === 'care-provider-otp';
 
-    if (isAuthenticated && role && inAuthFlow) {
+    if (inTransition) {
+      // User is mid-flow (OTP verification or role selection) — leave them alone
+    } else if (isAuthenticated && role && inAuthFlow) {
       // User is logged in but on login/splash screen — redirect to their dashboard
       router.replace(`/${role}/(tabs)` as any);
     } else if (!isAuthenticated && inProtectedRoute) {
@@ -60,9 +65,13 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar style="auto" />
+        <CustomAlertProvider />
         <AuthGate>
           <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="care-provider-select" />
+            <Stack.Screen name="care-provider-otp" />
+            <Stack.Screen name="care-provider-role-select" />
             <Stack.Screen name="care-provider" />
             <Stack.Screen name="patient" />
             <Stack.Screen name="doctor" />

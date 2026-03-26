@@ -1,7 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, Alert, Dimensions,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows } from '@/constants/theme';
@@ -145,18 +144,18 @@ export default function CareScheduleScreen() {
 
   const handleTaskPress = useCallback((task: CareTask) => {
     if (task.status === 'completed') {
-      Alert.alert('Completed', `${task.title} was completed at ${task.completedAt || 'earlier today'}.`);
+      CustomAlert.alert('Completed', `${task.title} was completed at ${task.completedAt || 'earlier today'}.`);
       return;
     }
     if (task.status === 'snoozed') {
-      Alert.alert('Snoozed', `${task.title} has been snoozed by 1 hour.`, [
+      CustomAlert.alert('Snoozed', `${task.title} has been snoozed by 1 hour.`, [
         { text: 'Mark Complete', onPress: () => markComplete(task.id) },
         { text: 'OK', style: 'cancel' },
       ]);
       return;
     }
     if (task.status === 'overdue') {
-      Alert.alert('Overdue Task', `${task.title} is overdue. What would you like to do?`, [
+      CustomAlert.alert('Overdue Task', `${task.title} is overdue. What would you like to do?`, [
         { text: 'Log Late Dose', onPress: () => markComplete(task.id) },
         { text: 'Skip', style: 'destructive', onPress: () => skipTask(task.id) },
         { text: 'Snooze 1hr', onPress: () => snoozeTask(task.id) },
@@ -165,7 +164,7 @@ export default function CareScheduleScreen() {
       return;
     }
     // pending
-    Alert.alert('Mark Complete?', `Did you complete "${task.title}"?`, [
+    CustomAlert.alert('Mark Complete?', `Did you complete "${task.title}"?`, [
       { text: 'Yes', onPress: () => markComplete(task.id) },
       { text: 'Not yet', style: 'cancel' },
     ]);
@@ -173,7 +172,7 @@ export default function CareScheduleScreen() {
 
   const handleTaskLongPress = useCallback((task: CareTask) => {
     if (task.status === 'pending' || task.status === 'overdue') {
-      Alert.alert('Snooze', `Snooze "${task.title}" by 1 hour?`, [
+      CustomAlert.alert('Snooze', `Snooze "${task.title}" by 1 hour?`, [
         { text: 'Snooze 1hr', onPress: () => snoozeTask(task.id) },
         { text: 'Cancel', style: 'cancel' },
       ]);
@@ -203,7 +202,7 @@ export default function CareScheduleScreen() {
         </Pressable>
         <Text className="text-lg font-bold text-midnight">Care Plan Schedule</Text>
         <Pressable
-          onPress={() => Alert.alert('Filters', 'Advanced filters coming soon.')}
+          onPress={() => CustomAlert.alert('Filters', 'Advanced filters coming soon.')}
           className="w-10 h-10 rounded-full bg-white items-center justify-center"
           style={Shadows.card}
         >

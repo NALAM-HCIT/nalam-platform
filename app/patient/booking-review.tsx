@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -148,7 +149,7 @@ export default function BookingReviewScreen() {
       setCouponApplied(false);
       return;
     }
-    Alert.alert('Coupon Applied!', 'NALAM100 — Rs. 100 off on your first consultation.', [
+    CustomAlert.alert('Coupon Applied!', 'NALAM100 — Rs. 100 off on your first consultation.', [
       { text: 'OK', onPress: () => setCouponApplied(true) },
     ]);
   }, [couponApplied]);
@@ -193,7 +194,7 @@ export default function BookingReviewScreen() {
       });
     } catch (err: any) {
       const message = err.response?.data?.error || err.message || 'Booking failed. Please try again.';
-      Alert.alert('Booking Failed', message);
+      CustomAlert.alert('Booking Failed', message);
     } finally {
       setSubmitting(false);
     }

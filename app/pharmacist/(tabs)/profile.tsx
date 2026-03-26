@@ -1,10 +1,12 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import {
   User, Shield, Bell, LogOut, ChevronRight, Camera, Phone, Mail,
   Calendar, HelpCircle, Globe, Moon, Fingerprint, Lock,
@@ -139,15 +141,15 @@ export default function PharmacistProfileScreen() {
 
   const pickImage = useCallback(async (useCamera: boolean) => {
     const perm = useCamera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission Required', 'Please allow access in settings.'); return; }
+    if (!perm.granted) { CustomAlert.alert('Permission Required', 'Please allow access in settings.'); return; }
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 })
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled && result.assets[0]) { setProfileImage(result.assets[0].uri); Alert.alert('Success', 'Profile photo updated!'); }
+    if (!result.canceled && result.assets[0]) { setProfileImage(result.assets[0].uri); CustomAlert.alert('Success', 'Profile photo updated!'); }
   }, []);
 
   const handleChangePhoto = useCallback(() => {
-    Alert.alert('Update Profile Photo', 'Choose a source:', [
+    CustomAlert.alert('Update Profile Photo', 'Choose a source:', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Take Photo', onPress: () => pickImage(true) },
       { text: 'Choose from Gallery', onPress: () => pickImage(false) },
@@ -159,7 +161,7 @@ export default function PharmacistProfileScreen() {
   }, [router]);
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+    CustomAlert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log Out', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
     ]);
@@ -168,16 +170,16 @@ export default function PharmacistProfileScreen() {
   const handleStatPress = useCallback((label: string) => {
     switch (label) {
       case 'Dispensed':
-        Alert.alert('Dispensed Today', 'Total: 24 prescriptions\n\nSTAT: 3\nRegular: 18\nRefills: 3\n\nAvg. processing time: 8 min');
+        CustomAlert.alert('Dispensed Today', 'Total: 24 prescriptions\n\nSTAT: 3\nRegular: 18\nRefills: 3\n\nAvg. processing time: 8 min');
         break;
       case 'Orders':
-        Alert.alert('Orders Completed', 'Today: 18\n\nHome Delivery: 6\nPickup: 12\n\nPending Dispatch: 2');
+        CustomAlert.alert('Orders Completed', 'Today: 18\n\nHome Delivery: 6\nPickup: 12\n\nPending Dispatch: 2');
         break;
       case 'Pending':
-        Alert.alert('Pending Prescriptions', '6 awaiting processing:\n\n1. STAT — Amlodipine (Dr. Aruna)\n2. Regular — Metformin (Dr. Rajesh)\n3. Regular — Insulin (Dr. Shalini)\n4. Regular — Antibiotics (Dr. Kumar)\n5. Refill — Atorvastatin\n6. Refill — Losartan');
+        CustomAlert.alert('Pending Prescriptions', '6 awaiting processing:\n\n1. STAT — Amlodipine (Dr. Aruna)\n2. Regular — Metformin (Dr. Rajesh)\n3. Regular — Insulin (Dr. Shalini)\n4. Regular — Antibiotics (Dr. Kumar)\n5. Refill — Atorvastatin\n6. Refill — Losartan');
         break;
       case 'Low Stock':
-        Alert.alert('Low Stock Alerts', '3 items need reorder:\n\n1. Amlodipine 5mg — 12 units left\n2. Metformin 500mg — 8 units left\n3. Insulin Glargine — 3 units left\n\nReorder has been auto-triggered for all items.');
+        CustomAlert.alert('Low Stock Alerts', '3 items need reorder:\n\n1. Amlodipine 5mg — 12 units left\n2. Metformin 500mg — 8 units left\n3. Insulin Glargine — 3 units left\n\nReorder has been auto-triggered for all items.');
         break;
     }
   }, []);
@@ -185,106 +187,106 @@ export default function PharmacistProfileScreen() {
   const handleMenuPress = useCallback((actionId: string) => {
     switch (actionId) {
       case 'dispensing_history':
-        Alert.alert('Dispensing History', 'Today\'s Summary:\n\nTotal Dispensed: 24\nTotal Value: Rs. 18,450\n\nTop Dispensed:\n1. Amlodipine 5mg (8)\n2. Metformin 500mg (6)\n3. Paracetamol 650mg (5)\n\nClarifications Requested: 2\nRejected: 1 (out of stock)');
+        CustomAlert.alert('Dispensing History', 'Today\'s Summary:\n\nTotal Dispensed: 24\nTotal Value: Rs. 18,450\n\nTop Dispensed:\n1. Amlodipine 5mg (8)\n2. Metformin 500mg (6)\n3. Paracetamol 650mg (5)\n\nClarifications Requested: 2\nRejected: 1 (out of stock)');
         break;
 
       case 'inventory':
-        Alert.alert('Inventory Alerts', '3 items critically low:\n\n1. Amlodipine 5mg — 12 units (Min: 50)\n2. Metformin 500mg — 8 units (Min: 40)\n3. Insulin Glargine — 3 units (Min: 10)\n\nExpiring Soon:\n- Aspirin 75mg batch (Exp: Apr 2026)\n- Cough Syrup batch (Exp: Apr 2026)', [
+        CustomAlert.alert('Inventory Alerts', '3 items critically low:\n\n1. Amlodipine 5mg — 12 units (Min: 50)\n2. Metformin 500mg — 8 units (Min: 40)\n3. Insulin Glargine — 3 units (Min: 10)\n\nExpiring Soon:\n- Aspirin 75mg batch (Exp: Apr 2026)\n- Cough Syrup batch (Exp: Apr 2026)', [
           { text: 'OK' },
-          { text: 'Reorder All', onPress: () => Alert.alert('Reorder', 'Reorder request submitted for 3 items.\nPO Ref: PO-2026-0321') },
+          { text: 'Reorder All', onPress: () => CustomAlert.alert('Reorder', 'Reorder request submitted for 3 items.\nPO Ref: PO-2026-0321') },
         ]);
         break;
 
       case 'shift_schedule':
-        Alert.alert('Shift Schedule', 'This Week:\n\nMon: Morning (8 AM - 4 PM)\nTue: Morning (8 AM - 4 PM)\nWed: Afternoon (12 PM - 8 PM)\nThu: Morning (8 AM - 4 PM)\nFri: Morning (8 AM - 4 PM)\nSat: Morning (8 AM - 1 PM)\nSun: OFF', [
+        CustomAlert.alert('Shift Schedule', 'This Week:\n\nMon: Morning (8 AM - 4 PM)\nTue: Morning (8 AM - 4 PM)\nWed: Afternoon (12 PM - 8 PM)\nThu: Morning (8 AM - 4 PM)\nFri: Morning (8 AM - 4 PM)\nSat: Morning (8 AM - 1 PM)\nSun: OFF', [
           { text: 'OK' },
-          { text: 'Request Swap', onPress: () => Alert.alert('Submitted', 'Shift swap request sent.\nRef: SWP-2026-0321') },
+          { text: 'Request Swap', onPress: () => CustomAlert.alert('Submitted', 'Shift swap request sent.\nRef: SWP-2026-0321') },
         ]);
         break;
 
       case 'leave':
-        Alert.alert('Leave Management', 'Leave Balance:\n\nCasual Leave: 7/12 remaining\nSick Leave: 8/8 remaining\nEarned Leave: 12/15 remaining', [
+        CustomAlert.alert('Leave Management', 'Leave Balance:\n\nCasual Leave: 7/12 remaining\nSick Leave: 8/8 remaining\nEarned Leave: 12/15 remaining', [
           { text: 'OK' },
-          { text: 'Apply Leave', onPress: () => Alert.alert('Apply', 'Leave application submitted.\nRef: LV-2026-0321') },
+          { text: 'Apply Leave', onPress: () => CustomAlert.alert('Apply', 'Leave application submitted.\nRef: LV-2026-0321') },
         ]);
         break;
 
       case 'notifications':
-        Alert.alert('Notifications', 'Manage alerts:', [
-          { text: 'Prescription Alerts', onPress: () => Alert.alert('Rx Alerts', 'New prescriptions: ON\nSTAT priority: ON\nClarification responses: ON\nRefill requests: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => Alert.alert('Saved', 'Preferences updated.') }]) },
-          { text: 'Stock Alerts', onPress: () => Alert.alert('Stock', 'Low stock warnings: ON\nExpiry alerts: ON\nReorder confirmations: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => Alert.alert('Saved', 'Preferences updated.') }]) },
-          { text: 'System Alerts', onPress: () => Alert.alert('System', 'Shift reminders: ON\nAdmin announcements: ON', [{ text: 'OK' }]) },
+        CustomAlert.alert('Notifications', 'Manage alerts:', [
+          { text: 'Prescription Alerts', onPress: () => CustomAlert.alert('Rx Alerts', 'New prescriptions: ON\nSTAT priority: ON\nClarification responses: ON\nRefill requests: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => CustomAlert.alert('Saved', 'Preferences updated.') }]) },
+          { text: 'Stock Alerts', onPress: () => CustomAlert.alert('Stock', 'Low stock warnings: ON\nExpiry alerts: ON\nReorder confirmations: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => CustomAlert.alert('Saved', 'Preferences updated.') }]) },
+          { text: 'System Alerts', onPress: () => CustomAlert.alert('System', 'Shift reminders: ON\nAdmin announcements: ON', [{ text: 'OK' }]) },
           { text: 'Close', style: 'cancel' },
         ]);
         break;
 
       case 'language':
-        Alert.alert('Select Language', '', [
+        CustomAlert.alert('Select Language', '', [
           { text: 'English (Current)', style: 'cancel' },
-          { text: 'Tamil (தமிழ்)', onPress: () => Alert.alert('Changed', 'Language will switch on restart.') },
-          { text: 'Hindi (हिन्दी)', onPress: () => Alert.alert('Changed', 'Language will switch on restart.') },
+          { text: 'Tamil (தமிழ்)', onPress: () => CustomAlert.alert('Changed', 'Language will switch on restart.') },
+          { text: 'Hindi (हिन्दी)', onPress: () => CustomAlert.alert('Changed', 'Language will switch on restart.') },
         ]);
         break;
 
       case 'appearance':
-        Alert.alert('Appearance', '', [
+        CustomAlert.alert('Appearance', '', [
           { text: 'System Default (Current)', style: 'cancel' },
-          { text: 'Light Mode', onPress: () => Alert.alert('Updated', 'Light mode activated.') },
-          { text: 'Dark Mode', onPress: () => Alert.alert('Updated', 'Dark mode activated.') },
+          { text: 'Light Mode', onPress: () => CustomAlert.alert('Updated', 'Light mode activated.') },
+          { text: 'Dark Mode', onPress: () => CustomAlert.alert('Updated', 'Dark mode activated.') },
         ]);
         break;
 
       case 'biometric':
-        Alert.alert('Biometric Login', 'Fingerprint login is currently enabled.', [
+        CustomAlert.alert('Biometric Login', 'Fingerprint login is currently enabled.', [
           { text: 'OK' },
-          { text: 'Disable', style: 'destructive', onPress: () => Alert.alert('Disabled', 'Biometric login disabled.') },
+          { text: 'Disable', style: 'destructive', onPress: () => CustomAlert.alert('Disabled', 'Biometric login disabled.') },
         ]);
         break;
 
       case 'change_password':
-        Alert.alert('Change Password', 'Verify your identity first.', [
+        CustomAlert.alert('Change Password', 'Verify your identity first.', [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Send OTP', onPress: () => Alert.alert('OTP Sent', `OTP sent to ${PHARMACIST_INFO.phone}.`, [
+          { text: 'Send OTP', onPress: () => CustomAlert.alert('OTP Sent', `OTP sent to ${PHARMACIST_INFO.phone}.`, [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Verify', onPress: () => Alert.alert('New Password', 'Requirements:\n- Min 8 chars\n- 1 uppercase, 1 number, 1 special', [
+            { text: 'Verify', onPress: () => CustomAlert.alert('New Password', 'Requirements:\n- Min 8 chars\n- 1 uppercase, 1 number, 1 special', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Update', onPress: () => Alert.alert('Success', 'Password updated.') },
+              { text: 'Update', onPress: () => CustomAlert.alert('Success', 'Password updated.') },
             ]) },
           ]) },
         ]);
         break;
 
       case 'privacy':
-        Alert.alert('Privacy & Data', '', [
-          { text: 'Data Access', onPress: () => Alert.alert('Access Levels', 'Prescription data: Full access\nPatient data: Limited (name, allergies)\nBilling: Pharmacy orders only\n\nAll access is audited.') },
-          { text: 'Download Data', onPress: () => Alert.alert('Download', 'Data export will be emailed within 24 hours.', [
+        CustomAlert.alert('Privacy & Data', '', [
+          { text: 'Data Access', onPress: () => CustomAlert.alert('Access Levels', 'Prescription data: Full access\nPatient data: Limited (name, allergies)\nBilling: Pharmacy orders only\n\nAll access is audited.') },
+          { text: 'Download Data', onPress: () => CustomAlert.alert('Download', 'Data export will be emailed within 24 hours.', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Request', onPress: () => Alert.alert('Submitted', 'Request submitted.') },
+            { text: 'Request', onPress: () => CustomAlert.alert('Submitted', 'Request submitted.') },
           ]) },
           { text: 'Close', style: 'cancel' },
         ]);
         break;
 
       case 'help':
-        Alert.alert('Help & Support', '', [
-          { text: 'Contact IT', onPress: () => Alert.alert('IT Support', 'Phone: +91 44 2345 6789\nExt: 2501\nEmail: it.support@arunpriya.com', [
+        CustomAlert.alert('Help & Support', '', [
+          { text: 'Contact IT', onPress: () => CustomAlert.alert('IT Support', 'Phone: +91 44 2345 6789\nExt: 2501\nEmail: it.support@arunpriya.com', [
             { text: 'OK' },
             { text: 'Call', onPress: () => Linking.openURL('tel:+914423456789') },
           ]) },
-          { text: 'FAQ', onPress: () => Alert.alert('FAQ', 'Q: How to process STAT Rx?\nA: STAT prescriptions appear at top with red badge.\n\nQ: How to request clarification?\nA: Open Rx detail > "Request Clarification".\n\nQ: Out-of-stock handling?\nA: Reject with "Unavailable" — doctor is notified.') },
-          { text: 'Report Bug', onPress: () => Alert.alert('Bug Report', '', [
+          { text: 'FAQ', onPress: () => CustomAlert.alert('FAQ', 'Q: How to process STAT Rx?\nA: STAT prescriptions appear at top with red badge.\n\nQ: How to request clarification?\nA: Open Rx detail > "Request Clarification".\n\nQ: Out-of-stock handling?\nA: Reject with "Unavailable" — doctor is notified.') },
+          { text: 'Report Bug', onPress: () => CustomAlert.alert('Bug Report', '', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Send', onPress: () => Alert.alert('Submitted', 'Ticket: BUG-2026-0321') },
+            { text: 'Send', onPress: () => CustomAlert.alert('Submitted', 'Ticket: BUG-2026-0321') },
           ]) },
           { text: 'Close', style: 'cancel' },
         ]);
         break;
 
       case 'about':
-        Alert.alert('About Nalam', 'Nalam — Pharmacist Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\n© 2026 Nalam Healthcare Pvt. Ltd.', [
+        CustomAlert.alert('About Nalam', 'Nalam — Pharmacist Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\n© 2026 Nalam Healthcare Pvt. Ltd.', [
           { text: 'OK' },
-          { text: 'Terms', onPress: () => Alert.alert('Terms', 'All dispensing activities are logged for regulatory compliance.') },
-          { text: 'Privacy', onPress: () => Alert.alert('Privacy', 'Data encrypted. Access logs maintained for compliance.') },
+          { text: 'Terms', onPress: () => CustomAlert.alert('Terms', 'All dispensing activities are logged for regulatory compliance.') },
+          { text: 'Privacy', onPress: () => CustomAlert.alert('Privacy', 'Data encrypted. Access logs maintained for compliance.') },
         ]);
         break;
     }
@@ -321,6 +323,7 @@ export default function PharmacistProfileScreen() {
                 <Shield size={12} color={Colors.primary} />
                 <Text className="text-primary text-xs font-bold">Pharmacist</Text>
               </View>
+              <RoleSwitcher />
               <View className="bg-slate-100 px-3 py-1.5 rounded-full">
                 <Text className="text-slate-600 text-xs font-bold">{PHARMACIST_INFO.empId}</Text>
               </View>

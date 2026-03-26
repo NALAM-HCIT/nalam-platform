@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, RefreshControl, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -48,9 +49,9 @@ const STAT_CARDS = [
 
 const QUICK_ACTIONS = [
   { icon: UserPlus, label: 'Create User', color: '#FFFFFF', bg: Colors.primary, actionId: 'create-user' },
-  { icon: Stethoscope, label: 'Doctors', color: '#1D4ED8', bg: '#1D4ED812', actionId: 'manage-doctors' },
-  { icon: Settings, label: 'Settings', color: '#64748B', bg: '#64748B12', actionId: 'system-settings' },
-  { icon: ClipboardList, label: 'Audit Logs', color: '#059669', bg: '#05966912', actionId: 'audit-logs' },
+  { icon: Stethoscope, label: 'Doctors', color: '#1D4ED8', bg: '#EFF6FF', actionId: 'manage-doctors' },
+  { icon: Settings, label: 'Settings', color: '#64748B', bg: '#F1F5F9', actionId: 'system-settings' },
+  { icon: ClipboardList, label: 'Audit Logs', color: '#059669', bg: '#ECFDF5', actionId: 'audit-logs' },
 ];
 
 const SYSTEM_HEALTH_ITEMS = [
@@ -159,7 +160,7 @@ export default function AdminDashboard() {
         { label: 'Departments', value: data.totalDepartments.toString(), icon: Server, color: '#8B5CF6', trend: 'Stable', trendUp: true },
       ]);
       const mappedActivity = data.recentActivity.map((a: any) => ({
-        id: a.id, action: a.action, user: a.user, category: a.category, 
+        id: a.id, action: a.action, user: a.user ?? 'System', category: a.category,
         categoryColor: a.severity === 'critical' ? '#EF4444' : a.severity === 'warning' ? '#F59E0B' : Colors.primary,
         time: new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         read: true
@@ -197,13 +198,13 @@ export default function AdminDashboard() {
         router.push('/admin/(tabs)/users' as any);
         break;
       case 1:
-        Alert.alert('Active Staff — 86', 'Doctors: 32\nReceptionists: 22\nPharmacists: 18\nAdmins: 14', [
+        CustomAlert.alert('Active Staff — 86', 'Doctors: 32\nReceptionists: 22\nPharmacists: 18\nAdmins: 14', [
           { text: 'View Users', onPress: () => router.push('/admin/(tabs)/users' as any) },
           { text: 'OK' },
         ]);
         break;
       case 2:
-        Alert.alert('Pending Approvals — 5', '3 New user registrations\n1 Role change request\n1 Access permission request', [
+        CustomAlert.alert('Pending Approvals — 5', '3 New user registrations\n1 Role change request\n1 Access permission request', [
           { text: 'Review Now', onPress: () => router.push('/admin/(tabs)/users' as any) },
           { text: 'Later' },
         ]);
@@ -226,9 +227,9 @@ export default function AdminDashboard() {
         router.push('/admin/(tabs)/settings' as any);
         break;
       case 'audit-logs':
-        Alert.alert('Audit Logs', 'Recent Trail:\n\n- [10:32] Admin viewed user list\n- [10:15] Dr. Priya Sharma registered\n- [09:48] Role updated for Priya Sharma\n- [09:30] Ravi Kumar added\n- [08:00] System backup triggered\n- [07:55] Admin logged in\n\nLogs retained for 90 days.', [
+        CustomAlert.alert('Audit Logs', 'Recent Trail:\n\n- [10:32] Admin viewed user list\n- [10:15] Dr. Priya Sharma registered\n- [09:48] Role updated for Priya Sharma\n- [09:30] Ravi Kumar added\n- [08:00] System backup triggered\n- [07:55] Admin logged in\n\nLogs retained for 90 days.', [
           { text: 'OK' },
-          { text: 'Export', onPress: () => Alert.alert('Exported', 'Audit logs sent to admin email.\nFormat: CSV | Period: 30 days') },
+          { text: 'Export', onPress: () => CustomAlert.alert('Exported', 'Audit logs sent to admin email.\nFormat: CSV | Period: 30 days') },
         ]);
         break;
     }
@@ -236,14 +237,14 @@ export default function AdminDashboard() {
 
   const handleActivityPress = useCallback((item: ActivityItem) => {
     setActivities((prev) => prev.map((a) => (a.id === item.id ? { ...a, read: true } : a)));
-    Alert.alert(item.action, `User: ${item.user}\nCategory: ${item.category}\nTime: ${item.time}`, [
+    CustomAlert.alert(item.action, `User: ${item.user}\nCategory: ${item.category}\nTime: ${item.time}`, [
       { text: 'Dismiss', style: 'cancel' },
       {
         text: 'View Details',
         onPress: () => {
           if (item.category === 'User' || item.category === 'Role') router.push('/admin/(tabs)/users' as any);
           else if (item.category === 'System') router.push('/admin/(tabs)/settings' as any);
-          else if (item.category === 'Security') Alert.alert('Security', 'Security event details would open.\n\nIP: 192.168.1.45\nAction: Failed login attempt\nStatus: Account locked');
+          else if (item.category === 'Security') CustomAlert.alert('Security', 'Security event details would open.\n\nIP: 192.168.1.45\nAction: Failed login attempt\nStatus: Account locked');
         },
       },
     ]);
@@ -254,7 +255,7 @@ export default function AdminDashboard() {
     const actions: any[] = [{ text: 'Dismiss', style: 'cancel' }];
     if (notif.type === 'warning') actions.push({ text: 'Review', onPress: () => { setShowNotifications(false); router.push('/admin/(tabs)/users' as any); } });
     else if (notif.type === 'error') actions.push({ text: 'View Security', onPress: () => { setShowNotifications(false); router.push('/admin/(tabs)/settings' as any); } });
-    Alert.alert(notif.title, notif.body, actions);
+    CustomAlert.alert(notif.title, notif.body, actions);
   }, [router]);
 
   const markAllNotificationsRead = useCallback(() => {
@@ -262,7 +263,7 @@ export default function AdminDashboard() {
   }, []);
 
   const clearAllNotifications = useCallback(() => {
-    Alert.alert('Clear All', 'Remove all notifications?', [
+    CustomAlert.alert('Clear All', 'Remove all notifications?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear All', style: 'destructive', onPress: () => setNotifications([]) },
     ]);
@@ -271,16 +272,16 @@ export default function AdminDashboard() {
   const handleOverviewPress = useCallback((label: string) => {
     switch (label) {
       case 'Appointments':
-        Alert.alert('Today\'s Appointments', 'Total: 142\n\nCompleted: 98\nIn Progress: 12\nUpcoming: 24\nCancelled: 8\n\nBusiest Dept: Cardiology (28)');
+        CustomAlert.alert('Today\'s Appointments', 'Total: 142\n\nCompleted: 98\nIn Progress: 12\nUpcoming: 24\nCancelled: 8\n\nBusiest Dept: Cardiology (28)');
         break;
       case 'New Patients':
-        Alert.alert('New Patients Today', 'Total: 18\n\nOPD: 12\nEmergency: 4\nReferral: 2\n\nPeak Hour: 10-11 AM (6 registrations)');
+        CustomAlert.alert('New Patients Today', 'Total: 18\n\nOPD: 12\nEmergency: 4\nReferral: 2\n\nPeak Hour: 10-11 AM (6 registrations)');
         break;
       case 'Prescriptions':
-        Alert.alert('Prescriptions Today', 'Total: 96\n\nDispensed: 78\nPending: 12\nClarification: 6\n\nTop Drug: Amlodipine 5mg');
+        CustomAlert.alert('Prescriptions Today', 'Total: 96\n\nDispensed: 78\nPending: 12\nClarification: 6\n\nTop Drug: Amlodipine 5mg');
         break;
       case 'Revenue':
-        Alert.alert('Today\'s Revenue', 'Total: ₹2,42,500\n\nConsultations: ₹1,28,000\nPharmacy: ₹68,500\nLab Tests: ₹32,000\nOthers: ₹14,000\n\nGrowth vs Yesterday: +8%');
+        CustomAlert.alert('Today\'s Revenue', 'Total: ₹2,42,500\n\nConsultations: ₹1,28,000\nPharmacy: ₹68,500\nLab Tests: ₹32,000\nOthers: ₹14,000\n\nGrowth vs Yesterday: +8%');
         break;
     }
   }, []);
@@ -401,7 +402,7 @@ export default function AdminDashboard() {
             </View>
             <Pressable
               onPress={() => {
-                Alert.alert('All Activities', activities.map((a, i) => `${i + 1}. ${a.action}\n   ${a.user} · ${a.time}`).join('\n\n'));
+                CustomAlert.alert('All Activities', activities.map((a, i) => `${i + 1}. ${a.action}\n   ${a.user} · ${a.time}`).join('\n\n'));
               }}
               className="flex-row items-center gap-1 active:opacity-70"
             >
@@ -543,7 +544,7 @@ export default function AdminDashboard() {
 
             <View className="mt-4 pt-3 border-t border-slate-100 flex-row items-center justify-between">
               <Text className="text-slate-400 text-[10px]">Last checked: 2 minutes ago</Text>
-              <Pressable onPress={() => { setShowSystemHealth(false); Alert.alert('Refreshed', 'System health check completed. All services operational.'); }} className="active:opacity-70">
+              <Pressable onPress={() => { setShowSystemHealth(false); CustomAlert.alert('Refreshed', 'System health check completed. All services operational.'); }} className="active:opacity-70">
                 <Text className="text-primary text-xs font-bold">Refresh</Text>
               </Pressable>
             </View>

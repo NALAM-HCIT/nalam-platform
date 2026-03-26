@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
 import { doctorPortalService, DoctorMyProfile } from '@/services/doctorPortalService';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import {
   User, Heart, Shield, Bell, FileText, LogOut, ChevronRight,
   Camera, Phone, Mail, Calendar, Briefcase, Star, Clock,
@@ -111,7 +113,7 @@ const MenuRow = React.memo(function MenuRow({
     >
       <View
         className="w-9 h-9 rounded-xl items-center justify-center mr-3.5"
-        style={{ backgroundColor: item.color + '12' }}
+        style={{ backgroundColor: item.color + '18' }}
       >
         <Icon size={17} color={item.color} />
       </View>
@@ -177,7 +179,7 @@ export default function DoctorProfileScreen() {
   }, [router]);
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
+    CustomAlert.alert(
       'Sign Out',
       'Are you sure you want to sign out? You will need to log in again to access the doctor portal.',
       [
@@ -190,16 +192,16 @@ export default function DoctorProfileScreen() {
   const handleStatPress = useCallback((label: string) => {
     switch (label) {
       case 'Consults':
-        Alert.alert('Consultation Stats', 'Total Consultations: 1,240\n\nThis Month: 86\nLast Month: 72\nGrowth: +12%\n\nBreakdown:\n- OPD Consults: 920\n- Emergency: 180\n- Tele-consult: 140\n\nAvg. per day: 8.2 patients');
+        CustomAlert.alert('Consultation Stats', 'Total Consultations: 1,240\n\nThis Month: 86\nLast Month: 72\nGrowth: +12%\n\nBreakdown:\n- OPD Consults: 920\n- Emergency: 180\n- Tele-consult: 140\n\nAvg. per day: 8.2 patients');
         break;
       case 'Rating':
-        Alert.alert('Patient Ratings', 'Overall Rating: 4.9/5\nBased on 850 reviews\n\nBreakdown:\n5 stars: 720 (84.7%)\n4 stars: 102 (12.0%)\n3 stars: 20 (2.4%)\n2 stars: 5 (0.6%)\n1 star: 3 (0.4%)\n\nRecent Feedback:\n"Excellent doctor, very patient and thorough."\n"Best cardiologist in Chennai!"');
+        CustomAlert.alert('Patient Ratings', 'Overall Rating: 4.9/5\nBased on 850 reviews\n\nBreakdown:\n5 stars: 720 (84.7%)\n4 stars: 102 (12.0%)\n3 stars: 20 (2.4%)\n2 stars: 5 (0.6%)\n1 star: 3 (0.4%)\n\nRecent Feedback:\n"Excellent doctor, very patient and thorough."\n"Best cardiologist in Chennai!"');
         break;
       case 'Surgeries':
-        Alert.alert('Surgery Stats', 'Total Surgeries: 86\n\nThis Month: 6\nSuccess Rate: 99.2%\n\nTypes:\n- Angioplasty: 42\n- Bypass Surgery: 18\n- Pacemaker: 14\n- Others: 12');
+        CustomAlert.alert('Surgery Stats', 'Total Surgeries: 86\n\nThis Month: 6\nSuccess Rate: 99.2%\n\nTypes:\n- Angioplasty: 42\n- Bypass Surgery: 18\n- Pacemaker: 14\n- Others: 12');
         break;
       case 'Reviews':
-        Alert.alert('Patient Reviews', '850 verified reviews\n\nMost Praised:\n- Communication: 4.9/5\n- Expertise: 5.0/5\n- Punctuality: 4.7/5\n- Empathy: 4.9/5');
+        CustomAlert.alert('Patient Reviews', '850 verified reviews\n\nMost Praised:\n- Communication: 4.9/5\n- Expertise: 5.0/5\n- Punctuality: 4.7/5\n- Empathy: 4.9/5');
         break;
     }
   }, []);
@@ -207,69 +209,69 @@ export default function DoctorProfileScreen() {
   const handleMenuPress = useCallback((actionId: string) => {
     switch (actionId) {
       case 'professional':
-        Alert.alert(
+        CustomAlert.alert(
           'Professional Details',
           `Specialization: ${liveProfile?.doctorProfile?.specialty || '—'}\nDepartment: ${liveProfile?.user?.department || '—'}\nExperience: ${liveProfile?.doctorProfile?.experienceYears || '—'} years\nLanguages: ${liveProfile?.doctorProfile?.languages || '—'}\nConsultation Fee: ₹${liveProfile?.doctorProfile?.consultationFee || '—'}`,
           [
             { text: 'OK' },
-            { text: 'Edit', onPress: () => Alert.alert('Edit', 'To update professional details, please contact the Admin department.') },
+            { text: 'Edit', onPress: () => CustomAlert.alert('Edit', 'To update professional details, please contact the Admin department.') },
           ],
         );
         break;
 
       case 'certificates':
-        Alert.alert(
+        CustomAlert.alert(
           'Certificates & Awards',
           '1. MD - Madras Medical College (2014)\n2. DM Cardiology - AIIMS Delhi (2017)\n3. FACC - American College of Cardiology\n4. Best Young Cardiologist Award 2022\n5. Advanced Life Support Certification\n\nAll certificates are verified and on file.',
           [
             { text: 'OK' },
-            { text: 'Upload New', onPress: () => Alert.alert('Upload', 'Certificate upload form would open. Requires admin approval.') },
+            { text: 'Upload New', onPress: () => CustomAlert.alert('Upload', 'Certificate upload form would open. Requires admin approval.') },
           ],
         );
         break;
 
       case 'consultation_settings':
-        Alert.alert(
+        CustomAlert.alert(
           'Consultation Settings',
           'OPD Fee: Rs. 800\nTeleconsult Fee: Rs. 500\nFollow-up Fee: Rs. 400\n\nSlot Duration: 20 minutes\nMax OPD per day: 25\nMax Teleconsult per day: 10\n\nModes: In-Person, Video Call',
           [
             { text: 'OK' },
-            { text: 'Update Fees', onPress: () => Alert.alert('Fee Update', 'Fee change request sent to Admin for approval.\n\nRequest ID: FEE-2026-0321') },
+            { text: 'Update Fees', onPress: () => CustomAlert.alert('Fee Update', 'Fee change request sent to Admin for approval.\n\nRequest ID: FEE-2026-0321') },
           ],
         );
         break;
 
       case 'availability':
-        Alert.alert('Availability Settings', 'Manage your schedule:', [
+        CustomAlert.alert('Availability Settings', 'Manage your schedule:', [
           { text: 'Close' },
           {
             text: 'OPD Hours',
-            onPress: () => Alert.alert('OPD Schedule', 'Monday: 9:00 AM - 1:00 PM\nTuesday: 9:00 AM - 1:00 PM\nWednesday: 9:00 AM - 12:00 PM\nThursday: 9:00 AM - 1:00 PM\nFriday: 9:00 AM - 1:00 PM\nSaturday: 10:00 AM - 12:00 PM\nSunday: OFF', [
+            onPress: () => CustomAlert.alert('OPD Schedule', 'Monday: 9:00 AM - 1:00 PM\nTuesday: 9:00 AM - 1:00 PM\nWednesday: 9:00 AM - 12:00 PM\nThursday: 9:00 AM - 1:00 PM\nFriday: 9:00 AM - 1:00 PM\nSaturday: 10:00 AM - 12:00 PM\nSunday: OFF', [
               { text: 'OK' },
-              { text: 'Request Change', onPress: () => Alert.alert('Submitted', 'Schedule change request sent to Admin.\nRequest ID: SCH-2026-0321') },
+              { text: 'Request Change', onPress: () => CustomAlert.alert('Submitted', 'Schedule change request sent to Admin.\nRequest ID: SCH-2026-0321') },
             ]),
           },
           {
             text: 'Surgery Slots',
-            onPress: () => Alert.alert('Surgery Schedule', 'Available Surgery Slots:\n\nMonday: 2:00 PM - 5:00 PM\nWednesday: 1:00 PM - 4:00 PM\nFriday: 2:00 PM - 5:00 PM\n\nMax surgeries per day: 2\nMin gap between surgeries: 1 hour', [
+            onPress: () => CustomAlert.alert('Surgery Schedule', 'Available Surgery Slots:\n\nMonday: 2:00 PM - 5:00 PM\nWednesday: 1:00 PM - 4:00 PM\nFriday: 2:00 PM - 5:00 PM\n\nMax surgeries per day: 2\nMin gap between surgeries: 1 hour', [
               { text: 'OK' },
-              { text: 'Block a Slot', onPress: () => Alert.alert('Block Slot', 'Slot blocking calendar would open. Blocked slots will show as unavailable.') },
+              { text: 'Block a Slot', onPress: () => CustomAlert.alert('Block Slot', 'Slot blocking calendar would open. Blocked slots will show as unavailable.') },
             ]),
           },
         ]);
         break;
 
       case 'leave':
-        Alert.alert(
+        CustomAlert.alert(
           'Leave Management',
           'Leave Balance:\n\nCasual Leave: 8/12 remaining\nSick Leave: 10/10 remaining\nPrivilege Leave: 15/20 remaining\n\nUpcoming:\n- March 25-26: Casual Leave (Approved)',
           [
             { text: 'OK' },
             {
               text: 'Apply Leave',
-              onPress: () => Alert.alert('Apply Leave', 'Leave application form:\n- Leave type selection\n- Date range picker\n- Reason\n- Cover doctor assignment\n\nLeave requests require Admin approval.', [
+              onPress: () => CustomAlert.alert('Apply Leave', 'Leave application form:\n- Leave type selection\n- Date range picker\n- Reason\n- Cover doctor assignment\n\nLeave requests require Admin approval.', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Submit', onPress: () => Alert.alert('Submitted', 'Leave application submitted.\nRef: LV-2026-0321') },
+                { text: 'Submit', onPress: () => CustomAlert.alert('Submitted', 'Leave application submitted.\nRef: LV-2026-0321') },
               ]),
             },
           ],
@@ -277,37 +279,37 @@ export default function DoctorProfileScreen() {
         break;
 
       case 'my_patients':
-        Alert.alert(
+        CustomAlert.alert(
           'My Patients',
           'Active Patients: 320\n\nRecent Consultations:\n1. Rajesh Kumar — Mar 20, Follow-up\n2. Priya Sharma — Mar 19, New\n3. Arun Patel — Mar 18, Emergency\n\nUpcoming Follow-ups: 8 this week',
           [
             { text: 'OK' },
-            { text: 'View All', onPress: () => Alert.alert('Patient List', 'Full patient directory would open with search, filter by condition, and sort by last visit.') },
+            { text: 'View All', onPress: () => CustomAlert.alert('Patient List', 'Full patient directory would open with search, filter by condition, and sort by last visit.') },
           ],
         );
         break;
 
       case 'notifications':
-        Alert.alert('Notification Settings', 'Manage your notifications:', [
+        CustomAlert.alert('Notification Settings', 'Manage your notifications:', [
           {
             text: 'Patient Alerts',
-            onPress: () => Alert.alert('Patient Notifications', 'New appointments: ON\nPatient check-in: ON\nLab results ready: ON\nCritical vitals alert: ON\nPrescription refill requests: ON', [
+            onPress: () => CustomAlert.alert('Patient Notifications', 'New appointments: ON\nPatient check-in: ON\nLab results ready: ON\nCritical vitals alert: ON\nPrescription refill requests: ON', [
               { text: 'OK' },
-              { text: 'Edit', onPress: () => Alert.alert('Updated', 'Patient notification preferences saved.') },
+              { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'Patient notification preferences saved.') },
             ]),
           },
           {
             text: 'System Alerts',
-            onPress: () => Alert.alert('System Notifications', 'Schedule changes: ON\nAdmin announcements: ON\nSystem maintenance: ON\nNew messages: ON\nMeeting reminders: ON', [
+            onPress: () => CustomAlert.alert('System Notifications', 'Schedule changes: ON\nAdmin announcements: ON\nSystem maintenance: ON\nNew messages: ON\nMeeting reminders: ON', [
               { text: 'OK' },
-              { text: 'Edit', onPress: () => Alert.alert('Updated', 'System notification preferences saved.') },
+              { text: 'Edit', onPress: () => CustomAlert.alert('Updated', 'System notification preferences saved.') },
             ]),
           },
           {
             text: 'Quiet Hours',
-            onPress: () => Alert.alert('Quiet Hours', 'Current: 10:00 PM - 7:00 AM\n\nDuring quiet hours, only emergency and critical patient alerts will come through.', [
+            onPress: () => CustomAlert.alert('Quiet Hours', 'Current: 10:00 PM - 7:00 AM\n\nDuring quiet hours, only emergency and critical patient alerts will come through.', [
               { text: 'OK' },
-              { text: 'Edit Hours', onPress: () => Alert.alert('Updated', 'Quiet hours configuration saved.') },
+              { text: 'Edit Hours', onPress: () => CustomAlert.alert('Updated', 'Quiet hours configuration saved.') },
             ]),
           },
           { text: 'Close', style: 'cancel' },
@@ -315,23 +317,23 @@ export default function DoctorProfileScreen() {
         break;
 
       case 'language':
-        Alert.alert('Select Language', 'Choose your preferred language:', [
+        CustomAlert.alert('Select Language', 'Choose your preferred language:', [
           { text: 'English (Current)', style: 'cancel' },
-          { text: 'Tamil (தமிழ்)', onPress: () => Alert.alert('Language Changed', 'App language will switch to Tamil on next restart.') },
-          { text: 'Hindi (हिन्दी)', onPress: () => Alert.alert('Language Changed', 'App language will switch to Hindi on next restart.') },
+          { text: 'Tamil (தமிழ்)', onPress: () => CustomAlert.alert('Language Changed', 'App language will switch to Tamil on next restart.') },
+          { text: 'Hindi (हिन्दी)', onPress: () => CustomAlert.alert('Language Changed', 'App language will switch to Hindi on next restart.') },
         ]);
         break;
 
       case 'appearance':
-        Alert.alert('Appearance', 'Choose your preferred theme:', [
+        CustomAlert.alert('Appearance', 'Choose your preferred theme:', [
           { text: 'System Default (Current)', style: 'cancel' },
-          { text: 'Light Mode', onPress: () => Alert.alert('Theme Updated', 'Light mode activated.') },
-          { text: 'Dark Mode', onPress: () => Alert.alert('Theme Updated', 'Dark mode activated.') },
+          { text: 'Light Mode', onPress: () => CustomAlert.alert('Theme Updated', 'Light mode activated.') },
+          { text: 'Dark Mode', onPress: () => CustomAlert.alert('Theme Updated', 'Dark mode activated.') },
         ]);
         break;
 
       case 'biometric':
-        Alert.alert(
+        CustomAlert.alert(
           'Biometric Login',
           'Face ID is currently enabled for quick login.\n\nBiometric authentication adds an extra layer of security.',
           [
@@ -339,9 +341,9 @@ export default function DoctorProfileScreen() {
             {
               text: 'Disable',
               style: 'destructive',
-              onPress: () => Alert.alert('Disable Face ID?', 'You will need to enter your password each time you log in.', [
+              onPress: () => CustomAlert.alert('Disable Face ID?', 'You will need to enter your password each time you log in.', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Disable', style: 'destructive', onPress: () => Alert.alert('Disabled', 'Face ID login has been disabled.') },
+                { text: 'Disable', style: 'destructive', onPress: () => CustomAlert.alert('Disabled', 'Face ID login has been disabled.') },
               ]),
             },
           ],
@@ -349,20 +351,20 @@ export default function DoctorProfileScreen() {
         break;
 
       case 'change_password':
-        Alert.alert(
+        CustomAlert.alert(
           'Change Password',
           'For your security, you\'ll need to verify your identity first.',
           [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Send OTP',
-              onPress: () => Alert.alert('OTP Sent', `A 6-digit OTP has been sent to ${phone || 'your registered number'}.`, [
+              onPress: () => CustomAlert.alert('OTP Sent', `A 6-digit OTP has been sent to ${phone || 'your registered number'}.`, [
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Verify',
-                  onPress: () => Alert.alert('Set New Password', 'Requirements:\n- Minimum 8 characters\n- At least one uppercase letter\n- At least one number\n- At least one special character', [
+                  onPress: () => CustomAlert.alert('Set New Password', 'Requirements:\n- Minimum 8 characters\n- At least one uppercase letter\n- At least one number\n- At least one special character', [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Update', onPress: () => Alert.alert('Success', 'Your password has been updated successfully.') },
+                    { text: 'Update', onPress: () => CustomAlert.alert('Success', 'Your password has been updated successfully.') },
                   ]),
                 },
               ]),
@@ -372,34 +374,34 @@ export default function DoctorProfileScreen() {
         break;
 
       case 'sessions':
-        Alert.alert(
+        CustomAlert.alert(
           'Active Sessions',
           'Current Sessions:\n\n1. This device (iPhone 15 Pro)\n   Last active: Now\n\n2. iPad Pro - Clinic\n   Last active: 2 hours ago\n\n3. Chrome - Office Desktop\n   Last active: Yesterday',
           [
             { text: 'OK' },
-            { text: 'Sign Out Others', style: 'destructive', onPress: () => Alert.alert('Signed Out', 'All other sessions have been terminated.') },
+            { text: 'Sign Out Others', style: 'destructive', onPress: () => CustomAlert.alert('Signed Out', 'All other sessions have been terminated.') },
           ],
         );
         break;
 
       case 'help':
-        Alert.alert('Help & Support', 'How can we help you?', [
+        CustomAlert.alert('Help & Support', 'How can we help you?', [
           {
             text: 'Contact IT',
-            onPress: () => Alert.alert('IT Support', 'Phone: +91 44 2345 6789\nExtension: 501\nEmail: it.support@arunpriya.com\n\nAvailable: 24/7 for doctors\nPriority: High', [
+            onPress: () => CustomAlert.alert('IT Support', 'Phone: +91 44 2345 6789\nExtension: 501\nEmail: it.support@arunpriya.com\n\nAvailable: 24/7 for doctors\nPriority: High', [
               { text: 'OK' },
               { text: 'Call Now', onPress: () => Linking.openURL('tel:+914423456789') },
             ]),
           },
           {
             text: 'User Guide',
-            onPress: () => Alert.alert('Doctor Portal Guide', 'Quick Start:\n\n1. Dashboard - View today\'s appointments and patient queue\n2. Patients - Access patient records and history\n3. Messages - Communicate with staff and patients\n\nTips:\n- Tap any appointment to view full details\n- Long-press a patient for quick actions'),
+            onPress: () => CustomAlert.alert('Doctor Portal Guide', 'Quick Start:\n\n1. Dashboard - View today\'s appointments and patient queue\n2. Patients - Access patient records and history\n3. Messages - Communicate with staff and patients\n\nTips:\n- Tap any appointment to view full details\n- Long-press a patient for quick actions'),
           },
           {
             text: 'Report a Bug',
-            onPress: () => Alert.alert('Report a Bug', 'Bug report form would open.', [
+            onPress: () => CustomAlert.alert('Report a Bug', 'Bug report form would open.', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Send Report', onPress: () => Alert.alert('Submitted', 'Bug report submitted.\nTicket: BUG-2026-0321\nPriority: High (Doctor)') },
+              { text: 'Send Report', onPress: () => CustomAlert.alert('Submitted', 'Bug report submitted.\nTicket: BUG-2026-0321\nPriority: High (Doctor)') },
             ]),
           },
           { text: 'Close', style: 'cancel' },
@@ -407,13 +409,13 @@ export default function DoctorProfileScreen() {
         break;
 
       case 'about':
-        Alert.alert(
+        CustomAlert.alert(
           'About Nalam',
           'Nalam — Doctor Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\nDeveloped for Arun Priya Hospital\n\nModules: Patient, Doctor, Pharmacist, Receptionist, Admin\n\n© 2026 Nalam Healthcare Pvt. Ltd.',
           [
             { text: 'OK' },
-            { text: 'Terms', onPress: () => Alert.alert('Terms & Conditions', 'By using the Nalam Doctor Portal, you agree to all hospital policies regarding data access and patient confidentiality.') },
-            { text: 'Privacy', onPress: () => Alert.alert('Privacy Policy', 'All patient data is encrypted. We comply with Indian healthcare data regulations and HIPAA-aligned practices.') },
+            { text: 'Terms', onPress: () => CustomAlert.alert('Terms & Conditions', 'By using the Nalam Doctor Portal, you agree to all hospital policies regarding data access and patient confidentiality.') },
+            { text: 'Privacy', onPress: () => CustomAlert.alert('Privacy Policy', 'All patient data is encrypted. We comply with Indian healthcare data regulations and HIPAA-aligned practices.') },
           ],
         );
         break;
@@ -470,6 +472,7 @@ export default function DoctorProfileScreen() {
                 <Shield size={12} color={Colors.primary} />
                 <Text className="text-primary text-xs font-bold">Doctor</Text>
               </View>
+              <RoleSwitcher />
               <View className="bg-slate-100 px-3 py-1.5 rounded-full">
                 <Text className="text-slate-600 text-xs font-bold">{liveProfile?.user?.employeeId || '—'}</Text>
               </View>

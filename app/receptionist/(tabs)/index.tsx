@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Modal, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -59,7 +60,7 @@ export default function ReceptionistDashboard() {
       setAppointments(queue.slice(0, 5)); // Dashboard shows top 5
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load dashboard data.');
+      CustomAlert.alert('Error', 'Failed to load dashboard data.');
     }
   };
 
@@ -74,13 +75,13 @@ export default function ReceptionistDashboard() {
   }, []);
 
   const handleStatPress = (stat: typeof initialStats[0]) => {
-    Alert.alert(`${stat.label} Breakdown`, stat.breakdown);
+    CustomAlert.alert(`${stat.label} Breakdown`, stat.breakdown);
   };
 
   const handleQuickAction = (index: number) => {
     switch (index) {
       case 0: // New Registration
-        Alert.alert(
+        CustomAlert.alert(
           'Quick Patient Registration',
           'Enter patient details to register:',
           [
@@ -88,12 +89,12 @@ export default function ReceptionistDashboard() {
             {
               text: 'Register Walk-in',
               onPress: () => {
-                Alert.alert(
+                CustomAlert.alert(
                   'Patient Type',
                   'Select registration type:',
                   [
-                    { text: 'New Patient', onPress: () => Alert.alert('Success', 'New patient registration initiated.\n\nPatient ID: NP-2026-0043\nPlease collect patient details at the desk.') },
-                    { text: 'Returning Patient', onPress: () => Alert.alert('Returning Patient', 'Please enter the Patient ID or search by name in the Patients tab.') },
+                    { text: 'New Patient', onPress: () => CustomAlert.alert('Success', 'New patient registration initiated.\n\nPatient ID: NP-2026-0043\nPlease collect patient details at the desk.') },
+                    { text: 'Returning Patient', onPress: () => CustomAlert.alert('Returning Patient', 'Please enter the Patient ID or search by name in the Patients tab.') },
                     { text: 'Cancel', style: 'cancel' },
                   ]
                 );
@@ -101,30 +102,30 @@ export default function ReceptionistDashboard() {
             },
             {
               text: 'Pre-registered',
-              onPress: () => Alert.alert('Pre-registered', 'Search for pre-registered patients by name or appointment ID in the Appointments tab.'),
+              onPress: () => CustomAlert.alert('Pre-registered', 'Search for pre-registered patients by name or appointment ID in the Appointments tab.'),
             },
           ]
         );
         break;
       case 1: // Instant Check-in
-        Alert.alert(
+        CustomAlert.alert(
           'Instant Check-in',
           'Scan QR code or enter Patient ID to check in:',
           [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Scan QR Code',
-              onPress: () => Alert.alert('QR Scanner', 'Camera would open for QR scanning.\n\nPatient scans their appointment QR code for instant check-in.'),
+              onPress: () => CustomAlert.alert('QR Scanner', 'Camera would open for QR scanning.\n\nPatient scans their appointment QR code for instant check-in.'),
             },
             {
               text: 'Enter Patient ID',
-              onPress: () => Alert.alert('Manual Check-in', 'Patient ID entry field would appear.\n\nEnter the patient ID (e.g., NP-2026-0043) to proceed with check-in.'),
+              onPress: () => CustomAlert.alert('Manual Check-in', 'Patient ID entry field would appear.\n\nEnter the patient ID (e.g., NP-2026-0043) to proceed with check-in.'),
             },
           ]
         );
         break;
       case 2: // Emergency
-        Alert.alert(
+        CustomAlert.alert(
           'Emergency Registration',
           'Register an emergency patient with priority flag:',
           [
@@ -132,17 +133,17 @@ export default function ReceptionistDashboard() {
             {
               text: 'Priority 1 (Critical)',
               style: 'destructive',
-              onPress: () => Alert.alert('Emergency Registered', 'Priority 1 emergency patient registered.\n\nEmergency ID: EM-2026-0012\nAll available doctors have been notified.\nEmergency room has been prepared.'),
+              onPress: () => CustomAlert.alert('Emergency Registered', 'Priority 1 emergency patient registered.\n\nEmergency ID: EM-2026-0012\nAll available doctors have been notified.\nEmergency room has been prepared.'),
             },
             {
               text: 'Priority 2 (Urgent)',
-              onPress: () => Alert.alert('Urgent Case Registered', 'Priority 2 urgent patient registered.\n\nEmergency ID: EM-2026-0013\nOn-call doctor has been notified.'),
+              onPress: () => CustomAlert.alert('Urgent Case Registered', 'Priority 2 urgent patient registered.\n\nEmergency ID: EM-2026-0013\nOn-call doctor has been notified.'),
             },
           ]
         );
         break;
       case 3: // Schedule
-        Alert.alert(
+        CustomAlert.alert(
           "Today's Schedule Summary",
           'Morning (9AM-12PM):\n' +
           '  18 appointments | 4 doctors\n\n' +
@@ -169,7 +170,7 @@ export default function ReceptionistDashboard() {
   ];
 
   const handleAppointmentPress = (apt: QueuePatient) => {
-    Alert.alert(
+    CustomAlert.alert(
       apt.patientName,
       `Doctor: ${apt.doctorName}\nTime: ${apt.time}\nType: ${apt.type}\nStatus: ${apt.status}\nPhone: ${apt.patientMobile}`,
       [
@@ -183,9 +184,9 @@ export default function ReceptionistDashboard() {
               try {
                 await receptionistService.checkInPatient(apt.id);
                 loadDashboard();
-                Alert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
+                CustomAlert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
               } catch (e) {
-                Alert.alert('Error', 'Failed to check-in patient');
+                CustomAlert.alert('Error', 'Failed to check-in patient');
               }
             }
           },
@@ -194,7 +195,7 @@ export default function ReceptionistDashboard() {
           text: 'Cancel',
           style: 'destructive',
           onPress: () => {
-            Alert.alert(
+            CustomAlert.alert(
               'Cancel Appointment',
               `Are you sure you want to cancel ${apt.patientName}'s appointment?`,
               [
@@ -203,7 +204,7 @@ export default function ReceptionistDashboard() {
                   text: 'Cancel API Not Ready',
                   style: 'destructive',
                   onPress: () => {
-                    Alert.alert('Info', 'Use the Appointments tab to access full cancel actions.');
+                    CustomAlert.alert('Info', 'Use the Appointments tab to access full cancel actions.');
                   },
                 },
               ]
@@ -222,7 +223,7 @@ export default function ReceptionistDashboard() {
       setNotifModalVisible(false);
       setTimeout(() => router.push('/receptionist/patient-arrival'), 300);
     } else {
-      Alert.alert(notif.title, `${notif.message}\n\n${notif.time}`);
+      CustomAlert.alert(notif.title, `${notif.message}\n\n${notif.time}`);
     }
   };
 
@@ -388,7 +389,7 @@ export default function ReceptionistDashboard() {
               <Pressable
                 onPress={() => {
                   setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-                  Alert.alert('Done', 'All notifications marked as read.');
+                  CustomAlert.alert('Done', 'All notifications marked as read.');
                 }}
                 className="px-6 py-2"
               >

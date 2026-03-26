@@ -1,7 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, Image,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -136,7 +135,7 @@ export default function DoctorEditProfileScreen() {
 
   const handleSelectPress = useCallback((field: FormField) => {
     if (field.options) {
-      Alert.alert(`Select ${field.label}`, '', [
+      CustomAlert.alert(`Select ${field.label}`, '', [
         { text: 'Cancel', style: 'cancel' },
         ...field.options.map((opt) => ({
           text: opt,
@@ -148,24 +147,24 @@ export default function DoctorEditProfileScreen() {
 
   const handleSave = useCallback(() => {
     if (!formData.fullName.trim()) {
-      Alert.alert('Required', 'Full name is required.');
+      CustomAlert.alert('Required', 'Full name is required.');
       return;
     }
     if (!formData.phone.trim()) {
-      Alert.alert('Required', 'Phone number is required.');
+      CustomAlert.alert('Required', 'Phone number is required.');
       return;
     }
     if (formData.email && !formData.email.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      CustomAlert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
 
-    Alert.alert('Save Changes', 'Are you sure you want to update your profile?', [
+    CustomAlert.alert('Save Changes', 'Are you sure you want to update your profile?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Save',
         onPress: () => {
-          Alert.alert('Profile Updated', 'Your profile has been updated successfully.', [
+          CustomAlert.alert('Profile Updated', 'Your profile has been updated successfully.', [
             { text: 'OK', onPress: () => router.back() },
           ]);
         },
@@ -175,7 +174,7 @@ export default function DoctorEditProfileScreen() {
 
   const handleDiscard = useCallback(() => {
     if (!hasChanges) { router.back(); return; }
-    Alert.alert('Discard Changes?', 'You have unsaved changes. Are you sure you want to go back?', [
+    CustomAlert.alert('Discard Changes?', 'You have unsaved changes. Are you sure you want to go back?', [
       { text: 'Keep Editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: () => router.back() },
     ]);
@@ -186,7 +185,7 @@ export default function DoctorEditProfileScreen() {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
+      CustomAlert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
       return;
     }
     const result = useCamera
@@ -207,7 +206,7 @@ export default function DoctorEditProfileScreen() {
     if (profileImage) {
       buttons.push({ text: 'Remove Photo', style: 'destructive' as const, onPress: () => { setProfileImage(null); setHasChanges(true); } });
     }
-    Alert.alert('Update Profile Photo', 'Choose a source:', buttons);
+    CustomAlert.alert('Update Profile Photo', 'Choose a source:', buttons);
   }, [pickImage, profileImage]);
 
   const initials = useMemo(() => {

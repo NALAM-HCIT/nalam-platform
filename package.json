@@ -8,7 +8,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:android": "eas build --platform android",
-    "build:ios": "eas build --platform ios"
+    "build:ios": "eas build --platform ios",
+    "build:hospital": "sh -c 'cp .env.$HOSPITAL .env && eas build --platform $PLATFORM --profile ${HOSPITAL:-production}'",
+    "build:arunpriya:android": "HOSPITAL=arunpriya PLATFORM=android npm run build:hospital",
+    "build:arunpriya:ios": "HOSPITAL=arunpriya PLATFORM=ios npm run build:hospital"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^7.0.0",

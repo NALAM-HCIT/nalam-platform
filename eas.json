@@ -13,7 +13,13 @@
         "buildType": "apk"
       }
     },
-    "production": {}
+    "production": {},
+    "arunpriya": {
+      "extends": "production",
+      "env": {
+        "APP_VARIANT": "arunpriya"
+      }
+    }
   },
   "submit": {
     "production": {}

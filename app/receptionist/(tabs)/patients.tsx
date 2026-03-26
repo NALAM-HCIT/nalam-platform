@@ -1,10 +1,10 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, TextInput, Modal, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, User, Phone, ChevronRight, Plus, X, Calendar, FileText, Edit3, MessageSquare } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { receptionistService, PatientSearchResult } from '@/services/receptionistService';
-
 export default function PatientsScreen() {
   const [patients, setPatients] = useState<PatientSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ export default function PatientsScreen() {
       setPatients(data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to fetch patients.');
+      CustomAlert.alert('Error', 'Failed to fetch patients.');
     } finally {
       setLoading(false);
     }
@@ -42,21 +42,21 @@ export default function PatientsScreen() {
 
   const handleRegisterPatient = async () => {
     if (!newPatientName.trim() || !newPatientMobile.trim()) {
-      Alert.alert('Validation', 'Please enter both full name and mobile number.');
+      CustomAlert.alert('Validation', 'Please enter both full name and mobile number.');
       return;
     }
 
     try {
       setLoading(true);
       const newPatient = await receptionistService.registerWalkIn(newPatientName, newPatientMobile);
-      Alert.alert('Success', `Patient ${newPatient.fullName} registered successfully.`);
+      CustomAlert.alert('Success', `Patient ${newPatient.fullName} registered successfully.`);
       setRegisterModalVisible(false);
       setNewPatientName('');
       setNewPatientMobile('');
       fetchPatients(searchQuery);
     } catch (error: any) {
       const msg = error.response?.data?.error || 'Failed to register patient.';
-      Alert.alert('Registration Failed', msg);
+      CustomAlert.alert('Registration Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -226,7 +226,7 @@ export default function PatientsScreen() {
                 {/* Action Buttons */}
                 <View className="flex-row flex-wrap gap-3 mb-6">
                   <Pressable
-                    onPress={() => Alert.alert('Call', `Calling ${selectedPatient.mobileNumber}...`)}
+                    onPress={() => CustomAlert.alert('Call', `Calling ${selectedPatient.mobileNumber}...`)}
                     className="flex-1 min-w-[45%] bg-emerald-50 rounded-2xl p-4 items-center gap-2 border border-emerald-100 active:opacity-80"
                   >
                     <Phone size={20} color="#22C55E" />
@@ -235,7 +235,7 @@ export default function PatientsScreen() {
                   <Pressable
                     onPress={() => {
                         setDetailModalVisible(false);
-                        Alert.alert('Book Appointment', 'Routing to Booking Page -> Patient Context Enabled.');
+                        CustomAlert.alert('Book Appointment', 'Routing to Booking Page -> Patient Context Enabled.');
                     }}
                     className="flex-1 min-w-[45%] bg-blue-50 rounded-2xl p-4 items-center gap-2 border border-blue-100 active:opacity-80"
                   >

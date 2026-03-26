@@ -1,10 +1,10 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Modal, TextInput, Switch } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Building, Clock, Shield, Database, Bell, Globe, ChevronRight, X, Save, ArrowLeft } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { api } from '@/services/api';
-
 type SettingPanel = null | 'hospital' | 'hours' | 'security' | 'data' | 'notifications' | 'integration';
 
 const settingsItems: { icon: any; label: string; desc: string; color: string; panel: SettingPanel }[] = [
@@ -83,18 +83,18 @@ export default function SettingsScreen() {
           { key: 'phone', value: hospitalPhone },
           { key: 'email', value: hospitalEmail }
         ]});
-        Alert.alert('Settings Saved', 'Hospital information has been updated successfully.', [{ text: 'OK' }]);
+        CustomAlert.alert('Settings Saved', 'Hospital information has been updated successfully.', [{ text: 'OK' }]);
       } catch (e) {
-        Alert.alert('Error', 'Failed to save settings.');
+        CustomAlert.alert('Error', 'Failed to save settings.');
       }
     } else {
-      Alert.alert('Settings Saved', `${section} settings have been updated successfully.`, [{ text: 'OK' }]);
+      CustomAlert.alert('Settings Saved', `${section} settings have been updated successfully.`, [{ text: 'OK' }]);
     }
     setActivePanel(null);
   };
 
   const handleBackup = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Backup Database',
       'This will create a full backup of all hospital data. The process may take a few minutes.',
       [
@@ -102,7 +102,7 @@ export default function SettingsScreen() {
         {
           text: 'Start Backup',
           onPress: () => {
-            Alert.alert('Backup Started', 'Database backup is in progress. You will be notified when complete.\n\nEstimated size: 2.4 GB\nEstimated time: 3-5 minutes');
+            CustomAlert.alert('Backup Started', 'Database backup is in progress. You will be notified when complete.\n\nEstimated size: 2.4 GB\nEstimated time: 3-5 minutes');
           },
         },
       ]
@@ -110,32 +110,32 @@ export default function SettingsScreen() {
   };
 
   const handleExport = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Export Data',
       'Select the data format for export:',
       [
-        { text: 'CSV', onPress: () => Alert.alert('Export Started', 'CSV export will be emailed to admin@arunpriya.com when ready.') },
-        { text: 'JSON', onPress: () => Alert.alert('Export Started', 'JSON export will be emailed to admin@arunpriya.com when ready.') },
-        { text: 'PDF Report', onPress: () => Alert.alert('Export Started', 'PDF report will be emailed to admin@arunpriya.com when ready.') },
+        { text: 'CSV', onPress: () => CustomAlert.alert('Export Started', 'CSV export will be emailed to admin@arunpriya.com when ready.') },
+        { text: 'JSON', onPress: () => CustomAlert.alert('Export Started', 'JSON export will be emailed to admin@arunpriya.com when ready.') },
+        { text: 'PDF Report', onPress: () => CustomAlert.alert('Export Started', 'PDF report will be emailed to admin@arunpriya.com when ready.') },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
 
   const handleClearCache = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Clear Cache',
       'This will clear all cached data. Users may experience slower load times temporarily.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: () => Alert.alert('Cache Cleared', 'All cached data has been cleared successfully.') },
+        { text: 'Clear', style: 'destructive', onPress: () => CustomAlert.alert('Cache Cleared', 'All cached data has been cleared successfully.') },
       ]
     );
   };
 
   const toggleIntegration = (index: number) => {
     const item = integrations[index];
-    Alert.alert(
+    CustomAlert.alert(
       `${item.enabled ? 'Disconnect' : 'Connect'} ${item.name}`,
       `Are you sure you want to ${item.enabled ? 'disconnect' : 'connect'} ${item.name}?`,
       [
@@ -414,7 +414,7 @@ export default function SettingsScreen() {
               </Pressable>
             ))}
             <Pressable
-              onPress={() => Alert.alert('Add Integration', 'Contact IT to set up new integrations.\n\nEmail: it-support@arunpriya.com', [{ text: 'OK' }])}
+              onPress={() => CustomAlert.alert('Add Integration', 'Contact IT to set up new integrations.\n\nEmail: it-support@arunpriya.com', [{ text: 'OK' }])}
               className="bg-white py-4 rounded-2xl items-center border border-dashed border-primary/30 mt-4 active:opacity-90"
             >
               <Text className="text-primary font-semibold">+ Add New Integration</Text>

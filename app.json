@@ -60,9 +60,10 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "nalam-app"
+        "projectId": "bda93bc1-12b9-40a1-a566-67eaa5526272"
       },
-      "hospitalId": "arunpriya"
+      "hospitalId": "arunpriya",
+      "router": {}
     },
     "scheme": "nalam",
     "sdkVersion": "55.0.0",
@@ -70,6 +71,7 @@
       "ios",
       "android",
       "web"
-    ]
+    ],
+    "owner": "sureshb11"
   }
 }

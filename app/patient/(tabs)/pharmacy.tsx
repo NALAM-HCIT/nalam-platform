@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, TextInput, Animated, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows } from '@/constants/theme';
@@ -89,7 +90,7 @@ export default function PharmacyScreen() {
   const canCancel = !orderCancelled && (lastOrder.status === 'placed' || lastOrder.status === 'processing');
 
   const handleCancelOrder = useCallback(() => {
-    Alert.alert(
+    CustomAlert.alert(
       'Cancel Order',
       `Are you sure you want to cancel Order #${lastOrder.id}?`,
       [
@@ -140,7 +141,7 @@ export default function PharmacyScreen() {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permResult.granted) {
-      Alert.alert('Permission Required', `Please allow ${source} access to upload prescriptions.`);
+      CustomAlert.alert('Permission Required', `Please allow ${source} access to upload prescriptions.`);
       return;
     }
 
@@ -154,7 +155,7 @@ export default function PharmacyScreen() {
   }, [simulateUpload]);
 
   const handleUploadPress = useCallback(() => {
-    Alert.alert('Upload Prescription', 'Choose how to upload your prescription', [
+    CustomAlert.alert('Upload Prescription', 'Choose how to upload your prescription', [
       { text: 'Take Photo', onPress: () => handlePickImage('camera') },
       { text: 'Choose from Gallery', onPress: () => handlePickImage('gallery') },
       { text: 'Cancel', style: 'cancel' },
@@ -162,7 +163,7 @@ export default function PharmacyScreen() {
   }, [handlePickImage]);
 
   const handleRemoveRx = useCallback((index: number) => {
-    Alert.alert('Remove Prescription', `Remove Prescription ${index + 1}?`, [
+    CustomAlert.alert('Remove Prescription', `Remove Prescription ${index + 1}?`, [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Remove',
@@ -173,7 +174,7 @@ export default function PharmacyScreen() {
   }, []);
 
   const handleClearAllRx = useCallback(() => {
-    Alert.alert('Clear Order', 'Remove all prescriptions and medicines from this order?', [
+    CustomAlert.alert('Clear Order', 'Remove all prescriptions and medicines from this order?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Clear',
@@ -228,7 +229,7 @@ export default function PharmacyScreen() {
       const parts: string[] = [];
       parts.push(`${rxImages.length} prescription${rxImages.length > 1 ? 's' : ''}`);
       if (cartItems.length > 0) parts.push(`${cartItems.length} medicine${cartItems.length > 1 ? 's' : ''}`);
-      Alert.alert(
+      CustomAlert.alert(
         'Sent to Pharmacy',
         `${parts.join(' + ')} sent to the pharmacy. Our pharmacist will review and prepare your order shortly.`,
       );

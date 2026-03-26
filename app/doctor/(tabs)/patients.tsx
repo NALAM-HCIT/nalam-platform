@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput,
-  Alert, ActivityIndicator, RefreshControl,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shadows, Colors } from '@/constants/theme';
 import {
@@ -55,7 +53,7 @@ const AppointmentCard = React.memo(function AppointmentCard({
   const isPast = item.status === 'completed' || item.status === 'cancelled' || item.status === 'no_show';
 
   const handlePress = () => {
-    Alert.alert(
+    CustomAlert.alert(
       item.patientName || 'Patient',
       `Booking: ${item.bookingReference}\nDate: ${formatDate(item.scheduleDate)}\nTime: ${formatTime(item.startTime)} – ${formatTime(item.endTime)}\nType: ${isVideo ? 'Video Consultation' : 'In-Person Visit'}\nStatus: ${item.status}\nFee: ₹${item.consultationFee}`,
       [{ text: 'Close' }],
@@ -172,7 +170,7 @@ export default function PatientsScreen() {
   const handleStatusChange = useCallback(
     (id: string, newStatus: string) => {
       const labels: Record<string, string> = { completed: 'Complete', no_show: 'No Show' };
-      Alert.alert(
+      CustomAlert.alert(
         `Mark as ${labels[newStatus]}?`,
         'This action cannot be undone.',
         [
@@ -184,7 +182,7 @@ export default function PatientsScreen() {
                 await changeAppointmentStatus(id, newStatus);
                 await fetchData();
               } catch (err: any) {
-                Alert.alert('Error', err.response?.data?.error || 'Failed to update status.');
+                CustomAlert.alert('Error', err.response?.data?.error || 'Failed to update status.');
               }
             },
           },

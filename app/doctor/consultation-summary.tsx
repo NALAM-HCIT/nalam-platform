@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
@@ -56,10 +54,10 @@ export default function ConsultationSummaryScreen() {
 
   const handleFinalize = async () => {
     if (!diagnosis.trim()) {
-      Alert.alert('Required', 'Please enter the diagnosis before finalizing.');
+      CustomAlert.alert('Required', 'Please enter the diagnosis before finalizing.');
       return;
     }
-    Alert.alert(
+    CustomAlert.alert(
       'Finalize Consultation?',
       'This will mark the appointment as completed and cannot be undone.',
       [
@@ -78,7 +76,7 @@ export default function ConsultationSummaryScreen() {
                 },
               });
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.error || 'Failed to finalize consultation.');
+              CustomAlert.alert('Error', err.response?.data?.error || 'Failed to finalize consultation.');
             } finally {
               setSubmitting(false);
             }

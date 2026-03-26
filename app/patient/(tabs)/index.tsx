@@ -1,8 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  View, Text, ScrollView, Pressable, Image, Switch, Modal,
-  Alert, Animated, RefreshControl, Dimensions,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, Switch, Modal, Animated, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -395,7 +393,7 @@ export default function PatientDashboard() {
   };
 
   const handleOverdueAction = (task: CareTask) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Overdue Task',
       `"${task.title}" was due at ${task.scheduledTime}.\n\nWhat would you like to do?`,
       [
@@ -403,7 +401,7 @@ export default function PatientDashboard() {
           text: 'Log Late Dose',
           onPress: () => {
             handleCompleteTask(task.id);
-            Alert.alert('Logged', `${task.title} has been logged as taken late. Your doctor will see this in your adherence report.`);
+            CustomAlert.alert('Logged', `${task.title} has been logged as taken late. Your doctor will see this in your adherence report.`);
           },
         },
         {
@@ -411,14 +409,14 @@ export default function PatientDashboard() {
           style: 'destructive',
           onPress: () => {
             setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'missed' as TaskStatus } : t));
-            Alert.alert('Skipped', `${task.title} has been marked as skipped. Remember: don't double your next dose.`);
+            CustomAlert.alert('Skipped', `${task.title} has been marked as skipped. Remember: don't double your next dose.`);
           },
         },
         {
           text: 'Snooze 1 Hour',
           onPress: () => {
             setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'snoozed' as TaskStatus } : t));
-            Alert.alert('Snoozed', `We'll remind you about ${task.title} in 1 hour.`);
+            CustomAlert.alert('Snoozed', `We'll remind you about ${task.title} in 1 hour.`);
           },
         },
         { text: 'Cancel', style: 'cancel' },
@@ -428,11 +426,11 @@ export default function PatientDashboard() {
 
   const handleTaskPress = (task: CareTask) => {
     if (task.status === 'completed') {
-      Alert.alert('Completed', `${task.title} was completed successfully.${task.dosage ? '\n\nNext dose: ' + (task.timeOfDay === 'morning' ? 'Evening' : 'Tomorrow Morning') : ''}`);
+      CustomAlert.alert('Completed', `${task.title} was completed successfully.${task.dosage ? '\n\nNext dose: ' + (task.timeOfDay === 'morning' ? 'Evening' : 'Tomorrow Morning') : ''}`);
       return;
     }
     if (task.status === 'missed') {
-      Alert.alert('Missed', `${task.title} was skipped. This has been noted in your adherence log.`);
+      CustomAlert.alert('Missed', `${task.title} was skipped. This has been noted in your adherence log.`);
       return;
     }
     if (task.status === 'overdue') {
@@ -440,7 +438,7 @@ export default function PatientDashboard() {
       return;
     }
     if (task.category === 'vitals') {
-      Alert.alert(
+      CustomAlert.alert(
         'Log Vitals',
         `Ready to log your ${task.title.replace('Log ', '')}?`,
         [
@@ -448,7 +446,7 @@ export default function PatientDashboard() {
           {
             text: 'Enter Reading',
             onPress: () => {
-              Alert.alert(
+              CustomAlert.alert(
                 'Enter Reading',
                 task.title.includes('Blood Pressure')
                   ? 'Enter your BP reading:\n\nSystolic: ___  Diastolic: ___\n\n(This would open a numeric input form in production)'
@@ -461,7 +459,7 @@ export default function PatientDashboard() {
                     text: 'Save 120/80',
                     onPress: () => {
                       handleCompleteTask(task.id);
-                      Alert.alert('Saved!', `Your ${task.title.replace('Log ', '')} reading has been recorded and synced with your doctor's dashboard.\n\nReading: ${task.title.includes('Blood Pressure') ? '120/80 mmHg' : '105 mg/dL'}\nTime: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+                      CustomAlert.alert('Saved!', `Your ${task.title.replace('Log ', '')} reading has been recorded and synced with your doctor's dashboard.\n\nReading: ${task.title.includes('Blood Pressure') ? '120/80 mmHg' : '105 mg/dL'}\nTime: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
                     },
                   },
                 ]
@@ -473,7 +471,7 @@ export default function PatientDashboard() {
       return;
     }
     if (task.category === 'hydration') {
-      Alert.alert(
+      CustomAlert.alert(
         'Water Intake',
         'Log a glass of water?',
         [
@@ -482,14 +480,14 @@ export default function PatientDashboard() {
             text: '+1 Glass',
             onPress: () => {
               setTasks(prev => prev.map(t => t.id === task.id ? { ...t, subtitle: '6 of 8 glasses done' } : t));
-              Alert.alert('Logged!', 'Great job staying hydrated! 6 of 8 glasses done.');
+              CustomAlert.alert('Logged!', 'Great job staying hydrated! 6 of 8 glasses done.');
             },
           },
           {
             text: '+2 Glasses',
             onPress: () => {
               setTasks(prev => prev.map(t => t.id === task.id ? { ...t, subtitle: '7 of 8 glasses done' } : t));
-              Alert.alert('Logged!', 'Almost there! 7 of 8 glasses done.');
+              CustomAlert.alert('Logged!', 'Almost there! 7 of 8 glasses done.');
             },
           },
         ]
@@ -497,7 +495,7 @@ export default function PatientDashboard() {
       return;
     }
     // Medicine or physio/diet pending
-    Alert.alert(
+    CustomAlert.alert(
       task.title,
       `${task.subtitle || ''}\n\nScheduled: ${task.scheduledTime}${task.dosage ? '\n\nToday\'s schedule:\n' + formatDosageText(task.dosage) : ''}`,
       [
@@ -519,20 +517,20 @@ export default function PatientDashboard() {
   };
 
   const handleConnectWatch = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Connect Your Watch',
       'Pair your smartwatch to unlock Heart Rate and SpO2 monitoring.\n\nSupported devices:\n- Apple Watch (Series 4+)\n- Samsung Galaxy Watch\n- Fitbit Sense / Versa 3+\n- Garmin Venu / Forerunner\n- Any Bluetooth LE health device',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Open Bluetooth Settings',
-          onPress: () => Alert.alert('Bluetooth', 'Opening Bluetooth settings...\n\n(In production, this would open system Bluetooth pairing.)'),
+          onPress: () => CustomAlert.alert('Bluetooth', 'Opening Bluetooth settings...\n\n(In production, this would open system Bluetooth pairing.)'),
         },
         {
           text: 'Simulate Pairing',
           onPress: () => {
             setWatchConnected(true);
-            Alert.alert('Watch Connected!', 'Your smartwatch has been paired successfully.\n\nHeart Rate and SpO2 are now being monitored in real-time.\n\nDevice: Apple Watch Series 9\nBattery: 82%');
+            CustomAlert.alert('Watch Connected!', 'Your smartwatch has been paired successfully.\n\nHeart Rate and SpO2 are now being monitored in real-time.\n\nDevice: Apple Watch Series 9\nBattery: 82%');
           },
         },
       ]
@@ -540,7 +538,7 @@ export default function PatientDashboard() {
   };
 
   const handleTapToPair = (vital: string) => {
-    Alert.alert(
+    CustomAlert.alert(
       `${vital} Unavailable`,
       `${vital} requires a connected smartwatch to measure.\n\nYour watch appears to be disconnected or out of range.`,
       [
@@ -556,20 +554,20 @@ export default function PatientDashboard() {
       'SpO2': 'Current: 98%\nAvg today: 97.5%\nLowest today: 96%\n\nStatus: Normal (95-100%)\nLast synced: 2 min ago',
       'Activity': 'Steps today: 6,400 / 10,000\nDistance: 4.2 km\nCalories: 280 kcal\nActive mins: 42\n\nGoal progress: 64%',
     };
-    Alert.alert(vital, details[vital] || '', [
+    CustomAlert.alert(vital, details[vital] || '', [
       { text: 'OK' },
       { text: 'View Trends', onPress: () => router.push('/patient/(tabs)/records' as any) },
     ]);
   };
 
   const handleStepNudge = () => {
-    Alert.alert(
+    CustomAlert.alert(
       'Step Goal Nudge',
       'You\'re 3,600 steps away from your daily goal of 10,000 steps.\n\nTip: A 20-minute evening walk can help you reach your goal and also improves post-dinner blood sugar levels.',
       [
         { text: 'Dismiss', onPress: () => setShowNudge(false) },
         { text: 'Start Walk Timer', onPress: () => {
-          Alert.alert('Walk Timer', 'Timer started for 20 minutes.\n\nWe\'ll notify you when time is up. Enjoy your walk!');
+          CustomAlert.alert('Walk Timer', 'Timer started for 20 minutes.\n\nWe\'ll notify you when time is up. Enjoy your walk!');
           setShowNudge(false);
         }},
       ]
@@ -580,7 +578,7 @@ export default function PatientDashboard() {
     setRefreshing(true);
     setTimeout(() => {
       setRefreshing(false);
-      Alert.alert('Synced', 'Your care plan and vitals have been refreshed.');
+      CustomAlert.alert('Synced', 'Your care plan and vitals have been refreshed.');
     }, 1500);
   };
 
@@ -647,7 +645,7 @@ export default function PatientDashboard() {
               {userName || 'David Miller'}
             </Text>
             <Pressable
-              onPress={() => Alert.alert('Adherence Streak', `You've completed your care plan for ${streak} consecutive days!\n\nCurrent streak: ${streak} days\nBest streak: 14 days\nTotal adherent days: 42/50\n\nKeep it up! Consistent care leads to better outcomes.`)}
+              onPress={() => CustomAlert.alert('Adherence Streak', `You've completed your care plan for ${streak} consecutive days!\n\nCurrent streak: ${streak} days\nBest streak: 14 days\nTotal adherent days: 42/50\n\nKeep it up! Consistent care leads to better outcomes.`)}
               className="flex-row items-center gap-1 px-2.5 py-1 rounded-full active:opacity-70"
               style={{ backgroundColor: '#FEF3C7' }}
             >
@@ -680,16 +678,16 @@ export default function PatientDashboard() {
                     onPress={() => {
                       setMood(m.key);
                       if (m.key === 'unwell' || m.key === 'pain') {
-                        Alert.alert(
+                        CustomAlert.alert(
                           'We\'re sorry to hear that',
                           `Your care team has been notified that you're feeling ${m.label.toLowerCase()} today.\n\nWould you like to talk to someone?`,
                           [
                             { text: 'I\'m Okay', style: 'cancel' },
-                            { text: 'Call Doctor', onPress: () => Alert.alert('Calling...', 'Connecting you with Dr. Aruna Devi...') },
+                            { text: 'Call Doctor', onPress: () => CustomAlert.alert('Calling...', 'Connecting you with Dr. Aruna Devi...') },
                           ]
                         );
                       } else {
-                        Alert.alert('Logged!', `Feeling ${m.label.toLowerCase()} — noted! Your doctor can see your daily check-ins.`);
+                        CustomAlert.alert('Logged!', `Feeling ${m.label.toLowerCase()} — noted! Your doctor can see your daily check-ins.`);
                       }
                     }}
                     className="items-center active:opacity-70"
@@ -750,7 +748,7 @@ export default function PatientDashboard() {
                 <View className="items-center mb-3">
                   {/* Ring + Center CTA */}
                   <Pressable
-                    onPress={() => actionTask ? handleTaskPress(actionTask) : Alert.alert('All Done!', 'You\'ve completed every task on your care plan today. Amazing work! Your doctor can see your 100% adherence.')}
+                    onPress={() => actionTask ? handleTaskPress(actionTask) : CustomAlert.alert('All Done!', 'You\'ve completed every task on your care plan today. Amazing work! Your doctor can see your 100% adherence.')}
                     className="items-center justify-center active:scale-95"
                     style={{ width: 110, height: 110 }}
                   >
@@ -956,9 +954,9 @@ export default function PatientDashboard() {
         {/* ── Daily Health Tip ── */}
         <View className="px-5 mb-3">
           <Pressable
-            onPress={() => Alert.alert('Daily Health Tip', currentTip.tip + '\n\nSource: WHO Wellness Guidelines\n\nTap "More Tips" to see our complete health tip library.', [
+            onPress={() => CustomAlert.alert('Daily Health Tip', currentTip.tip + '\n\nSource: WHO Wellness Guidelines\n\nTap "More Tips" to see our complete health tip library.', [
               { text: 'OK' },
-              { text: 'More Tips', onPress: () => Alert.alert('Health Tips Library', healthTips.map((t, i) => `${i + 1}. ${t.tip}`).join('\n\n')) },
+              { text: 'More Tips', onPress: () => CustomAlert.alert('Health Tips Library', healthTips.map((t, i) => `${i + 1}. ${t.tip}`).join('\n\n')) },
             ])}
             className="bg-white rounded-xl px-3.5 py-3 flex-row items-center gap-2.5 active:opacity-80"
             style={Shadows.card}
@@ -986,7 +984,7 @@ export default function PatientDashboard() {
                   value={shareLive}
                   onValueChange={(val) => {
                     setShareLive(val);
-                    Alert.alert(val ? 'Remote Sharing On' : 'Remote Sharing Off', val
+                    CustomAlert.alert(val ? 'Remote Sharing On' : 'Remote Sharing Off', val
                       ? 'Your vitals are now visible to your care team in real-time.'
                       : 'Remote sharing has been paused. Your doctor will see the last synced readings.');
                   }}
@@ -1111,10 +1109,10 @@ export default function PatientDashboard() {
         {/* ── Weekly Adherence ── */}
         <View className="px-5 mb-3">
           <Pressable
-            onPress={() => Alert.alert(
+            onPress={() => CustomAlert.alert(
               'Weekly Adherence',
               'This Week\'s Performance:\n\nMon: 10/10 tasks (100%)\nTue: 9/10 tasks (90%)\nWed: 10/10 tasks (100%)\nThu: 8/10 tasks (80%)\nFri: 10/10 tasks (100%)\nSat: 9/10 tasks (90%)\nSun (today): ' + completedTasks + '/' + totalTasks + ' tasks (' + Math.round(progress * 100) + '%)\n\nWeekly average: 93%\n\nYour doctor sees this report. Great consistency!',
-              [{ text: 'OK' }, { text: 'Share with Family', onPress: () => Alert.alert('Shared', 'Your weekly health report has been shared with your emergency contacts.') }]
+              [{ text: 'OK' }, { text: 'Share with Family', onPress: () => CustomAlert.alert('Shared', 'Your weekly health report has been shared with your emergency contacts.') }]
             )}
             className="bg-white rounded-2xl px-4 py-3 flex-row items-center gap-3 active:opacity-80"
             style={Shadows.card}
@@ -1212,7 +1210,7 @@ export default function PatientDashboard() {
                     key={n.id}
                     onPress={() => {
                       setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
-                      Alert.alert(n.title, n.body);
+                      CustomAlert.alert(n.title, n.body);
                     }}
                     className="flex-row items-start gap-3 py-3 active:opacity-70"
                     style={{ borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}

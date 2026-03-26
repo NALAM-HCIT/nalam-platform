@@ -1,5 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, TextInput, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Calendar, Clock, User, Search, Plus, Phone } from 'lucide-react-native';
@@ -30,7 +31,7 @@ export default function AppointmentsScreen() {
       setAppointments(data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load live appointments for today.');
+      CustomAlert.alert('Error', 'Failed to load live appointments for today.');
     }
   };
 
@@ -59,7 +60,7 @@ export default function AppointmentsScreen() {
   }, [appointments, activeFilter, searchQuery]);
 
   const handleAddAppointment = () => {
-    Alert.alert('New Registration', 'Directing you to the patient lookup to register a walk-in.', [
+    CustomAlert.alert('New Registration', 'Directing you to the patient lookup to register a walk-in.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Go to Patients', onPress: () => router.push('/receptionist/(tabs)/patients') }
     ]);
@@ -69,11 +70,11 @@ export default function AppointmentsScreen() {
     const detailText = `Ref: ${apt.bookingReference}\nPatient: ${apt.patientName}\nDoctor: ${apt.doctorName}\nTime: ${apt.time}\nType: ${apt.type}\nStatus: ${apt.status.toUpperCase()}`;
 
     if (apt.status === 'pending' || apt.status === 'confirmed') {
-      Alert.alert(apt.patientName, detailText, [
+      CustomAlert.alert(apt.patientName, detailText, [
         { text: 'Dismiss' },
         {
           text: 'Call Patient',
-          onPress: () => Alert.alert('Calling', `Dialing ${apt.patientMobile}...\n\nCall initiated to ${apt.patientName}.`),
+          onPress: () => CustomAlert.alert('Calling', `Dialing ${apt.patientMobile}...\n\nCall initiated to ${apt.patientName}.`),
         },
         {
           text: 'Check In',
@@ -84,24 +85,24 @@ export default function AppointmentsScreen() {
               try {
                 await receptionistService.checkInPatient(apt.id);
                 loadAppointments();
-                Alert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
+                CustomAlert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
               } catch (e) {
-                Alert.alert('Error', 'Failed to check-in patient');
+                CustomAlert.alert('Error', 'Failed to check-in patient');
               }
             }
           },
         },
       ]);
     } else if (apt.status === 'arrived') {
-      Alert.alert(apt.patientName, detailText, [
+      CustomAlert.alert(apt.patientName, detailText, [
         { text: 'Dismiss' },
         {
           text: 'Inform Doctor',
-          onPress: () => Alert.alert('Sent', `${apt.doctorName} has been notified that ${apt.patientName} is waiting in the lobby.`),
+          onPress: () => CustomAlert.alert('Sent', `${apt.doctorName} has been notified that ${apt.patientName} is waiting in the lobby.`),
         }
       ]);
     } else {
-      Alert.alert(apt.patientName, detailText, [{ text: 'Dismiss' }]);
+      CustomAlert.alert(apt.patientName, detailText, [{ text: 'Dismiss' }]);
     }
   };
 

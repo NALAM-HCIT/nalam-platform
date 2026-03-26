@@ -1,11 +1,11 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Modal, TextInput, Alert, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, FileText, X, User, Stethoscope, Pill, Clock } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
 import { pharmacistService, PrescriptionItem } from '@/services/pharmacistService';
-
 type RxFilter = 'all' | 'pending' | 'dispensed' | 'rejected';
 
 const filterTabs: { label: string; value: RxFilter }[] = [
@@ -33,7 +33,7 @@ export default function PrescriptionsScreen() {
       setPrescriptions(data);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load prescriptions.');
+      CustomAlert.alert('Error', 'Failed to load prescriptions.');
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export default function PrescriptionsScreen() {
   };
 
   const handleDispense = async (rx: PrescriptionItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Confirm Dispense',
       `Dispense prescription for ${rx.patientName}?\n\nRef: ${rx.bookingReference}`,
       [
@@ -72,8 +72,8 @@ export default function PrescriptionsScreen() {
               setShowDetail(false);
               setSelectedRx(null);
               loadPrescriptions();
-              Alert.alert('Dispensed', `${rx.bookingReference} has been dispensed.`);
-            } catch (e) { Alert.alert('Error', 'Failed to dispense.'); }
+              CustomAlert.alert('Dispensed', `${rx.bookingReference} has been dispensed.`);
+            } catch (e) { CustomAlert.alert('Error', 'Failed to dispense.'); }
           },
         },
       ]
@@ -81,7 +81,7 @@ export default function PrescriptionsScreen() {
   };
 
   const handleReject = async (rx: PrescriptionItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Reject Prescription',
       `Reject ${rx.bookingReference} for ${rx.patientName}?`,
       [
@@ -95,8 +95,8 @@ export default function PrescriptionsScreen() {
               setShowDetail(false);
               setSelectedRx(null);
               loadPrescriptions();
-              Alert.alert('Rejected', `${rx.bookingReference} rejected.`);
-            } catch (e) { Alert.alert('Error', 'Failed to reject.'); }
+              CustomAlert.alert('Rejected', `${rx.bookingReference} rejected.`);
+            } catch (e) { CustomAlert.alert('Error', 'Failed to reject.'); }
           },
         },
         {
@@ -108,8 +108,8 @@ export default function PrescriptionsScreen() {
               setShowDetail(false);
               setSelectedRx(null);
               loadPrescriptions();
-              Alert.alert('Rejected', `${rx.bookingReference} rejected — meds unavailable.`);
-            } catch (e) { Alert.alert('Error', 'Failed to reject.'); }
+              CustomAlert.alert('Rejected', `${rx.bookingReference} rejected — meds unavailable.`);
+            } catch (e) { CustomAlert.alert('Error', 'Failed to reject.'); }
           },
         },
       ]

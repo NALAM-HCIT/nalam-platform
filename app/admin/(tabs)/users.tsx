@@ -1,7 +1,6 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, Alert, Modal, Linking,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Modal, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -19,6 +18,7 @@ type UserItem = {
   id: string;
   name: string;
   role: string;
+  roles: string[];
   department: string;
   status: 'active' | 'inactive';
   phone: string;
@@ -92,11 +92,16 @@ const UserCard = React.memo(function UserCard({ user, onPress, onActionPress }: 
         </View>
         <View className="flex-1">
           <Text className="font-bold text-sm text-midnight">{user.name}</Text>
-          <View className="flex-row items-center gap-2 mt-1">
-            <View className="flex-row items-center gap-1">
-              <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: roleColor.dot }} />
-              <Text className="text-xs font-medium" style={{ color: roleColor.text }}>{user.role}</Text>
-            </View>
+          <View className="flex-row items-center gap-1.5 mt-1 flex-wrap">
+            {user.roles.map((r) => {
+              const rc = ROLE_COLORS[r] || ROLE_COLORS.Admin;
+              return (
+                <View key={r} className="flex-row items-center gap-1 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: rc.bg }}>
+                  <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: rc.dot }} />
+                  <Text className="text-[10px] font-semibold" style={{ color: rc.text }}>{r}</Text>
+                </View>
+              );
+            })}
             <Text className="text-slate-300">|</Text>
             <Text className="text-xs text-slate-400">{user.department}</Text>
           </View>
@@ -167,18 +172,25 @@ export default function UsersScreen() {
   const fetchUsers = useCallback(async () => {
     try {
       const res = await api.get('/admin/users');
-      const apiUsers = res.data.users.map((u: any) => ({
-        id: u.id,
-        name: u.fullName,
-        role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
-        department: u.department || 'General',
-        status: u.status,
-        phone: u.mobileNumber,
-        email: u.email || 'N/A',
-        employeeId: u.employeeId || 'N/A',
-        joinDate: new Date(u.createdAt).toISOString().split('T')[0]
-      }));
-      setUsers(apiUsers);
+      const apiUsers = res.data.users.map((u: any) => {
+        const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+        const roles: string[] = (u.roles && u.roles.length > 0)
+          ? u.roles.map((r: string) => capitalize(r))
+          : [capitalize(u.role)];
+        return {
+          id: u.id,
+          name: u.fullName,
+          role: capitalize(u.role),
+          roles,
+          department: u.department || 'General',
+          status: u.status,
+          phone: u.mobileNumber,
+          email: u.email || 'N/A',
+          employeeId: u.employeeId || 'N/A',
+          joinDate: new Date(u.createdAt).toISOString().split('T')[0],
+        };
+      });
+      setUsers(apiUsers.filter((u: UserItem) => u.role.toLowerCase() !== 'patient'));
     } catch (e) {
       console.log('Failed to fetch users', e);
     }
@@ -191,7 +203,7 @@ export default function UsersScreen() {
   const filteredUsers = useMemo(() => {
     let result = users;
     if (selectedFilter !== 'All') {
-      result = result.filter((u) => u.role === selectedFilter);
+      result = result.filter((u) => u.roles.includes(selectedFilter));
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -218,7 +230,7 @@ export default function UsersScreen() {
     const user = users.find((u) => u.id === userId);
     if (!user) return;
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
-    Alert.alert(
+    CustomAlert.alert(
       `${newStatus === 'active' ? 'Activate' : 'Deactivate'} User`,
       `Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} ${user.name}?`,
       [
@@ -231,9 +243,9 @@ export default function UsersScreen() {
               await api.patch(`/admin/users/${userId}/status`, { status: newStatus });
               setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
               setSelectedUser((prev) => prev?.id === userId ? { ...prev, status: newStatus } : prev);
-              Alert.alert('Success', `${user.name} has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`);
+              CustomAlert.alert('Success', `${user.name} has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`);
             } catch (error) {
-              Alert.alert('Error', 'Failed to update user status.');
+              CustomAlert.alert('Error', 'Failed to update user status.');
             }
           },
         },
@@ -242,7 +254,7 @@ export default function UsersScreen() {
   }, [users]);
 
   const handleDeleteUser = useCallback((user: UserItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Remove User',
       `Are you sure you want to remove ${user.name}? This action cannot be undone.`,
       [
@@ -256,9 +268,9 @@ export default function UsersScreen() {
               setUsers((prev) => prev.filter((u) => u.id !== user.id));
               setShowUserDetail(false);
               setSelectedUser(null);
-              Alert.alert('Removed', `${user.name} has been removed from the system.`);
+              CustomAlert.alert('Removed', `${user.name} has been removed from the system.`);
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.error || 'Failed to remove user.');
+              CustomAlert.alert('Error', error.response?.data?.error || 'Failed to remove user.');
             }
           },
         },
@@ -267,7 +279,7 @@ export default function UsersScreen() {
   }, []);
 
   const handleEditRole = useCallback((user: UserItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Change Role',
       `Current role: ${user.role}\n\nSelect new role for ${user.name}:`,
       [
@@ -280,9 +292,9 @@ export default function UsersScreen() {
                 await api.patch(`/admin/users/${user.id}/role`, { role: role.toLowerCase() });
                 setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
                 setSelectedUser((prev) => prev?.id === user.id ? { ...prev, role } : prev);
-                Alert.alert('Role Updated', `${user.name} is now a ${role}.`);
+                CustomAlert.alert('Role Updated', `${user.name} is now a ${role}.`);
               } catch (error: any) {
-                Alert.alert('Error', 'Failed to change role.');
+                CustomAlert.alert('Error', 'Failed to change role.');
               }
             },
           })),
@@ -292,21 +304,21 @@ export default function UsersScreen() {
   }, []);
 
   const handleResetPassword = useCallback((user: UserItem) => {
-    Alert.alert(
+    CustomAlert.alert(
       'Reset Password',
       `Send a password reset link to ${user.email}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Send Reset',
-          onPress: () => Alert.alert('Email Sent', `Password reset link sent to ${user.email}.`),
+          onPress: () => CustomAlert.alert('Email Sent', `Password reset link sent to ${user.email}.`),
         },
       ]
     );
   }, []);
 
   const handleUserActions = useCallback((user: UserItem) => {
-    Alert.alert(user.name, `${user.role} | ${user.department}`, [
+    CustomAlert.alert(user.name, `${user.role} | ${user.department}`, [
       { text: 'View Details', onPress: () => handleUserPress(user) },
       { text: 'Change Role', onPress: () => handleEditRole(user) },
       { text: 'Reset Password', onPress: () => handleResetPassword(user) },
@@ -440,12 +452,15 @@ export default function UsersScreen() {
                     </Text>
                   </View>
                   <Text className="text-xl font-extrabold text-midnight">{selectedUser.name}</Text>
-                  <View className="flex-row items-center gap-2 mt-1.5">
-                    <View className="px-3 py-1 rounded-full" style={{ backgroundColor: (ROLE_COLORS[selectedUser.role] || ROLE_COLORS.Admin).bg }}>
-                      <Text className="text-xs font-bold" style={{ color: (ROLE_COLORS[selectedUser.role] || ROLE_COLORS.Admin).text }}>
-                        {selectedUser.role}
-                      </Text>
-                    </View>
+                  <View className="flex-row items-center gap-2 mt-1.5 flex-wrap justify-center">
+                    {selectedUser.roles.map((r) => {
+                      const rc = ROLE_COLORS[r] || ROLE_COLORS.Admin;
+                      return (
+                        <View key={r} className="px-3 py-1 rounded-full" style={{ backgroundColor: rc.bg }}>
+                          <Text className="text-xs font-bold" style={{ color: rc.text }}>{r}</Text>
+                        </View>
+                      );
+                    })}
                     <StatusChip
                       label={selectedUser.status === 'active' ? 'ACTIVE' : 'INACTIVE'}
                       variant={selectedUser.status === 'active' ? 'success' : 'neutral'}

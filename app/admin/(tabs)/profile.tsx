@@ -1,9 +1,11 @@
+import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, Linking, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
+import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { Shadows, Colors } from '@/constants/theme';
 import { api } from '@/services/api';
 import {
@@ -124,7 +126,7 @@ const MenuRow = React.memo(function MenuRow({
 
 export default function AdminProfileScreen() {
   const router = useRouter();
-  const { userName, phone, userId, role, logout } = useAuthStore();
+  const { userName, phone, role, logout } = useAuthStore();
   
   const [adminInfo, setAdminInfo] = useState(ADMIN_INFO);
 
@@ -159,15 +161,15 @@ export default function AdminProfileScreen() {
 
   const pickImage = useCallback(async (useCamera: boolean) => {
     const perm = useCamera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission Required', 'Please allow access in settings.'); return; }
+    if (!perm.granted) { CustomAlert.alert('Permission Required', 'Please allow access in settings.'); return; }
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 })
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled && result.assets[0]) { setProfileImage(result.assets[0].uri); Alert.alert('Success', 'Profile photo updated!'); }
+    if (!result.canceled && result.assets[0]) { setProfileImage(result.assets[0].uri); CustomAlert.alert('Success', 'Profile photo updated!'); }
   }, []);
 
   const handleChangePhoto = useCallback(() => {
-    Alert.alert('Update Profile Photo', 'Choose a source:', [
+    CustomAlert.alert('Update Profile Photo', 'Choose a source:', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Take Photo', onPress: () => pickImage(true) },
       { text: 'Choose from Gallery', onPress: () => pickImage(false) },
@@ -179,7 +181,7 @@ export default function AdminProfileScreen() {
   }, [router]);
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Log Out', 'Are you sure you want to log out of the admin portal?', [
+    CustomAlert.alert('Log Out', 'Are you sure you want to log out of the admin portal?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log Out', style: 'destructive', onPress: () => { logout(); router.replace('/'); } },
     ]);
@@ -188,16 +190,16 @@ export default function AdminProfileScreen() {
   const handleStatPress = useCallback((label: string) => {
     switch (label) {
       case 'Actions':
-        Alert.alert('Admin Actions Today', 'Total: 156\n\nUser Management: 12\nConfiguration Changes: 8\nApprovals: 24\nReport Views: 45\nSystem Checks: 67');
+        CustomAlert.alert('Admin Actions Today', 'Total: 156\n\nUser Management: 12\nConfiguration Changes: 8\nApprovals: 24\nReport Views: 45\nSystem Checks: 67');
         break;
       case 'Session':
-        Alert.alert('Session Info', 'Current Session: 4.2 hours\n\nLogin Time: 8:30 AM\nLast Activity: Just now\nDevice: iPhone 15 Pro\nIP: 192.168.1.xxx');
+        CustomAlert.alert('Session Info', 'Current Session: 4.2 hours\n\nLogin Time: 8:30 AM\nLast Activity: Just now\nDevice: iPhone 15 Pro\nIP: 192.168.1.xxx');
         break;
       case 'Users':
-        Alert.alert('Users Added', 'This Month: 12\n\nDoctors: 3\nReceptionists: 4\nPharmacists: 2\nAdmins: 1\nOther Staff: 2');
+        CustomAlert.alert('Users Added', 'This Month: 12\n\nDoctors: 3\nReceptionists: 4\nPharmacists: 2\nAdmins: 1\nOther Staff: 2');
         break;
       case 'Alerts':
-        Alert.alert('System Alerts', '3 active alerts:\n\n1. Server disk space at 85%\n2. 2 failed login attempts (Dr. Rajesh)\n3. Backup pending — last: 23 hours ago');
+        CustomAlert.alert('System Alerts', '3 active alerts:\n\n1. Server disk space at 85%\n2. 2 failed login attempts (Dr. Rajesh)\n3. Backup pending — last: 23 hours ago');
         break;
     }
   }, []);
@@ -205,101 +207,101 @@ export default function AdminProfileScreen() {
   const handleMenuPress = useCallback((actionId: string) => {
     switch (actionId) {
       case 'user_management':
-        Alert.alert('User Management', 'Active Accounts: 45\n\nDoctors: 12\nReceptionists: 8\nPharmacists: 5\nAdmins: 3\nLab Technicians: 7', [
+        CustomAlert.alert('User Management', 'Active Accounts: 45\n\nDoctors: 12\nReceptionists: 8\nPharmacists: 5\nAdmins: 3\nLab Technicians: 7', [
           { text: 'OK' },
           { text: 'Add User', onPress: () => router.push('/admin/create-user') },
-          { text: 'Deactivate', onPress: () => Alert.alert('Deactivate User', 'Select user to deactivate:\n\n(User search would open in production)', [
+          { text: 'Deactivate', onPress: () => CustomAlert.alert('Deactivate User', 'Select user to deactivate:\n\n(User search would open in production)', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Search', onPress: () => Alert.alert('Search', 'User search interface would open.') },
+            { text: 'Search', onPress: () => CustomAlert.alert('Search', 'User search interface would open.') },
           ]) },
         ]);
         break;
 
       case 'system_config':
-        Alert.alert('System Configuration', 'Hospital Settings:', [
-          { text: 'Hospital Info', onPress: () => Alert.alert('Hospital Info', 'Name: Arun Priya Multispeciality Hospital\nAddress: Anna Nagar, Chennai\nPhone: +91 44 2345 6789\nEmail: info@arunpriya.com\n\nBeds: 200 | OPD Rooms: 25\nOperating Theatres: 6\nICU Beds: 30') },
-          { text: 'Working Hours', onPress: () => Alert.alert('Working Hours', 'OPD: 8:00 AM - 8:00 PM\nEmergency: 24/7\nPharmacy: 8:00 AM - 10:00 PM\nLab: 7:00 AM - 9:00 PM\nAdmin: 9:00 AM - 6:00 PM') },
-          { text: 'Fee Structure', onPress: () => Alert.alert('Fees', 'Consultation: Rs. 500 - Rs. 2,000\nEmergency: Rs. 1,500\nLab Tests: As per panel\nPharmacy: MRP - 10% discount\n\nLast updated: Mar 15, 2026') },
+        CustomAlert.alert('System Configuration', 'Hospital Settings:', [
+          { text: 'Hospital Info', onPress: () => CustomAlert.alert('Hospital Info', 'Name: Arun Priya Multispeciality Hospital\nAddress: Anna Nagar, Chennai\nPhone: +91 44 2345 6789\nEmail: info@arunpriya.com\n\nBeds: 200 | OPD Rooms: 25\nOperating Theatres: 6\nICU Beds: 30') },
+          { text: 'Working Hours', onPress: () => CustomAlert.alert('Working Hours', 'OPD: 8:00 AM - 8:00 PM\nEmergency: 24/7\nPharmacy: 8:00 AM - 10:00 PM\nLab: 7:00 AM - 9:00 PM\nAdmin: 9:00 AM - 6:00 PM') },
+          { text: 'Fee Structure', onPress: () => CustomAlert.alert('Fees', 'Consultation: Rs. 500 - Rs. 2,000\nEmergency: Rs. 1,500\nLab Tests: As per panel\nPharmacy: MRP - 10% discount\n\nLast updated: Mar 15, 2026') },
           { text: 'Close', style: 'cancel' },
         ]);
         break;
 
       case 'audit_logs':
-        Alert.alert('Audit Logs', 'Recent Activity:\n\n1. User created: Dr. Meena (Mar 20)\n2. Config change: OPD hours (Mar 19)\n3. Password reset: Receptionist-03 (Mar 19)\n4. Role change: Pharmacist-05 (Mar 18)\n5. System backup completed (Mar 18)', [
+        CustomAlert.alert('Audit Logs', 'Recent Activity:\n\n1. User created: Dr. Meena (Mar 20)\n2. Config change: OPD hours (Mar 19)\n3. Password reset: Receptionist-03 (Mar 19)\n4. Role change: Pharmacist-05 (Mar 18)\n5. System backup completed (Mar 18)', [
           { text: 'OK' },
-          { text: 'Export Logs', onPress: () => Alert.alert('Export', 'Audit logs exported to admin@arunpriya.com.\nFormat: CSV\nPeriod: Last 30 days') },
+          { text: 'Export Logs', onPress: () => CustomAlert.alert('Export', 'Audit logs exported to admin@arunpriya.com.\nFormat: CSV\nPeriod: Last 30 days') },
         ]);
         break;
 
       case 'access_control':
-        Alert.alert('Access Control', 'Role Permissions:\n\nDoctor: Patient records, prescriptions, appointments\nReceptionist: Appointments, check-in, registration\nPharmacist: Prescriptions, inventory, dispensing\nAdmin: Full system access', [
+        CustomAlert.alert('Access Control', 'Role Permissions:\n\nDoctor: Patient records, prescriptions, appointments\nReceptionist: Appointments, check-in, registration\nPharmacist: Prescriptions, inventory, dispensing\nAdmin: Full system access', [
           { text: 'OK' },
-          { text: 'Modify', onPress: () => Alert.alert('Modify Roles', 'Role modification requires super-admin approval.\n\nContact: CTO Office\nExt: 100') },
+          { text: 'Modify', onPress: () => CustomAlert.alert('Modify Roles', 'Role modification requires super-admin approval.\n\nContact: CTO Office\nExt: 100') },
         ]);
         break;
 
       case 'notifications':
-        Alert.alert('Notifications', 'Manage alerts:', [
-          { text: 'System Alerts', onPress: () => Alert.alert('System', 'Server health: ON\nBackup status: ON\nSecurity alerts: ON\nPerformance warnings: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => Alert.alert('Saved', 'Preferences updated.') }]) },
-          { text: 'User Alerts', onPress: () => Alert.alert('Users', 'New user requests: ON\nPassword resets: ON\nFailed logins: ON\nRole changes: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => Alert.alert('Saved', 'Preferences updated.') }]) },
-          { text: 'Reports', onPress: () => Alert.alert('Reports', 'Daily summary: ON\nWeekly analytics: ON\nMonthly report: ON', [{ text: 'OK' }]) },
+        CustomAlert.alert('Notifications', 'Manage alerts:', [
+          { text: 'System Alerts', onPress: () => CustomAlert.alert('System', 'Server health: ON\nBackup status: ON\nSecurity alerts: ON\nPerformance warnings: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => CustomAlert.alert('Saved', 'Preferences updated.') }]) },
+          { text: 'User Alerts', onPress: () => CustomAlert.alert('Users', 'New user requests: ON\nPassword resets: ON\nFailed logins: ON\nRole changes: ON', [{ text: 'OK' }, { text: 'Edit', onPress: () => CustomAlert.alert('Saved', 'Preferences updated.') }]) },
+          { text: 'Reports', onPress: () => CustomAlert.alert('Reports', 'Daily summary: ON\nWeekly analytics: ON\nMonthly report: ON', [{ text: 'OK' }]) },
           { text: 'Close', style: 'cancel' },
         ]);
         break;
 
       case 'language':
-        Alert.alert('Select Language', '', [
+        CustomAlert.alert('Select Language', '', [
           { text: 'English (Current)', style: 'cancel' },
-          { text: 'Tamil (தமிழ்)', onPress: () => Alert.alert('Changed', 'Language will switch on restart.') },
-          { text: 'Hindi (हिन्दी)', onPress: () => Alert.alert('Changed', 'Language will switch on restart.') },
+          { text: 'Tamil (தமிழ்)', onPress: () => CustomAlert.alert('Changed', 'Language will switch on restart.') },
+          { text: 'Hindi (हिन्दी)', onPress: () => CustomAlert.alert('Changed', 'Language will switch on restart.') },
         ]);
         break;
 
       case 'appearance':
-        Alert.alert('Appearance', '', [
+        CustomAlert.alert('Appearance', '', [
           { text: 'System Default (Current)', style: 'cancel' },
-          { text: 'Light Mode', onPress: () => Alert.alert('Updated', 'Light mode activated.') },
-          { text: 'Dark Mode', onPress: () => Alert.alert('Updated', 'Dark mode activated.') },
+          { text: 'Light Mode', onPress: () => CustomAlert.alert('Updated', 'Light mode activated.') },
+          { text: 'Dark Mode', onPress: () => CustomAlert.alert('Updated', 'Dark mode activated.') },
         ]);
         break;
 
       case 'biometric':
-        Alert.alert('Biometric Login', 'Face ID is currently enabled.', [
+        CustomAlert.alert('Biometric Login', 'Face ID is currently enabled.', [
           { text: 'OK' },
-          { text: 'Disable', style: 'destructive', onPress: () => Alert.alert('Disabled', 'Biometric login disabled.') },
+          { text: 'Disable', style: 'destructive', onPress: () => CustomAlert.alert('Disabled', 'Biometric login disabled.') },
         ]);
         break;
 
       case 'change_password':
-        Alert.alert('Change Password', 'For security, a password reset link will be sent to your email.', [
+        CustomAlert.alert('Change Password', 'For security, a password reset link will be sent to your email.', [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Send Link', onPress: () => Alert.alert('Sent', `Password reset link sent to ${ADMIN_INFO.email}.`) },
+          { text: 'Send Link', onPress: () => CustomAlert.alert('Sent', `Password reset link sent to ${ADMIN_INFO.email}.`) },
         ]);
         break;
 
       case 'sessions':
-        Alert.alert('Active Sessions', 'Current Sessions:\n\n1. This device (iPhone 15 Pro)\n   Last active: Now\n\n2. Chrome — Office Desktop\n   Last active: 30 min ago', [
+        CustomAlert.alert('Active Sessions', 'Current Sessions:\n\n1. This device (iPhone 15 Pro)\n   Last active: Now\n\n2. Chrome — Office Desktop\n   Last active: 30 min ago', [
           { text: 'OK' },
-          { text: 'Sign Out Others', style: 'destructive', onPress: () => Alert.alert('Done', 'All other sessions terminated.') },
+          { text: 'Sign Out Others', style: 'destructive', onPress: () => CustomAlert.alert('Done', 'All other sessions terminated.') },
         ]);
         break;
 
       case 'delete_account':
-        Alert.alert('Delete Account', 'Admin accounts cannot be self-deleted for security reasons.\n\nPlease contact the IT administrator or CTO to process account deletion.', [
+        CustomAlert.alert('Delete Account', 'Admin accounts cannot be self-deleted for security reasons.\n\nPlease contact the IT administrator or CTO to process account deletion.', [
           { text: 'OK' },
           { text: 'Contact IT', onPress: () => Linking.openURL('mailto:it-support@arunpriya.com?subject=Admin Account Deletion Request') },
         ]);
         break;
 
       case 'help':
-        Alert.alert('Help & Support', '', [
-          { text: 'Contact IT', onPress: () => Alert.alert('IT Support', 'Email: it-support@arunpriya.com\nPhone: +91 44 2815 0000\nHours: Mon-Sat, 8AM - 8PM', [
+        CustomAlert.alert('Help & Support', '', [
+          { text: 'Contact IT', onPress: () => CustomAlert.alert('IT Support', 'Email: it-support@arunpriya.com\nPhone: +91 44 2815 0000\nHours: Mon-Sat, 8AM - 8PM', [
             { text: 'OK' },
             { text: 'Call', onPress: () => Linking.openURL('tel:+914428150000') },
             { text: 'Email', onPress: () => Linking.openURL('mailto:it-support@arunpriya.com') },
           ]) },
-          { text: 'User Guide', onPress: () => Alert.alert('Admin Guide', 'Quick Start:\n\n1. Dashboard — Hospital stats & activity\n2. Users — Manage accounts, roles\n3. Settings — Hospital config, security\n4. Profile — Your info & preferences\n\nFor full guide, contact IT.') },
-          { text: 'Report Bug', onPress: () => Alert.alert('Report Bug', '', [
+          { text: 'User Guide', onPress: () => CustomAlert.alert('Admin Guide', 'Quick Start:\n\n1. Dashboard — Hospital stats & activity\n2. Users — Manage accounts, roles\n3. Settings — Hospital config, security\n4. Profile — Your info & preferences\n\nFor full guide, contact IT.') },
+          { text: 'Report Bug', onPress: () => CustomAlert.alert('Report Bug', '', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Send Report', onPress: () => Linking.openURL('mailto:it-support@arunpriya.com?subject=Bug Report - Admin Portal') },
           ]) },
@@ -308,10 +310,10 @@ export default function AdminProfileScreen() {
         break;
 
       case 'about':
-        Alert.alert('About Nalam', 'Nalam — Admin Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\nPowered by Azure Ethereal Design System\nHIPAA Compliant | ISO 27001\n\n© 2026 Nalam Healthcare Pvt. Ltd.', [
+        CustomAlert.alert('About Nalam', 'Nalam — Admin Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\nPowered by Azure Ethereal Design System\nHIPAA Compliant | ISO 27001\n\n© 2026 Nalam Healthcare Pvt. Ltd.', [
           { text: 'OK' },
-          { text: 'Terms', onPress: () => Alert.alert('Terms', 'By using the Admin Portal, you agree to comply with all hospital data access policies.\n\nUnauthorized access will result in immediate termination and legal action.') },
-          { text: 'Privacy', onPress: () => Alert.alert('Privacy', 'All admin actions are logged.\nData encrypted at rest and in transit.\nCompliant with Indian healthcare regulations.') },
+          { text: 'Terms', onPress: () => CustomAlert.alert('Terms', 'By using the Admin Portal, you agree to comply with all hospital data access policies.\n\nUnauthorized access will result in immediate termination and legal action.') },
+          { text: 'Privacy', onPress: () => CustomAlert.alert('Privacy', 'All admin actions are logged.\nData encrypted at rest and in transit.\nCompliant with Indian healthcare regulations.') },
         ]);
         break;
     }
@@ -348,19 +350,16 @@ export default function AdminProfileScreen() {
             </View>
 
             <View className="flex-row items-center justify-center gap-2 mb-3">
-              <View className="flex-row items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
-                <Shield size={12} color={Colors.primary} />
-                <Text className="text-primary text-xs font-bold uppercase">{role || 'Admin'}</Text>
-              </View>
+              <RoleSwitcher />
               <View className="bg-slate-100 px-3 py-1.5 rounded-full">
-                <Text className="text-slate-600 text-xs font-bold">{userId || ADMIN_INFO.empId}</Text>
+                <Text className="text-slate-600 text-xs font-bold">{adminInfo.empId}</Text>
               </View>
             </View>
 
             <View className="flex-row flex-wrap">
               {[
-                { label: 'Dept', value: ADMIN_INFO.department, icon: Settings },
-                { label: 'Joined', value: ADMIN_INFO.joinDate, icon: Calendar },
+                { label: 'Dept', value: adminInfo.department, icon: Settings },
+                { label: 'Joined', value: adminInfo.joinDate, icon: Calendar },
               ].map((info, idx) => {
                 const Icon = info.icon;
                 return (
@@ -374,14 +373,14 @@ export default function AdminProfileScreen() {
             </View>
 
             <View className="mt-2 pt-3 border-t border-slate-100 gap-2">
-              <Pressable onPress={() => Linking.openURL(`mailto:${ADMIN_INFO.email}`)} className="flex-row items-center gap-2 active:opacity-60">
+              <Pressable onPress={() => Linking.openURL(`mailto:${adminInfo.email}`)} className="flex-row items-center gap-2 active:opacity-60">
                 <Mail size={12} color="#94A3B8" />
-                <Text className="text-xs text-slate-500">{ADMIN_INFO.email}</Text>
+                <Text className="text-xs text-slate-500">{adminInfo.email}</Text>
                 <ExternalLink size={10} color="#CBD5E1" />
               </Pressable>
-              <Pressable onPress={() => Linking.openURL(`tel:${ADMIN_INFO.phone.replace(/\s/g, '')}`)} className="flex-row items-center gap-2 active:opacity-60">
+              <Pressable onPress={() => Linking.openURL(`tel:${adminInfo.phone.replace(/\s/g, '')}`)} className="flex-row items-center gap-2 active:opacity-60">
                 <Phone size={12} color="#94A3B8" />
-                <Text className="text-xs text-slate-500">{ADMIN_INFO.phone}</Text>
+                <Text className="text-xs text-slate-500">{adminInfo.phone}</Text>
                 <ExternalLink size={10} color="#CBD5E1" />
               </Pressable>
             </View>
@@ -418,14 +417,14 @@ export default function AdminProfileScreen() {
                 <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center border border-orange-100/50"><Mail size={16} color="#F97316" /></View>
                 <View className="flex-1">
                   <Text className="text-[10px] text-slate-400 font-medium mb-0.5">Email Address</Text>
-                  <Text className="text-[13px] font-semibold text-midnight">{adminInfo.email}</Text>
+                  <Text className="text-[13px] font-semibold text-midnight">{adminInfo.email || 'N/A'}</Text>
                 </View>
               </View>
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center border border-blue-100/50"><Phone size={16} color="#3B82F6" /></View>
                 <View className="flex-1">
                   <Text className="text-[10px] text-slate-400 font-medium mb-0.5">Contact Number</Text>
-                  <Text className="text-[13px] font-semibold text-midnight">{adminInfo.phone}</Text>
+                  <Text className="text-[13px] font-semibold text-midnight">{adminInfo.phone || 'N/A'}</Text>
                 </View>
               </View>
             </View>
