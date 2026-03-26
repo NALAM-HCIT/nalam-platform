@@ -58,36 +58,33 @@ public class NalamDbContext : DbContext
             .HasDatabaseName("ix_settings_hospital_key");
 
         // ── Global Query Filters (Defense Layer 3) ──────────────────
-        // These ensure application-level tenant isolation.
-        // Only applied when _currentHospitalId is set (authenticated requests).
-        if (_currentHospitalId.HasValue)
-        {
-            var tenantId = _currentHospitalId.Value;
+        // IMPORTANT: Reference _currentHospitalId field directly (not a local copy).
+        // EF Core caches the model but parameterizes DbContext field references,
+        // so each DbContext instance evaluates its own _currentHospitalId value.
+        // When _currentHospitalId is null (unauthenticated), the filter passes all rows.
+        modelBuilder.Entity<User>()
+            .HasQueryFilter(u => !_currentHospitalId.HasValue || u.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<User>()
-                .HasQueryFilter(u => u.HospitalId == tenantId);
+        modelBuilder.Entity<Department>()
+            .HasQueryFilter(d => !_currentHospitalId.HasValue || d.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<Department>()
-                .HasQueryFilter(d => d.HospitalId == tenantId);
+        modelBuilder.Entity<HospitalSetting>()
+            .HasQueryFilter(s => !_currentHospitalId.HasValue || s.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<HospitalSetting>()
-                .HasQueryFilter(s => s.HospitalId == tenantId);
+        modelBuilder.Entity<AuditLog>()
+            .HasQueryFilter(a => !_currentHospitalId.HasValue || a.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<AuditLog>()
-                .HasQueryFilter(a => a.HospitalId == tenantId);
+        modelBuilder.Entity<DoctorProfile>()
+            .HasQueryFilter(dp => !_currentHospitalId.HasValue || dp.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<DoctorProfile>()
-                .HasQueryFilter(dp => dp.HospitalId == tenantId);
+        modelBuilder.Entity<DoctorSchedule>()
+            .HasQueryFilter(ds => !_currentHospitalId.HasValue || ds.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<DoctorSchedule>()
-                .HasQueryFilter(ds => ds.HospitalId == tenantId);
+        modelBuilder.Entity<Appointment>()
+            .HasQueryFilter(ap => !_currentHospitalId.HasValue || ap.HospitalId == _currentHospitalId.Value);
 
-            modelBuilder.Entity<Appointment>()
-                .HasQueryFilter(ap => ap.HospitalId == tenantId);
-
-            modelBuilder.Entity<Patient>()
-                .HasQueryFilter(p => p.HospitalId == tenantId);
-        }
+        modelBuilder.Entity<Patient>()
+            .HasQueryFilter(p => !_currentHospitalId.HasValue || p.HospitalId == _currentHospitalId.Value);
 
         // ── UserRole: unique (user_id, role) ─────────────────────────
         modelBuilder.Entity<UserRole>()

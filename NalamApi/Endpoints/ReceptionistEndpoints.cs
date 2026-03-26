@@ -47,7 +47,7 @@ public static class ReceptionistEndpoints
 
         // Fetch all of today's non-cancelled appointments for this hospital
         var todayAppointments = await db.Appointments.AsNoTracking()
-            .Where(a => a.ScheduleDate == today && a.Status != "cancelled")
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.Status != "cancelled")
             .ToListAsync();
 
         var totalAppointments = todayAppointments.Count;
@@ -83,12 +83,13 @@ public static class ReceptionistEndpoints
         string? search = null)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var hospitalId = GetHospitalId(ctx);
 
         var query = db.Appointments.AsNoTracking()
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Include(a => a.Patient)
-            .Where(a => a.ScheduleDate == today && a.Status != "cancelled")
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.Status != "cancelled")
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))

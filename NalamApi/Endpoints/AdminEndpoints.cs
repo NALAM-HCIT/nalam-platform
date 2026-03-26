@@ -82,13 +82,18 @@ public static class AdminEndpoints
     /// <summary>GET /api/admin/users — List users with optional search and role filter.</summary>
     private static async Task<IResult> GetUsers(
         NalamDbContext db,
+        HttpContext ctx,
         string? search = null,
         string? role = null,
         string? status = null,
         int page = 1,
         int pageSize = 50)
     {
-        var query = db.Users.AsNoTracking().Include(u => u.UserRoles).AsQueryable();
+        var hospitalId = GetHospitalId(ctx);
+        var query = db.Users.AsNoTracking()
+            .Include(u => u.UserRoles)
+            .Where(u => u.HospitalId == hospitalId)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(role) && role.ToLower() != "all")
             query = query.Where(u => u.Role == role.ToLower());
@@ -140,7 +145,7 @@ public static class AdminEndpoints
         var mobile = AuthEndpoints.NormalizeMobile(request.MobileNumber);
 
         // Check if mobile already exists in this hospital
-        var exists = await db.Users.AnyAsync(u => u.MobileNumber == mobile);
+        var exists = await db.Users.AnyAsync(u => u.HospitalId == hospitalId && u.MobileNumber == mobile);
         if (exists)
             return Results.Conflict(new { error = "A user with this mobile number already exists in your hospital." });
 
@@ -397,10 +402,11 @@ public static class AdminEndpoints
         if (cache.TryGetValue(cacheKey, out DashboardResponse? cached) && cached != null)
             return Results.Ok(cached);
 
-        var users = await db.Users.AsNoTracking().ToListAsync();
-        var departments = await db.Departments.AsNoTracking().CountAsync();
+        var users = await db.Users.AsNoTracking().Where(u => u.HospitalId == hospitalId).ToListAsync();
+        var departments = await db.Departments.AsNoTracking().Where(d => d.HospitalId == hospitalId).CountAsync();
 
         var recentActivity = await db.AuditLogs.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId)
             .OrderByDescending(a => a.CreatedAt)
             .Take(10)
             .Select(a => new ActivityResponse(
@@ -430,11 +436,13 @@ public static class AdminEndpoints
     /// <summary>GET /api/admin/activity — Recent audit log entries.</summary>
     private static async Task<IResult> GetActivity(
         NalamDbContext db,
+        HttpContext ctx,
         string? category = null,
         int page = 1,
         int pageSize = 20)
     {
-        var query = db.AuditLogs.AsNoTracking().AsQueryable();
+        var hospitalId = GetHospitalId(ctx);
+        var query = db.AuditLogs.AsNoTracking().Where(a => a.HospitalId == hospitalId).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(a => a.Category == category.ToLower());
@@ -463,6 +471,7 @@ public static class AdminEndpoints
         var hospital = await db.Hospitals.FindAsync(hospitalId);
 
         var settings = await db.HospitalSettings.AsNoTracking()
+            .Where(s => s.HospitalId == hospitalId)
             .Select(s => new SettingDto(s.Key, s.Value))
             .ToListAsync();
 
@@ -580,9 +589,11 @@ public static class AdminEndpoints
     );
 
     /// <summary>GET /api/admin/doctor-profiles — List all doctor profiles for this hospital.</summary>
-    private static async Task<IResult> GetDoctorProfiles(NalamDbContext db)
+    private static async Task<IResult> GetDoctorProfiles(NalamDbContext db, HttpContext ctx)
     {
+        var hospitalId = GetHospitalId(ctx);
         var profiles = await db.DoctorProfiles.AsNoTracking()
+            .Where(dp => dp.HospitalId == hospitalId)
             .Include(dp => dp.User)
             .Include(dp => dp.Schedules)
             .OrderBy(dp => dp.User.FullName)

@@ -91,14 +91,16 @@ public static class AppointmentEndpoints
 
     private static async Task<IResult> GetDoctors(
         NalamDbContext db,
+        HttpContext ctx,
         string? specialty = null,
         string? search = null,
         int page = 1,
         int pageSize = 20)
     {
+        var hospitalId = GetHospitalId(ctx);
         var query = db.DoctorProfiles.AsNoTracking()
             .Include(dp => dp.User)
-            .Where(dp => dp.IsAcceptingAppointments && dp.User.Status == "active")
+            .Where(dp => dp.HospitalId == hospitalId && dp.IsAcceptingAppointments && dp.User.Status == "active")
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(specialty))

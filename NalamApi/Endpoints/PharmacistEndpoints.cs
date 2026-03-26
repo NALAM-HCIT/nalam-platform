@@ -42,10 +42,11 @@ public static class PharmacistEndpoints
         HttpContext ctx)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var hospitalId = GetHospitalId(ctx);
 
         // All appointments that have prescription data (notes != null AND prescription_status is set)
         var prescriptions = await db.Appointments.AsNoTracking()
-            .Where(a => a.ScheduleDate == today && a.PrescriptionStatus != null)
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.PrescriptionStatus != null)
             .ToListAsync();
 
         var pendingRx = prescriptions.Count(a => a.PrescriptionStatus == "pending");
@@ -77,12 +78,13 @@ public static class PharmacistEndpoints
         string? search = null)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var hospitalId = GetHospitalId(ctx);
 
         var query = db.Appointments.AsNoTracking()
             .Include(a => a.Patient)
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
-            .Where(a => a.ScheduleDate == today && a.PrescriptionStatus != null)
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.PrescriptionStatus != null)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
