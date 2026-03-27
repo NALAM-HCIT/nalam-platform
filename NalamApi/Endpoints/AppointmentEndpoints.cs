@@ -47,6 +47,18 @@ public static class AppointmentEndpoints
     private static string GetRole(HttpContext ctx) =>
         ctx.User.FindFirst("role")?.Value ?? "";
 
+    // IST helpers — slots are stored in local (IST) time, so we compare against IST now
+    private static readonly TimeZoneInfo IstZone = GetIstZone();
+    private static TimeZoneInfo GetIstZone()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+        catch { return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
+    }
+    private static DateOnly TodayIst() =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, IstZone));
+    private static TimeOnly NowTimeIst() =>
+        TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, IstZone));
+
     private static string GetInitials(string fullName) =>
         string.Join("", fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2).Select(w => w[0])).ToUpper();
@@ -180,7 +192,7 @@ public static class AppointmentEndpoints
             return Results.NotFound(new { error = "Doctor not found." });
 
         var start = string.IsNullOrEmpty(startDate)
-            ? DateOnly.FromDateTime(DateTime.UtcNow)
+            ? TodayIst()
             : DateOnly.Parse(startDate);
 
         // Get doctor's weekly schedule
@@ -222,9 +234,9 @@ public static class AppointmentEndpoints
                 {
                     var slotEnd = current.AddMinutes(schedule.SlotDurationMinutes);
 
-                    // Skip past slots for today
-                    if (date == DateOnly.FromDateTime(DateTime.UtcNow)
-                        && current < TimeOnly.FromDateTime(DateTime.UtcNow))
+                    // Skip past slots for today (compare against IST, not UTC)
+                    if (date == TodayIst()
+                        && current < NowTimeIst())
                     {
                         current = slotEnd;
                         continue;
@@ -240,7 +252,7 @@ public static class AppointmentEndpoints
 
             dates.Add(new AvailableDateResponse(
                 date,
-                date == DateOnly.FromDateTime(DateTime.UtcNow) ? "Today" : date.DayOfWeek.ToString()[..3],
+                date == TodayIst() ? "Today" : date.DayOfWeek.ToString()[..3],
                 availableSlots
             ));
 
@@ -261,8 +273,8 @@ public static class AppointmentEndpoints
             {
                 var slotEnd = current.AddMinutes(schedule.SlotDurationMinutes);
 
-                if (targetDate == DateOnly.FromDateTime(DateTime.UtcNow)
-                    && current < TimeOnly.FromDateTime(DateTime.UtcNow))
+                if (targetDate == TodayIst()
+                    && current < NowTimeIst())
                 {
                     current = slotEnd;
                     continue;
@@ -477,14 +489,14 @@ public static class AppointmentEndpoints
         if (!string.IsNullOrWhiteSpace(date))
         {
             var filterDate = date.ToLower() == "today"
-                ? DateOnly.FromDateTime(DateTime.UtcNow)
+                ? TodayIst()
                 : DateOnly.Parse(date);
             query = query.Where(a => a.ScheduleDate == filterDate);
         }
         else
         {
             // Tab filter (only when no specific date)
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var today = TodayIst();
             if (tab == "upcoming")
                 query = query.Where(a => a.ScheduleDate >= today && a.Status != "cancelled" && a.Status != "completed" && a.Status != "no_show");
             else if (tab == "past")

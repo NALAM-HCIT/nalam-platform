@@ -39,6 +39,16 @@ public static class ReceptionistEndpoints
     private static Guid GetUserId(HttpContext ctx) =>
         Guid.Parse(ctx.User.FindFirst("sub")!.Value);
 
+    // IST helpers — hospital is in IST (UTC+5:30); date boundaries must use local time
+    private static readonly TimeZoneInfo IstZone = GetIstZone();
+    private static TimeZoneInfo GetIstZone()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata"); }
+        catch { return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"); }
+    }
+    private static DateOnly TodayIst() =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, IstZone));
+
     private static string GetInitials(string fullName) =>
         string.Join("", fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2).Select(w => w[0])).ToUpper();
@@ -52,7 +62,7 @@ public static class ReceptionistEndpoints
         HttpContext ctx)
     {
         var hospitalId = GetHospitalId(ctx);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = TodayIst();
 
         // Fetch all of today's non-cancelled appointments for this hospital
         var todayAppointments = await db.Appointments.AsNoTracking()
@@ -92,7 +102,7 @@ public static class ReceptionistEndpoints
         string? priority = null,
         string? search = null)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = TodayIst();
         var hospitalId = GetHospitalId(ctx);
 
         var query = db.Appointments.AsNoTracking()
@@ -175,7 +185,7 @@ public static class ReceptionistEndpoints
         if (apt.Patient.DateOfBirth.HasValue)
         {
             var dob = apt.Patient.DateOfBirth.Value;
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var today = TodayIst();
             age = today.Year - dob.Year;
             if (dob > today.AddYears(-age.Value)) age--;
         }
@@ -403,7 +413,7 @@ public static class ReceptionistEndpoints
     private static async Task<IResult> GetStats(NalamDbContext db, HttpContext ctx)
     {
         var hospitalId = GetHospitalId(ctx);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = TodayIst();
         var todayUtc = DateTime.UtcNow.Date;
 
         var registeredToday = await db.Patients.AsNoTracking()

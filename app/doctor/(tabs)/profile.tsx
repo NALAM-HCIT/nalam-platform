@@ -242,23 +242,7 @@ export default function DoctorProfileScreen() {
         break;
 
       case 'availability':
-        CustomAlert.alert('Availability Settings', 'Manage your schedule:', [
-          { text: 'Close' },
-          {
-            text: 'OPD Hours',
-            onPress: () => CustomAlert.alert('OPD Schedule', 'Monday: 9:00 AM - 1:00 PM\nTuesday: 9:00 AM - 1:00 PM\nWednesday: 9:00 AM - 12:00 PM\nThursday: 9:00 AM - 1:00 PM\nFriday: 9:00 AM - 1:00 PM\nSaturday: 10:00 AM - 12:00 PM\nSunday: OFF', [
-              { text: 'OK' },
-              { text: 'Request Change', onPress: () => CustomAlert.alert('Submitted', 'Schedule change request sent to Admin.\nRequest ID: SCH-2026-0321') },
-            ]),
-          },
-          {
-            text: 'Surgery Slots',
-            onPress: () => CustomAlert.alert('Surgery Schedule', 'Available Surgery Slots:\n\nMonday: 2:00 PM - 5:00 PM\nWednesday: 1:00 PM - 4:00 PM\nFriday: 2:00 PM - 5:00 PM\n\nMax surgeries per day: 2\nMin gap between surgeries: 1 hour', [
-              { text: 'OK' },
-              { text: 'Block a Slot', onPress: () => CustomAlert.alert('Block Slot', 'Slot blocking calendar would open. Blocked slots will show as unavailable.') },
-            ]),
-          },
-        ]);
+        router.push('/doctor/availability-settings');
         break;
 
       case 'leave':

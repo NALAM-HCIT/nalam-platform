@@ -19,6 +19,12 @@ public static class DoctorPortalEndpoints
         group.MapGet("/directory", GetDirectory);
         group.MapGet("/my-profile", GetMyProfile);
         group.MapGet("/patient-summary/{patientId:guid}", GetPatientSummary);
+
+        // Doctor's own availability schedule management
+        group.MapGet("/my-schedule", GetMySchedule).RequireAuthorization("DoctorOnly");
+        group.MapPost("/my-schedule", AddSchedule).RequireAuthorization("DoctorOnly");
+        group.MapPut("/my-schedule/{id:guid}", UpdateSchedule).RequireAuthorization("DoctorOnly");
+        group.MapDelete("/my-schedule/{id:guid}", DeleteSchedule).RequireAuthorization("DoctorOnly");
     }
 
     private static Guid GetUserId(HttpContext ctx) =>
@@ -231,4 +237,204 @@ public static class DoctorPortalEndpoints
             recentAppointments = pastAppointments
         });
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/doctor-portal/my-schedule
+    //  Returns the doctor's active weekly schedule blocks
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetMySchedule(NalamDbContext db, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var doctorProfile = await db.DoctorProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(dp => dp.UserId == userId);
+        if (doctorProfile == null)
+            return Results.NotFound(new { error = "Doctor profile not found." });
+
+        var schedules = await db.DoctorSchedules.AsNoTracking()
+            .Where(ds => ds.DoctorProfileId == doctorProfile.Id && ds.IsActive)
+            .OrderBy(ds => ds.DayOfWeek)
+            .ThenBy(ds => ds.StartTime)
+            .ToListAsync();
+
+        return Results.Ok(schedules.Select(s => new
+        {
+            id = s.Id,
+            dayOfWeek = s.DayOfWeek,
+            startTime = s.StartTime.ToString("HH:mm"),
+            endTime = s.EndTime.ToString("HH:mm"),
+            slotDurationMinutes = s.SlotDurationMinutes,
+            consultationType = s.ConsultationType,
+            maxPatientsPerSlot = s.MaxPatientsPerSlot,
+        }));
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  POST /api/doctor-portal/my-schedule
+    //  Add a new schedule block
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> AddSchedule(
+        AddScheduleRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var doctorProfile = await db.DoctorProfiles
+            .FirstOrDefaultAsync(dp => dp.UserId == userId);
+        if (doctorProfile == null)
+            return Results.NotFound(new { error = "Doctor profile not found." });
+
+        if (request.DayOfWeek < 0 || request.DayOfWeek > 6)
+            return Results.BadRequest(new { error = "dayOfWeek must be 0 (Sunday) to 6 (Saturday)." });
+
+        if (!TimeOnly.TryParse(request.StartTime, out var startTime))
+            return Results.BadRequest(new { error = "Invalid startTime format. Use HH:mm." });
+        if (!TimeOnly.TryParse(request.EndTime, out var endTime))
+            return Results.BadRequest(new { error = "Invalid endTime format. Use HH:mm." });
+        if (endTime <= startTime)
+            return Results.BadRequest(new { error = "endTime must be after startTime." });
+
+        var validTypes = new[] { "video", "in-person", "both" };
+        if (!validTypes.Contains(request.ConsultationType))
+            return Results.BadRequest(new { error = "consultationType must be 'video', 'in-person', or 'both'." });
+
+        var schedule = new DoctorSchedule
+        {
+            HospitalId = doctorProfile.HospitalId,
+            DoctorProfileId = doctorProfile.Id,
+            DayOfWeek = request.DayOfWeek,
+            StartTime = startTime,
+            EndTime = endTime,
+            SlotDurationMinutes = request.SlotDurationMinutes > 0 ? request.SlotDurationMinutes : 30,
+            ConsultationType = request.ConsultationType,
+            MaxPatientsPerSlot = request.MaxPatientsPerSlot > 0 ? request.MaxPatientsPerSlot : 3,
+            IsActive = true,
+        };
+
+        db.DoctorSchedules.Add(schedule);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/doctor-portal/my-schedule/{schedule.Id}", new
+        {
+            id = schedule.Id,
+            dayOfWeek = schedule.DayOfWeek,
+            startTime = schedule.StartTime.ToString("HH:mm"),
+            endTime = schedule.EndTime.ToString("HH:mm"),
+            slotDurationMinutes = schedule.SlotDurationMinutes,
+            consultationType = schedule.ConsultationType,
+            maxPatientsPerSlot = schedule.MaxPatientsPerSlot,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PUT /api/doctor-portal/my-schedule/{id}
+    //  Update an existing schedule block
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> UpdateSchedule(
+        Guid id,
+        UpdateScheduleRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var doctorProfile = await db.DoctorProfiles
+            .FirstOrDefaultAsync(dp => dp.UserId == userId);
+        if (doctorProfile == null)
+            return Results.NotFound(new { error = "Doctor profile not found." });
+
+        var schedule = await db.DoctorSchedules
+            .FirstOrDefaultAsync(ds => ds.Id == id && ds.DoctorProfileId == doctorProfile.Id);
+        if (schedule == null)
+            return Results.NotFound(new { error = "Schedule not found." });
+
+        if (request.StartTime != null)
+        {
+            if (!TimeOnly.TryParse(request.StartTime, out var startTime))
+                return Results.BadRequest(new { error = "Invalid startTime." });
+            schedule.StartTime = startTime;
+        }
+        if (request.EndTime != null)
+        {
+            if (!TimeOnly.TryParse(request.EndTime, out var endTime))
+                return Results.BadRequest(new { error = "Invalid endTime." });
+            schedule.EndTime = endTime;
+        }
+        if (schedule.EndTime <= schedule.StartTime)
+            return Results.BadRequest(new { error = "endTime must be after startTime." });
+
+        if (request.SlotDurationMinutes.HasValue && request.SlotDurationMinutes.Value > 0)
+            schedule.SlotDurationMinutes = request.SlotDurationMinutes.Value;
+
+        if (request.ConsultationType != null)
+        {
+            var validTypes = new[] { "video", "in-person", "both" };
+            if (!validTypes.Contains(request.ConsultationType))
+                return Results.BadRequest(new { error = "Invalid consultationType." });
+            schedule.ConsultationType = request.ConsultationType;
+        }
+
+        if (request.MaxPatientsPerSlot.HasValue && request.MaxPatientsPerSlot.Value > 0)
+            schedule.MaxPatientsPerSlot = request.MaxPatientsPerSlot.Value;
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            id = schedule.Id,
+            dayOfWeek = schedule.DayOfWeek,
+            startTime = schedule.StartTime.ToString("HH:mm"),
+            endTime = schedule.EndTime.ToString("HH:mm"),
+            slotDurationMinutes = schedule.SlotDurationMinutes,
+            consultationType = schedule.ConsultationType,
+            maxPatientsPerSlot = schedule.MaxPatientsPerSlot,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  DELETE /api/doctor-portal/my-schedule/{id}
+    //  Soft-delete a schedule block (IsActive = false)
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> DeleteSchedule(
+        Guid id,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var doctorProfile = await db.DoctorProfiles
+            .FirstOrDefaultAsync(dp => dp.UserId == userId);
+        if (doctorProfile == null)
+            return Results.NotFound(new { error = "Doctor profile not found." });
+
+        var schedule = await db.DoctorSchedules
+            .FirstOrDefaultAsync(ds => ds.Id == id && ds.DoctorProfileId == doctorProfile.Id);
+        if (schedule == null)
+            return Results.NotFound(new { error = "Schedule not found." });
+
+        schedule.IsActive = false;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new { success = true });
+    }
 }
+
+// ── Request records for schedule management ─────────────────────────────────
+
+public record AddScheduleRequest(
+    int DayOfWeek,
+    string StartTime,
+    string EndTime,
+    int SlotDurationMinutes,
+    string ConsultationType,
+    int MaxPatientsPerSlot
+);
+
+public record UpdateScheduleRequest(
+    string? StartTime,
+    string? EndTime,
+    int? SlotDurationMinutes,
+    string? ConsultationType,
+    int? MaxPatientsPerSlot
+);
