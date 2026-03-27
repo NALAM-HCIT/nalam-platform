@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Search, User, UserPlus, X, Phone, Mail, Shield, MoreVertical,
-  Calendar, Building2, UserCheck, UserX, Users, Key, Trash2,
+  Calendar, Building2, UserCheck, UserX, Users, Trash2,
   ArrowUpRight, ChevronRight, Check,
 } from 'lucide-react-native';
 import { Shadows, Colors } from '@/constants/theme';
@@ -226,9 +226,7 @@ export default function UsersScreen() {
     setShowUserDetail(true);
   }, []);
 
-  const handleToggleStatus = useCallback((userId: string) => {
-    const user = users.find((u) => u.id === userId);
-    if (!user) return;
+  const handleToggleStatus = useCallback((user: UserItem) => {
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
     CustomAlert.alert(
       `${newStatus === 'active' ? 'Activate' : 'Deactivate'} User`,
@@ -240,9 +238,9 @@ export default function UsersScreen() {
           style: newStatus === 'inactive' ? 'destructive' : 'default',
           onPress: async () => {
             try {
-              await api.patch(`/admin/users/${userId}/status`, { status: newStatus });
-              setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
-              setSelectedUser((prev) => prev?.id === userId ? { ...prev, status: newStatus } : prev);
+              await api.patch(`/admin/users/${user.id}/status`, { status: newStatus });
+              setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u)));
+              setSelectedUser((prev) => prev?.id === user.id ? { ...prev, status: newStatus } : prev);
               CustomAlert.alert('Success', `${user.name} has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`);
             } catch (error) {
               CustomAlert.alert('Error', 'Failed to update user status.');
@@ -251,7 +249,7 @@ export default function UsersScreen() {
         },
       ]
     );
-  }, [users]);
+  }, []);
 
   const handleDeleteUser = useCallback((user: UserItem) => {
     CustomAlert.alert(
@@ -323,41 +321,19 @@ export default function UsersScreen() {
     }
   }, [roleModalUser, pendingRoles]);
 
-  const handleResetPassword = useCallback((user: UserItem) => {
-    CustomAlert.alert(
-      'Reset Auth',
-      `This will invalidate ${user.name}'s active sessions and force them to re-login via OTP.\n\nContinue?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const res = await api.post(`/admin/users/${user.id}/reset-auth`);
-              CustomAlert.alert('Auth Reset', res.data?.message || `${user.name} must re-login via OTP.`);
-            } catch (error: any) {
-              CustomAlert.alert('Error', error.response?.data?.error || 'Failed to reset auth.');
-            }
-          },
-        },
-      ]
-    );
-  }, []);
 
   const handleUserActions = useCallback((user: UserItem) => {
     CustomAlert.alert(user.name, `${user.role} | ${user.department}`, [
       { text: 'View Details', onPress: () => handleUserPress(user) },
       { text: 'Change Role', onPress: () => handleEditRole(user) },
-      { text: 'Reset Auth', onPress: () => handleResetPassword(user) },
       {
         text: user.status === 'active' ? 'Deactivate' : 'Activate',
-        onPress: () => handleToggleStatus(user.id),
+        onPress: () => handleToggleStatus(user),
         style: user.status === 'active' ? 'destructive' : 'default',
       },
       { text: 'Cancel', style: 'cancel' },
     ]);
-  }, [handleUserPress, handleEditRole, handleResetPassword, handleToggleStatus]);
+  }, [handleUserPress, handleEditRole, handleToggleStatus]);
 
   const handleCall = useCallback(async (phone: string) => {
     const url = `tel:${phone.replace(/\s/g, '')}`;
@@ -519,18 +495,11 @@ export default function UsersScreen() {
 
                 {/* Action Buttons */}
                 <View className="gap-3 mb-6">
-                  <View className="flex-row gap-3">
-                    <ActionButton icon={Shield} label="Change Role" color={Colors.primary} bgColor="#EFF6FF" onPress={() => {
-                      const u = selectedUser;
-                      setShowUserDetail(false);
-                      setTimeout(() => handleEditRole(u), 350);
-                    }} />
-                    <ActionButton icon={Key} label="Reset Auth" color="#F59E0B" bgColor="#FFFBEB" onPress={() => {
-                      const u = selectedUser;
-                      setShowUserDetail(false);
-                      setTimeout(() => handleResetPassword(u), 350);
-                    }} />
-                  </View>
+                  <ActionButton icon={Shield} label="Change Role" color={Colors.primary} bgColor="#EFF6FF" onPress={() => {
+                    const u = selectedUser;
+                    setShowUserDetail(false);
+                    setTimeout(() => handleEditRole(u), 500);
+                  }} />
                   <View className="flex-row gap-3">
                     <ActionButton
                       icon={selectedUser.status === 'active' ? UserX : UserCheck}
@@ -538,15 +507,15 @@ export default function UsersScreen() {
                       color={selectedUser.status === 'active' ? '#64748B' : '#059669'}
                       bgColor={selectedUser.status === 'active' ? '#F1F5F9' : '#F0FDF4'}
                       onPress={() => {
-                        const uid = selectedUser.id;
+                        const u = selectedUser;
                         setShowUserDetail(false);
-                        setTimeout(() => handleToggleStatus(uid), 350);
+                        setTimeout(() => handleToggleStatus(u), 500);
                       }}
                     />
                     <ActionButton icon={Trash2} label="Remove" color="#DC2626" bgColor="#FEF2F2" onPress={() => {
                       const u = selectedUser;
                       setShowUserDetail(false);
-                      setTimeout(() => handleDeleteUser(u), 350);
+                      setTimeout(() => handleDeleteUser(u), 500);
                     }} />
                   </View>
                 </View>

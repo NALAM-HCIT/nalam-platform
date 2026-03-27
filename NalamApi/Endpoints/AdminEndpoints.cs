@@ -312,10 +312,6 @@ public static class AdminEndpoints
         if (request.Status != "active" && request.Status != "inactive")
             return Results.BadRequest(new { error = "Status must be 'active' or 'inactive'." });
 
-        // Prevent deactivating yourself
-        if (user.Id == GetUserId(ctx) && request.Status == "inactive")
-            return Results.BadRequest(new { error = "You cannot deactivate your own account." });
-
         var oldStatus = user.Status;
         user.Status = request.Status;
         await db.SaveChangesAsync();
