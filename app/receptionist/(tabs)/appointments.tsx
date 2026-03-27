@@ -82,16 +82,16 @@ export default function AppointmentsScreen() {
         {
           text: 'Check In',
           onPress: async () => {
-            if (apt.type === 'in-person') {
-              router.push({ pathname: '/receptionist/patient-arrival', params: { appointmentId: apt.id } });
-            } else {
-              try {
-                await receptionistService.checkInPatient(apt.id);
+            try {
+              await receptionistService.checkIn(apt.id);
+              if (apt.type === 'in-person') {
+                router.push({ pathname: '/receptionist/patient-arrival', params: { appointmentId: apt.id } });
+              } else {
                 loadAppointments();
-                CustomAlert.alert('Checked In', `${apt.patientName} has been checked in successfully.\n\nAssigned to: ${apt.doctorName}`);
-              } catch (e) {
-                CustomAlert.alert('Error', 'Failed to check-in patient');
+                CustomAlert.alert('Checked In', `${apt.patientName} checked in for video consultation.\n\nDoctor: ${apt.doctorName}`);
               }
+            } catch (e: any) {
+              CustomAlert.alert('Error', e.response?.data?.error || 'Failed to check in patient.');
             }
           },
         },

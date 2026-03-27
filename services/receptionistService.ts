@@ -31,6 +31,25 @@ export interface PatientSearchResult {
     initials: string;
 }
 
+export interface AppointmentDetail {
+    id: string;
+    bookingReference: string;
+    patientName: string;
+    patientId: string;
+    patientInitials: string;
+    patientMobile: string;
+    patientAge: number | null;
+    patientGender: string | null;
+    insuranceProvider: string | null;
+    doctorName: string;
+    doctorSpecialty: string;
+    scheduledTime: string;
+    consultationType: string;
+    notes: string | null;
+    status: string;
+    paymentStatus: string;
+}
+
 export const receptionistService = {
     getDashboard: async (): Promise<ReceptionDashboardStats> => {
         const response = await api.get('/reception/dashboard');
@@ -46,6 +65,19 @@ export const receptionistService = {
         return response.data;
     },
 
+    getAppointmentDetail: async (id: string): Promise<AppointmentDetail> => {
+        const response = await api.get(`/reception/appointments/${id}`);
+        return response.data;
+    },
+
+    checkIn: async (id: string): Promise<void> => {
+        await api.patch(`/reception/appointments/${id}/checkin`);
+    },
+
+    sendToDoctor: async (id: string): Promise<void> => {
+        await api.patch(`/reception/appointments/${id}/in-consultation`);
+    },
+
     searchPatients: async (query?: string): Promise<PatientSearchResult[]> => {
         const params = new URLSearchParams();
         if (query) params.append('query', query);
@@ -58,8 +90,4 @@ export const receptionistService = {
         const response = await api.post('/reception/patients', { fullName, mobileNumber });
         return response.data;
     },
-
-    checkInPatient: async (appointmentId: string): Promise<void> => {
-        await api.patch(`/appointments/${appointmentId}/status`, { status: 'arrived' });
-    }
 };

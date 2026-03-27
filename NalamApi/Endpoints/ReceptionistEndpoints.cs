@@ -20,6 +20,9 @@ public static class ReceptionistEndpoints
 
         group.MapGet("/dashboard", GetDailyDashboard);
         group.MapGet("/queue", GetTodayQueue);
+        group.MapGet("/appointments/{id:guid}", GetAppointmentDetail);
+        group.MapPatch("/appointments/{id:guid}/checkin", CheckInPatient);
+        group.MapPatch("/appointments/{id:guid}/in-consultation", SendToDoctor);
         group.MapGet("/patients", SearchPatients);
         group.MapPost("/patients", CreatePatient);
     }
@@ -138,6 +141,101 @@ public static class ReceptionistEndpoints
         }).ToList();
 
         return Results.Ok(queue);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/reception/appointments/{id} — Detail for Patient Arrival screen
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetAppointmentDetail(
+        Guid id, NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var apt = await db.Appointments.AsNoTracking()
+            .Include(a => a.Patient)
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .FirstOrDefaultAsync(a => a.Id == id && a.HospitalId == hospitalId);
+
+        if (apt == null) return Results.NotFound();
+
+        int? age = null;
+        if (apt.Patient.DateOfBirth.HasValue)
+        {
+            var dob = apt.Patient.DateOfBirth.Value;
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            age = today.Year - dob.Year;
+            if (dob > today.AddYears(-age.Value)) age--;
+        }
+
+        return Results.Ok(new
+        {
+            id = apt.Id,
+            bookingReference = apt.BookingReference,
+            patientName = apt.Patient.FullName,
+            patientId = apt.Patient.Id,
+            patientInitials = GetInitials(apt.Patient.FullName),
+            patientMobile = apt.Patient.MobileNumber,
+            patientAge = age,
+            patientGender = apt.Patient.Gender,
+            insuranceProvider = apt.Patient.InsuranceProvider,
+            doctorName = apt.DoctorProfile.User.FullName,
+            doctorSpecialty = apt.DoctorProfile.Specialty,
+            scheduledTime = apt.StartTime.ToString("hh\\:mm tt"),
+            consultationType = apt.ConsultationType,
+            notes = apt.Notes,
+            status = apt.Status,
+            paymentStatus = apt.PaymentStatus,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PATCH /api/reception/appointments/{id}/checkin
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> CheckInPatient(
+        Guid id, NalamDbContext db, HttpContext ctx, AuditService auditService)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var apt = await db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.HospitalId == hospitalId);
+
+        if (apt == null) return Results.NotFound();
+        if (apt.Status != "pending" && apt.Status != "confirmed")
+            return Results.BadRequest(new { error = $"Cannot check in an appointment with status '{apt.Status}'." });
+
+        apt.Status = "arrived";
+        apt.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            $"Patient checked in for appointment {apt.BookingReference}", "appointment", "info");
+
+        return Results.Ok(new { status = "arrived" });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PATCH /api/reception/appointments/{id}/in-consultation
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> SendToDoctor(
+        Guid id, NalamDbContext db, HttpContext ctx, AuditService auditService)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var apt = await db.Appointments
+            .FirstOrDefaultAsync(a => a.Id == id && a.HospitalId == hospitalId);
+
+        if (apt == null) return Results.NotFound();
+        if (apt.Status != "arrived")
+            return Results.BadRequest(new { error = "Patient must be checked in (arrived) before sending to doctor." });
+
+        apt.Status = "in_consultation";
+        apt.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            $"Patient sent to doctor for appointment {apt.BookingReference}", "appointment", "info");
+
+        return Results.Ok(new { status = "in_consultation" });
     }
 
     // ═══════════════════════════════════════════════════════════
