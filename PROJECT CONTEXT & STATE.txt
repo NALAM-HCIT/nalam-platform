@@ -252,7 +252,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * [x] Phase 23: Receptionist Dashboard Navigation + Real Notifications (2026-03-27) - COMPLETED
   * [x] Backend: GET /api/reception/notifications — last 24h audit log events (appointment + reception categories), friendly titles + filter hints
   * [x] Mobile: receptionist/(tabs)/index.tsx — stats cards navigate to Appointments tab with filter (all/arrived/in_consultation/completed)
-  * [x] Mobile: index.tsx — New Reg → Patients tab; Instant Check-in → Appointments (confirmed filter); Emergency → Patients tab; Schedule → Appointments (confirmed filter)
+  * [x] Mobile: index.tsx — New Reg → Patients tab; Instant Check-in → Appointments (confirmed filter); Emergency → Patients tab; Schedule → Appointments (confirmed filter) [superseded by Phase 25]
   * [x] Mobile: index.tsx — "View All" navigates to Appointments tab; upcoming list shows confirmed/pending only; checkIn() used consistently
   * [x] Mobile: index.tsx — notifications modal shows real audit log data; tapping notification navigates to Appointments with relevant filter
   * [x] Mobile: appointments.tsx — useLocalSearchParams reads filter param on navigation; useEffect applies it; useFocusEffect reloads list on tab focus
@@ -269,6 +269,22 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] patients.tsx: availableSlots computed — when Today is selected, filters out past time slots (compares slot HH:MM against current time); future dates show all 16 slots
   * [x] patients.tsx: useEffect clears selectedTime if it becomes unavailable after date changes to today
   * [x] patients.tsx: Time section header shows "(Today — future slots only)" hint; empty-slots state shown when no more slots remain today
+
+* [x] Phase 25: Emergency Priority & Dashboard Quick Actions (2026-03-27) - COMPLETED
+  * ── Schema ──
+  * [x] Migration DropDoubleBookingIndex (20260327091720): drops ix_appointments_no_double_booking partial unique index (IF EXISTS — idempotent)
+  * [x] Migration AddAppointmentPriority (20260327092830): adds priority column to appointments (varchar(20), NOT NULL DEFAULT 'normal', IF NOT EXISTS — idempotent)
+  * ── Backend ──
+  * [x] Appointment entity: Priority property added (string, Column("priority"), MaxLength(20), default "normal")
+  * [x] GetTodayQueue: accepts optional priority? query param; filters by priority; orders emergency first (Priority == "emergency" → top); returns priority field in response
+  * [x] BookAppointmentRequest record: string? Priority field added
+  * [x] BookAppointment: Priority = (request.Priority == "emergency") ? "emergency" : "normal" stored on Appointment
+  * ── Frontend ──
+  * [x] receptionistService.ts: QueuePatient interface gains priority: string; bookAppointment params gain priority?: string
+  * [x] index.tsx (dashboard): Removed "Instant Check-in" and "Schedule" quick actions; now only "New Reg" + "Emergency"; Emergency navigates to Appointments tab with filter=emergency
+  * [x] appointments.tsx: AppointmentStatus type extended with 'emergency'; Emergency filter tab added (count = priority==='emergency'); Emergency section at top of grouped view (red); filteredAppointments handles emergency filter via priority field
+  * [x] patients.tsx: bookingPriority state ('normal'|'emergency'); Regular/Emergency toggle selector added at top of Step 1 in booking modal; priority passed to bookAppointment API call
+  * [x] Commits: b5f5656 (feature), f3093dc (idempotent migrations fix)
 
 * [x] Phase 18: Admin Settings Module (Full Stack — 6 Panels) - COMPLETED
   * ── Phase 18.1: Database Design & Schema ──
@@ -337,7 +353,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * doctor_profiles: [id (PK/UUID), hospital_id (FK), user_id (FK/unique), specialty, experience_years, consultation_fee, available_for_video, available_for_in_person, languages, rating, review_count, bio, is_accepting_appointments, created_at, updated_at]
 * doctor_schedules: [id (PK/UUID), hospital_id (FK), doctor_profile_id (FK), day_of_week (0-6), start_time, end_time, slot_duration_minutes, consultation_type, is_active]
 * user_roles: [id (PK/UUID), user_id (FK), role, assigned_at, is_active] — unique index on (user_id, role)
-* appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, prescription_status (null/pending/dispensed/rejected), created_at, updated_at]
+* appointments: [id (PK/UUID), hospital_id (FK), patient_id (FK), doctor_profile_id (FK), schedule_date, start_time, end_time, consultation_type, status, consultation_fee, tax_amount, platform_fee, discount_amount, total_amount, coupon_code, payment_method, payment_status, booking_reference, cancel_reason, cancelled_at, cancelled_by, notes, prescription_status (null/pending/dispensed/rejected), priority (varchar(20) NOT NULL DEFAULT 'normal' — "normal"|"emergency"), created_at, updated_at]
 * hospital_working_hours: [id (PK/UUID), hospital_id (FK), day_of_week (0-6), start_time (TIME), end_time (TIME), is_enabled, break_start (TIME nullable), break_end (TIME nullable), updated_at] — unique index on (hospital_id, day_of_week)
 * hospital_integrations: [id (PK/UUID), hospital_id (FK), name, type, is_connected, config_json (nullable), last_synced_at (nullable), status, created_at, updated_at] — unique index on (hospital_id, name)
 
