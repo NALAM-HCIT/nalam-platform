@@ -1,8 +1,9 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Calendar, Clock, User, Search, Plus, Users, Activity, CheckCircle } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
@@ -49,6 +50,7 @@ const statusVariant = (status: string) => {
 
 export default function AppointmentsScreen() {
   const router = useRouter();
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
   const [appointments, setAppointments] = useState<QueuePatient[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<AppointmentStatus>('all');
@@ -66,7 +68,15 @@ export default function AppointmentsScreen() {
     }
   };
 
-  useEffect(() => { loadAppointments(); }, []);
+  // Apply filter from navigation param when it changes
+  useEffect(() => {
+    if (filterParam && filterTabs.some((t) => t.value === filterParam)) {
+      setActiveFilter(filterParam as AppointmentStatus);
+    }
+  }, [filterParam]);
+
+  // Reload list every time tab is focused (picks up new bookings, status changes)
+  useFocusEffect(useCallback(() => { loadAppointments(); }, []));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -76,6 +76,15 @@ export interface DoctorItem {
     availableForVideo: boolean;
 }
 
+export interface ReceptionNotification {
+    id: string;
+    title: string;
+    message: string;
+    category: string;
+    filter: string;
+    time: string;
+}
+
 export const receptionistService = {
     getDashboard: async (): Promise<ReceptionDashboardStats> => {
         const response = await api.get('/reception/dashboard');
@@ -143,6 +152,11 @@ export const receptionistService = {
         notes?: string;
     }): Promise<{ bookingReference: string }> => {
         const response = await api.post('/reception/book-appointment', data);
+        return response.data;
+    },
+
+    getNotifications: async (): Promise<ReceptionNotification[]> => {
+        const response = await api.get('/reception/notifications');
         return response.data;
     },
 };

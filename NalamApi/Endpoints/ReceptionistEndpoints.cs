@@ -30,6 +30,7 @@ public static class ReceptionistEndpoints
         group.MapGet("/stats", GetStats);
         group.MapGet("/doctors", GetDoctors);
         group.MapPost("/book-appointment", BookAppointment);
+        group.MapGet("/notifications", GetNotifications);
     }
 
     private static Guid GetHospitalId(HttpContext ctx) =>
@@ -510,6 +511,49 @@ public static class ReceptionistEndpoints
             status = "confirmed",
         });
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/reception/notifications
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetNotifications(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var since = DateTime.UtcNow.AddHours(-24);
+
+        var logs = await db.AuditLogs.AsNoTracking()
+            .Where(l => l.HospitalId == hospitalId
+                     && l.CreatedAt >= since
+                     && (l.Category == "appointment" || l.Category == "reception"))
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(30)
+            .Select(l => new { l.Id, l.Action, l.Category, l.CreatedAt })
+            .ToListAsync();
+
+        var notifications = logs.Select(l => new
+        {
+            id = l.Id,
+            title = MapNotifTitle(l.Action),
+            message = l.Action,
+            category = l.Category,
+            filter = MapNotifFilter(l.Action),
+            time = l.CreatedAt,
+        });
+
+        return Results.Ok(notifications);
+    }
+
+    private static string MapNotifTitle(string action) =>
+        action.StartsWith("Patient checked in") ? "Patient Arrived" :
+        action.StartsWith("Patient sent to doctor") ? "Sent to Doctor" :
+        action.StartsWith("Appointment booked by receptionist") ? "New Booking" :
+        action.StartsWith("Registered walk-in") ? "Walk-in Registered" :
+        "Appointment Update";
+
+    private static string MapNotifFilter(string action) =>
+        action.StartsWith("Patient checked in") ? "arrived" :
+        action.StartsWith("Patient sent to doctor") ? "in_consultation" :
+        "all";
 }
 
 public record ReceptionistCreatePatientRequest(string FullName, string MobileNumber);
