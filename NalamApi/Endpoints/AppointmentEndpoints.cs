@@ -391,13 +391,11 @@ public static class AppointmentEndpoints
 
         var total = Math.Max(0, fee + tax + platformFee - discount);
 
-        // Generate booking reference — count is global (all hospitals) so the
-        // unique index on booking_reference is never violated across tenants.
+        // Generate booking reference — uses random hex suffix to guarantee uniqueness
+        // even under concurrent load (avoids unique index violations).
         var year = DateTime.UtcNow.Year;
-        var count = await db.Appointments
-            .IgnoreQueryFilters()
-            .CountAsync(a => a.CreatedAt.Year == year);
-        var bookingRef = $"NLM-{year}-{(count + 1):D4}";
+        var rndSuffix = Guid.NewGuid().ToString("N")[..6].ToUpper();
+        var bookingRef = $"NLM-{year}-{rndSuffix}";
 
         var appointment = new Entities.Appointment
         {
@@ -438,7 +436,16 @@ public static class AppointmentEndpoints
         }
 
         db.Appointments.Add(appointment);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            await tx.RollbackAsync();
+            var inner = ex.InnerException?.Message ?? ex.Message;
+            return Results.Problem(detail: inner, title: "Booking failed", statusCode: 500);
+        }
         await tx.CommitAsync();
 
         // Reload with navigation for response
