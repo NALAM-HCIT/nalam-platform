@@ -263,6 +263,19 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"⚠️  Migration warning: {ex.Message}");
         Console.WriteLine("   Run 'dotnet ef database update' manually if needed.");
     }
+
+    // Safety net: ensure schema-critical columns exist even if EF migration failed.
+    // These are idempotent (IF NOT EXISTS / IF EXISTS) and safe to run on every startup.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE appointments ADD COLUMN IF NOT EXISTS priority character varying(20) NOT NULL DEFAULT 'normal';");
+        Console.WriteLine("✅ Schema safety check passed (priority column ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning: {ex.Message}");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════

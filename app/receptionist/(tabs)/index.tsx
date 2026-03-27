@@ -29,21 +29,29 @@ export default function ReceptionistDashboard() {
   const [notifRead, setNotifRead] = useState<Set<string>>(new Set());
 
   const loadDashboard = async () => {
-    try {
-      const [dashStats, queue, notifs] = await Promise.all([
-        receptionistService.getDashboard(),
-        receptionistService.getQueue(),
-        receptionistService.getNotifications(),
-      ]);
-      setStats(dashStats);
-      // Show top 5 upcoming (confirmed/pending) appointments in the dashboard list
-      const upcoming = queue.filter((a) => a.status === 'confirmed' || a.status === 'pending');
+    const [dashResult, queueResult, notifsResult] = await Promise.allSettled([
+      receptionistService.getDashboard(),
+      receptionistService.getQueue(),
+      receptionistService.getNotifications(),
+    ]);
+
+    if (dashResult.status === 'fulfilled') {
+      setStats(dashResult.value);
+    } else if (!isAuthError(dashResult.reason)) {
+      console.error('[dashboard] getDashboard failed:', dashResult.reason?.response?.data || dashResult.reason?.message);
+    }
+
+    if (queueResult.status === 'fulfilled') {
+      const upcoming = queueResult.value.filter((a) => a.status === 'confirmed' || a.status === 'pending');
       setAppointments(upcoming.slice(0, 5));
-      setNotifications(notifs);
-    } catch (err) {
-      if (!isAuthError(err)) {
-        console.error(err);
-      }
+    } else if (!isAuthError(queueResult.reason)) {
+      console.error('[dashboard] getQueue failed:', queueResult.reason?.response?.data || queueResult.reason?.message);
+    }
+
+    if (notifsResult.status === 'fulfilled') {
+      setNotifications(notifsResult.value);
+    } else if (!isAuthError(notifsResult.reason)) {
+      console.error('[dashboard] getNotifications failed:', notifsResult.reason?.response?.data || notifsResult.reason?.message);
     }
   };
 
