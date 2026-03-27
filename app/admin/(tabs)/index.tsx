@@ -9,7 +9,7 @@ import {
   Bell, Users, Shield, UserPlus, Settings,
   Building2, ClipboardList, ChevronRight, X, Check, AlertTriangle,
   Server, Calendar, Database, Wifi,
-  FileText, Stethoscope, Clock,
+  FileText, Clock,
 } from 'lucide-react-native';
 import { api, isAuthError } from '@/services/api';
 
@@ -37,7 +37,6 @@ interface Notification {
 
 const QUICK_ACTIONS = [
   { icon: UserPlus, label: 'Create User', color: '#FFFFFF', bg: Colors.primary, actionId: 'create-user' },
-  { icon: Stethoscope, label: 'Doctors', color: '#1D4ED8', bg: '#EFF6FF', actionId: 'manage-doctors' },
   { icon: Settings, label: 'Settings', color: '#64748B', bg: '#F1F5F9', actionId: 'system-settings' },
   { icon: ClipboardList, label: 'Audit Logs', color: '#059669', bg: '#ECFDF5', actionId: 'audit-logs' },
 ];
@@ -124,8 +123,13 @@ export default function AdminDashboard() {
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [totalDepartments, setTotalDepartments] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState(0);
+  const [todayConfirmed, setTodayConfirmed] = useState(0);
+  const [todayCompleted, setTodayCompleted] = useState(0);
+  const [todayCancelled, setTodayCancelled] = useState(0);
   const [newPatientsToday, setNewPatientsToday] = useState(0);
   const [todayPrescriptions, setTodayPrescriptions] = useState(0);
+  const [todayPendingRx, setTodayPendingRx] = useState(0);
+  const [todayDispensedRx, setTodayDispensedRx] = useState(0);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
@@ -136,8 +140,13 @@ export default function AdminDashboard() {
       setOnlineUsers(d.onlineUsers ?? 0);
       setTotalDepartments(d.totalDepartments ?? 0);
       setTodayAppointments(d.todayAppointments ?? 0);
+      setTodayConfirmed(d.todayConfirmedAppointments ?? 0);
+      setTodayCompleted(d.todayCompletedAppointments ?? 0);
+      setTodayCancelled(d.todayCancelledAppointments ?? 0);
       setNewPatientsToday(d.newPatientsToday ?? 0);
       setTodayPrescriptions(d.todayPrescriptions ?? 0);
+      setTodayPendingRx(d.todayPendingPrescriptions ?? 0);
+      setTodayDispensedRx(d.todayDispensedPrescriptions ?? 0);
       const logs = (d.recentAuditLogs ?? []).map((a: any) => ({
         id: a.id,
         action: a.action,
@@ -210,9 +219,6 @@ export default function AdminDashboard() {
     switch (actionId) {
       case 'create-user':
         router.push('/admin/create-user');
-        break;
-      case 'manage-doctors':
-        router.push('/admin/manage-doctors');
         break;
       case 'system-settings':
         router.push('/admin/(tabs)/settings' as any);
@@ -311,13 +317,19 @@ export default function AdminDashboard() {
           <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Overview</Text>
           <View className="flex-row gap-2.5">
             <OverviewCard label="Appointments" value={todayAppointments.toString()} icon={Calendar} color={Colors.primary} onPress={() =>
-              CustomAlert.alert("Today's Appointments", `Total: ${todayAppointments}`)
+              CustomAlert.alert(
+                "Today's Appointments",
+                `Total: ${todayAppointments}\n\n✅ Confirmed / Active: ${todayConfirmed}\n🏁 Completed: ${todayCompleted}\n❌ Cancelled / No-show: ${todayCancelled}\n⏳ Pending: ${todayAppointments - todayConfirmed - todayCompleted - todayCancelled}`
+              )
             } />
             <OverviewCard label="New Patients" value={newPatientsToday.toString()} icon={UserPlus} color="#059669" onPress={() =>
-              CustomAlert.alert('New Patients Today', `Total: ${newPatientsToday}`)
+              CustomAlert.alert('New Patients Today', `Registered Today: ${newPatientsToday}`)
             } />
             <OverviewCard label="Prescriptions" value={todayPrescriptions.toString()} icon={FileText} color="#8B5CF6" onPress={() =>
-              CustomAlert.alert('Prescriptions Today', `Total: ${todayPrescriptions}`)
+              CustomAlert.alert(
+                'Prescriptions Today',
+                `Total: ${todayPrescriptions}\n\n⏳ Pending Dispensing: ${todayPendingRx}\n✅ Dispensed: ${todayDispensedRx}`
+              )
             } />
           </View>
         </View>

@@ -58,9 +58,15 @@ public record DashboardResponse(
     int TotalUsers,
     int OnlineUsers,
     int TotalDepartments,
+    // Today's Overview
     int TodayAppointments,
+    int TodayConfirmedAppointments,
+    int TodayCompletedAppointments,
+    int TodayCancelledAppointments,
     int NewPatientsToday,
     int TodayPrescriptions,
+    int TodayPendingPrescriptions,
+    int TodayDispensedPrescriptions,
     List<ActivityResponse> RecentAuditLogs
 );
 

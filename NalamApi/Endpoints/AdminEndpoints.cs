@@ -553,17 +553,19 @@ public static class AdminEndpoints
             .Where(d => d.HospitalId == hospitalId)
             .CountAsync();
 
-        var todayAppointments = await db.Appointments.AsNoTracking()
-            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == todayDate)
-            .CountAsync();
+        var todayApptBase = db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == todayDate);
+
+        var todayAppointments       = await todayApptBase.CountAsync();
+        var todayConfirmed          = await todayApptBase.CountAsync(a => a.Status == "confirmed" || a.Status == "arrived" || a.Status == "in_consultation");
+        var todayCompleted          = await todayApptBase.CountAsync(a => a.Status == "completed");
+        var todayCancelled          = await todayApptBase.CountAsync(a => a.Status == "cancelled" || a.Status == "no_show");
+        var todayPrescriptions      = await todayApptBase.CountAsync(a => a.PrescriptionStatus != null);
+        var todayPendingRx          = await todayApptBase.CountAsync(a => a.PrescriptionStatus == "pending");
+        var todayDispensedRx        = await todayApptBase.CountAsync(a => a.PrescriptionStatus == "dispensed");
 
         var newPatientsToday = await db.Patients.AsNoTracking()
             .Where(p => p.HospitalId == hospitalId && p.CreatedAt >= todayUtc)
-            .CountAsync();
-
-        var todayPrescriptions = await db.Appointments.AsNoTracking()
-            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == todayDate
-                         && a.PrescriptionStatus != null)
             .CountAsync();
 
         var recentAuditLogs = await db.AuditLogs.AsNoTracking()
@@ -581,8 +583,13 @@ public static class AdminEndpoints
             OnlineUsers: onlineUsers,
             TotalDepartments: departments,
             TodayAppointments: todayAppointments,
+            TodayConfirmedAppointments: todayConfirmed,
+            TodayCompletedAppointments: todayCompleted,
+            TodayCancelledAppointments: todayCancelled,
             NewPatientsToday: newPatientsToday,
             TodayPrescriptions: todayPrescriptions,
+            TodayPendingPrescriptions: todayPendingRx,
+            TodayDispensedPrescriptions: todayDispensedRx,
             RecentAuditLogs: recentAuditLogs
         );
 
