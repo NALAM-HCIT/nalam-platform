@@ -56,6 +56,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await SecureStore.setItemAsync('userRoles', JSON.stringify(data.roles));
     await SecureStore.setItemAsync('hospitalId', data.hospitalId);
     await SecureStore.setItemAsync('accountType', data.accountType);
+    await SecureStore.setItemAsync('userName', data.userName);
+    await SecureStore.setItemAsync('userId', data.userId);
 
     set({
       isAuthenticated: true,
@@ -96,6 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await SecureStore.deleteItemAsync('userRoles');
     await SecureStore.deleteItemAsync('hospitalId');
     await SecureStore.deleteItemAsync('accountType');
+    await SecureStore.deleteItemAsync('userName');
+    await SecureStore.deleteItemAsync('userId');
 
     set({
       isAuthenticated: false,
@@ -118,6 +122,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const rolesJson = await SecureStore.getItemAsync('userRoles');
       const accountType = (await SecureStore.getItemAsync('accountType') || 'staff') as AccountType;
       const roles: UserRole[] = rolesJson ? JSON.parse(rolesJson) : (role ? [role] : []);
+      const userName = await SecureStore.getItemAsync('userName') ?? '';
+      const userId = await SecureStore.getItemAsync('userId') ?? null;
 
       if (token) {
         try {
@@ -135,7 +141,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           await SecureStore.deleteItemAsync('token');
           return;
         }
-        set({ isAuthenticated: true, token, role, roles, hospitalId, accountType });
+        set({ isAuthenticated: true, token, role, roles, hospitalId, accountType, userName, userId });
       }
     } catch (e) {
       console.error('Failed to restore auth session', e);

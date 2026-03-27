@@ -391,11 +391,12 @@ public static class AppointmentEndpoints
 
         var total = Math.Max(0, fee + tax + platformFee - discount);
 
-        // Generate booking reference
+        // Generate booking reference — count is global (all hospitals) so the
+        // unique index on booking_reference is never violated across tenants.
         var year = DateTime.UtcNow.Year;
         var count = await db.Appointments
             .IgnoreQueryFilters()
-            .CountAsync(a => a.HospitalId == hospitalId && a.CreatedAt.Year == year);
+            .CountAsync(a => a.CreatedAt.Year == year);
         var bookingRef = $"NLM-{year}-{(count + 1):D4}";
 
         var appointment = new Entities.Appointment
