@@ -1,8 +1,9 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
 import { patientService, PatientProfile, ProfileStats } from '@/services/patientService';
@@ -202,30 +203,33 @@ export default function ProfileScreen() {
   const [quickStats, setQuickStats] = useState<ProfileStats | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setProfileLoading(true);
 
-    Promise.all([
-      patientService.getProfile(),
-      patientService.getProfileStats(),
-    ])
-      .then(([prof, stats]) => {
-        if (cancelled) return;
-        setProfile(prof);
-        setQuickStats(stats);
-      })
-      .catch((err) => {
-        if (!cancelled) console.error('Failed to load profile data:', err);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setProfileLoading(false);
-          setStatsLoaded(true);
-        }
-      });
+      Promise.all([
+        patientService.getProfile(),
+        patientService.getProfileStats(),
+      ])
+        .then(([prof, stats]) => {
+          if (cancelled) return;
+          setProfile(prof);
+          setQuickStats(stats);
+        })
+        .catch((err) => {
+          if (!cancelled) console.error('Failed to load profile data:', err);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setProfileLoading(false);
+            setStatsLoaded(true);
+          }
+        });
 
-    return () => { cancelled = true; };
-  }, []);
+      return () => { cancelled = true; };
+    }, []),
+  );
 
   const displayName = profile?.fullName || userName || 'Patient';
   const initials = useMemo(() => {
