@@ -117,18 +117,20 @@ public static class ReceptionistEndpoints
                 a.BookingReference.ToLower().Contains(q));
         }
 
-        // Emergency first, then by time
+        // Emergency first (0), then by time
+        // Note: TimeOnly.ToString() cannot be translated to SQL — select raw TimeOnly and format in memory
         var rawQueue = await query
-            .OrderByDescending(a => a.Priority == "emergency")
+            .OrderBy(a => a.Priority == "emergency" ? 0 : 1)
             .ThenBy(a => a.StartTime)
             .Select(a => new
             {
                 id = a.Id,
                 bookingReference = a.BookingReference,
-                patientName = a.Patient.FullName,
-                patientMobile = a.Patient.MobileNumber,
-                doctorName = a.DoctorProfile.User.FullName,
-                time = a.StartTime.ToString("HH:mm"),
+                patientName = a.Patient != null ? a.Patient.FullName : "",
+                patientMobile = a.Patient != null ? a.Patient.MobileNumber : "",
+                doctorName = a.DoctorProfile != null && a.DoctorProfile.User != null
+                    ? a.DoctorProfile.User.FullName : "",
+                startTime = a.StartTime,
                 type = a.ConsultationType,
                 status = a.Status,
                 paymentStatus = a.PaymentStatus,
@@ -144,7 +146,7 @@ public static class ReceptionistEndpoints
             patientInitials = GetInitials(a.patientName),
             a.patientMobile,
             a.doctorName,
-            a.time,
+            time = a.startTime.ToString("HH:mm"),
             a.type,
             a.status,
             a.paymentStatus,
