@@ -49,13 +49,12 @@ public record UserResponse(
 
 public record DashboardResponse(
     int TotalUsers,
-    int ActiveUsers,
-    int InactiveUsers,
-    int Doctors,
-    int Pharmacists,
-    int Receptionists,
+    int OnlineUsers,
     int TotalDepartments,
-    List<ActivityResponse> RecentActivity
+    int TodayAppointments,
+    int NewPatientsToday,
+    int TodayPrescriptions,
+    List<ActivityResponse> RecentAuditLogs
 );
 
 // ── Activity / Audit Log ─────────────────────────────────
@@ -80,6 +79,16 @@ public record SettingsResponse(
     Guid HospitalId,
     string HospitalName,
     List<SettingDto> Settings
+);
+
+// ── Notifications ───────────────────────────────────────
+public record NotificationItem(
+    Guid Id,
+    string Title,
+    string Body,
+    string Type,      // "info", "warning", "success"
+    string Category,
+    DateTime CreatedAt
 );
 
 // ── Doctor Profile Management ────────────────────────────

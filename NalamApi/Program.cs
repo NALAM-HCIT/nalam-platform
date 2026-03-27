@@ -129,6 +129,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddHostedService<AuditArchivingService>();
 builder.Services.AddHttpClient("Pay4Sms");
 
 // ═══════════════════════════════════════════════════════════

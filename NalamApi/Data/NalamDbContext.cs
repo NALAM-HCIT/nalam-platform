@@ -32,6 +32,7 @@ public class NalamDbContext : DbContext
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<HospitalWorkingHour> HospitalWorkingHours => Set<HospitalWorkingHour>();
     public DbSet<HospitalIntegration> HospitalIntegrations => Set<HospitalIntegration>();
+    public DbSet<AuditLogHistory> AuditLogHistory => Set<AuditLogHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +94,13 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<HospitalIntegration>()
             .HasQueryFilter(hi => !_currentHospitalId.HasValue || hi.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<AuditLogHistory>()
+            .HasQueryFilter(a => !_currentHospitalId.HasValue || a.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<AuditLogHistory>()
+            .HasIndex(a => new { a.HospitalId, a.CreatedAt })
+            .HasDatabaseName("ix_audit_log_history_hospital_date");
 
         // ── UserRole: unique (user_id, role) ─────────────────────────
         modelBuilder.Entity<UserRole>()

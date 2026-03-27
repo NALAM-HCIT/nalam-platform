@@ -36,6 +36,7 @@ public static class AdminEndpoints
 
         // ── Activity / Audit Log ─────────────────────────────────
         group.MapGet("/activity", GetActivity);
+        group.MapGet("/notifications", GetNotifications);
 
         // ── Settings (key-value) ────────────────────────────────
         group.MapGet("/settings", GetSettings);
@@ -451,7 +452,7 @@ public static class AdminEndpoints
     //  DASHBOARD
     // ═══════════════════════════════════════════════════════════
 
-    /// <summary>GET /api/admin/dashboard — Dashboard stats for the hospital (cached 2 min).</summary>
+    /// <summary>GET /api/admin/dashboard — Dashboard stats for the hospital (cached 1 min).</summary>
     private static async Task<IResult> GetDashboard(NalamDbContext db, HttpContext ctx, IMemoryCache cache)
     {
         var hospitalId = GetHospitalId(ctx);
@@ -460,30 +461,55 @@ public static class AdminEndpoints
         if (cache.TryGetValue(cacheKey, out DashboardResponse? cached) && cached != null)
             return Results.Ok(cached);
 
-        var users = await db.Users.AsNoTracking().Where(u => u.HospitalId == hospitalId).ToListAsync();
-        var departments = await db.Departments.AsNoTracking().Where(d => d.HospitalId == hospitalId).CountAsync();
+        var todayUtc = DateTime.UtcNow.Date;
+        var onlineThreshold = DateTime.UtcNow.AddMinutes(-15);
+        var todayDate = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var recentActivity = await db.AuditLogs.AsNoTracking()
-            .Where(a => a.HospitalId == hospitalId)
+        var totalUsers = await db.Users.AsNoTracking()
+            .Where(u => u.HospitalId == hospitalId)
+            .CountAsync();
+
+        var onlineUsers = await db.Users.AsNoTracking()
+            .Where(u => u.HospitalId == hospitalId && u.LastLogin != null && u.LastLogin > onlineThreshold)
+            .CountAsync();
+
+        var departments = await db.Departments.AsNoTracking()
+            .Where(d => d.HospitalId == hospitalId)
+            .CountAsync();
+
+        var todayAppointments = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == todayDate)
+            .CountAsync();
+
+        var newPatientsToday = await db.Patients.AsNoTracking()
+            .Where(p => p.HospitalId == hospitalId && p.CreatedAt >= todayUtc)
+            .CountAsync();
+
+        var todayPrescriptions = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == todayDate
+                         && a.PrescriptionStatus != null)
+            .CountAsync();
+
+        var recentAuditLogs = await db.AuditLogs.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc)
             .OrderByDescending(a => a.CreatedAt)
-            .Take(10)
+            .Take(5)
             .Select(a => new ActivityResponse(
                 a.Id, a.Action, a.User != null ? a.User.FullName : "System",
                 a.Category, a.Severity, a.Details, a.CreatedAt))
             .ToListAsync();
 
         var result = new DashboardResponse(
-            TotalUsers: users.Count,
-            ActiveUsers: users.Count(u => u.Status == "active"),
-            InactiveUsers: users.Count(u => u.Status == "inactive"),
-            Doctors: users.Count(u => u.Role == "doctor"),
-            Pharmacists: users.Count(u => u.Role == "pharmacist"),
-            Receptionists: users.Count(u => u.Role == "receptionist"),
+            TotalUsers: totalUsers,
+            OnlineUsers: onlineUsers,
             TotalDepartments: departments,
-            RecentActivity: recentActivity
+            TodayAppointments: todayAppointments,
+            NewPatientsToday: newPatientsToday,
+            TodayPrescriptions: todayPrescriptions,
+            RecentAuditLogs: recentAuditLogs
         );
 
-        cache.Set(cacheKey, result, TimeSpan.FromMinutes(2));
+        cache.Set(cacheKey, result, TimeSpan.FromMinutes(1));
         return Results.Ok(result);
     }
 
@@ -516,6 +542,53 @@ public static class AdminEndpoints
             .ToListAsync();
 
         return Results.Ok(new { total, page, pageSize, items });
+    }
+
+    /// <summary>GET /api/admin/notifications — Today's activity feed for notification bell.</summary>
+    private static async Task<IResult> GetNotifications(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var todayUtc = DateTime.UtcNow.Date;
+        var todayDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        var notifications = new List<NotificationItem>();
+
+        // Appointments booked today
+        var appointmentCount = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc)
+            .CountAsync();
+        if (appointmentCount > 0)
+            notifications.Add(new(Guid.NewGuid(),
+                $"{appointmentCount} appointment(s) booked today",
+                $"{appointmentCount} new appointment bookings were created today.",
+                "info", "appointment", DateTime.UtcNow));
+
+        // Today's appointments scheduled
+        var scheduledToday = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == todayDate)
+            .CountAsync();
+        if (scheduledToday > 0)
+            notifications.Add(new(Guid.NewGuid(),
+                $"{scheduledToday} appointment(s) scheduled for today",
+                $"There are {scheduledToday} appointments on today's schedule.",
+                "info", "schedule", DateTime.UtcNow));
+
+        // Audit log events (settings changes, hospital info, working hours, etc.)
+        var auditNotifs = await db.AuditLogs.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc)
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(20)
+            .Select(a => new NotificationItem(
+                a.Id,
+                a.Action,
+                a.Details ?? a.Action,
+                a.Severity == "critical" ? "warning" : a.Severity == "warning" ? "warning" : "info",
+                a.Category,
+                a.CreatedAt))
+            .ToListAsync();
+
+        notifications.AddRange(auditNotifs);
+
+        return Results.Ok(notifications.OrderByDescending(n => n.CreatedAt).Take(25).ToList());
     }
 
     // ═══════════════════════════════════════════════════════════

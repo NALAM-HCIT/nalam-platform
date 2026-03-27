@@ -6,23 +6,22 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
 import {
-  Bell, Users, Shield, UserPlus, Settings, Activity, Building2,
-  ClipboardList, ChevronRight, X, Check, Clock, AlertTriangle,
-  TrendingUp, Server, Wifi, Database, Calendar, BarChart3,
-  FileText, Zap, ArrowUpRight, ArrowDownRight, Stethoscope,
+  Bell, Users, Shield, UserPlus, Settings,
+  Building2, ClipboardList, ChevronRight, X, Check, AlertTriangle,
+  Server, Calendar,
+  FileText, Stethoscope, Clock,
 } from 'lucide-react-native';
 import { api, isAuthError } from '@/services/api';
 
 /* ───── Types ───── */
 
-interface ActivityItem {
+interface AuditLogItem {
   id: string;
   action: string;
   user: string;
   category: string;
-  categoryColor: string;
+  severity: string;
   time: string;
-  read: boolean;
 }
 
 interface Notification {
@@ -36,17 +35,6 @@ interface Notification {
 
 /* ───── Data ───── */
 
-const INITIAL_ACTIVITIES: ActivityItem[] = [];
-
-const INITIAL_NOTIFICATIONS: Notification[] = [];
-
-const STAT_CARDS = [
-  { label: 'Total Users', value: '0', icon: Users, color: Colors.primary, trend: '', trendUp: true },
-  { label: 'Active Staff', value: '0', icon: Activity, color: '#22C55E', trend: 'Online', trendUp: true },
-  { label: 'Pending', value: '0', icon: ClipboardList, color: '#F59E0B', trend: '', trendUp: false },
-  { label: 'Departments', value: '0', icon: Server, color: '#8B5CF6', trend: '', trendUp: true },
-];
-
 const QUICK_ACTIONS = [
   { icon: UserPlus, label: 'Create User', color: '#FFFFFF', bg: Colors.primary, actionId: 'create-user' },
   { icon: Stethoscope, label: 'Doctors', color: '#1D4ED8', bg: '#EFF6FF', actionId: 'manage-doctors' },
@@ -54,86 +42,68 @@ const QUICK_ACTIONS = [
   { icon: ClipboardList, label: 'Audit Logs', color: '#059669', bg: '#ECFDF5', actionId: 'audit-logs' },
 ];
 
-const SYSTEM_HEALTH_ITEMS = [
-  { label: 'API Server', status: 'Operational', icon: Server, color: '#22C55E' },
-  { label: 'Database', status: 'Operational', icon: Database, color: '#22C55E' },
-  { label: 'Network', status: 'Operational', icon: Wifi, color: '#22C55E' },
-  { label: 'Auth Service', status: 'Operational', icon: Shield, color: '#22C55E' },
-  { label: 'Response Time', status: '45ms avg', icon: TrendingUp, color: Colors.primary },
-];
-
-const TODAY_OVERVIEW = [
-  { label: 'Appointments', value: '0', icon: Calendar, color: Colors.primary },
-  { label: 'New Patients', value: '0', icon: UserPlus, color: '#059669' },
-  { label: 'Prescriptions', value: '0', icon: FileText, color: '#8B5CF6' },
-  { label: 'Revenue', value: '₹0', icon: BarChart3, color: '#F59E0B' },
-];
-
 /* ───── Sub-components ───── */
 
-const StatCard = React.memo(function StatCard({
-  stat, onPress,
-}: { stat: typeof STAT_CARDS[0]; onPress: () => void }) {
-  const Icon = stat.icon;
-  const TrendIcon = stat.trendUp ? ArrowUpRight : ArrowDownRight;
+const OverviewCard = React.memo(function OverviewCard({
+  label, value, icon: Icon, color, onPress,
+}: { label: string; value: string; icon: React.ElementType; color: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} className="w-[48%] bg-white rounded-2xl p-4 active:opacity-80" style={Shadows.card}>
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: stat.color + '15' }}>
-          <Icon size={18} color={stat.color} />
-        </View>
-        <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: stat.trendUp ? '#05966912' : '#EF444412' }}>
-          <TrendIcon size={10} color={stat.trendUp ? '#059669' : '#EF4444'} />
-          <Text className="text-[9px] font-bold" style={{ color: stat.trendUp ? '#059669' : '#EF4444' }}>{stat.trend}</Text>
-        </View>
+    <Pressable onPress={onPress} className="flex-1 bg-white rounded-2xl p-3 items-center active:opacity-80" style={Shadows.card}>
+      <View className="w-8 h-8 rounded-lg items-center justify-center mb-1.5" style={{ backgroundColor: color + '12' }}>
+        <Icon size={14} color={color} />
       </View>
-      <Text className="text-3xl font-extrabold text-midnight">{stat.value}</Text>
-      <Text className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">{stat.label}</Text>
+      <Text className="text-base font-extrabold text-midnight">{value}</Text>
+      <Text className="text-[9px] text-slate-400 font-medium">{label}</Text>
     </Pressable>
   );
 });
 
-const ActivityRow = React.memo(function ActivityRow({
-  item, isLast, onPress,
-}: { item: ActivityItem; isLast: boolean; onPress: () => void }) {
+const StatCard = React.memo(function StatCard({
+  label, value, subLabel, icon: Icon, color, onPress,
+}: { label: string; value: string; subLabel?: string; icon: React.ElementType; color: string; onPress: () => void }) {
   return (
-    <Pressable
-      onPress={onPress}
-      className={`px-4 py-3.5 flex-row items-center gap-3 active:bg-slate-50 ${!item.read ? 'bg-primary/[0.03]' : ''}`}
+    <Pressable onPress={onPress} className="w-[48%] bg-white rounded-2xl p-4 active:opacity-80" style={Shadows.card}>
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: color + '15' }}>
+          <Icon size={18} color={color} />
+        </View>
+        {subLabel ? (
+          <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50">
+            <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <Text className="text-[9px] font-bold text-emerald-600">{subLabel}</Text>
+          </View>
+        ) : null}
+      </View>
+      <Text className="text-3xl font-extrabold text-midnight">{value}</Text>
+      <Text className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">{label}</Text>
+    </Pressable>
+  );
+});
+
+const AuditRow = React.memo(function AuditRow({
+  item, isLast,
+}: { item: AuditLogItem; isLast: boolean }) {
+  const severityColor = item.severity === 'critical' ? '#EF4444' : item.severity === 'warning' ? '#F59E0B' : Colors.primary;
+  return (
+    <View
+      className="px-4 py-3 flex-row items-center gap-3"
       style={!isLast ? { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' } : undefined}
     >
-      <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: item.categoryColor + '12' }}>
-        <Text className="font-extrabold text-xs" style={{ color: item.categoryColor }}>{item.user.charAt(0)}</Text>
+      <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: severityColor + '12' }}>
+        <Text className="font-extrabold text-xs" style={{ color: severityColor }}>
+          {item.user.charAt(0).toUpperCase()}
+        </Text>
       </View>
       <View className="flex-1">
-        <View className="flex-row items-center gap-2">
-          <Text className="font-bold text-[13px] text-midnight flex-1" numberOfLines={1}>{item.action}</Text>
-          {!item.read && <View className="w-2 h-2 rounded-full bg-primary" />}
-        </View>
-        <View className="flex-row items-center gap-2 mt-1">
-          <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: item.categoryColor + '12' }}>
-            <Text className="text-[8px] font-bold uppercase tracking-wider" style={{ color: item.categoryColor }}>{item.category}</Text>
+        <Text className="font-semibold text-[12px] text-midnight" numberOfLines={1}>{item.action}</Text>
+        <View className="flex-row items-center gap-2 mt-0.5">
+          <View className="px-1.5 py-0.5 rounded-full" style={{ backgroundColor: severityColor + '12' }}>
+            <Text className="text-[8px] font-bold uppercase tracking-wider" style={{ color: severityColor }}>{item.category}</Text>
           </View>
           <Text className="text-slate-400 text-[10px]">{item.user} · {item.time}</Text>
         </View>
       </View>
-      <ChevronRight size={14} color="#CBD5E1" />
-    </Pressable>
-  );
-});
-
-const OverviewCard = React.memo(function OverviewCard({
-  item, onPress,
-}: { item: typeof TODAY_OVERVIEW[0]; onPress: () => void }) {
-  const Icon = item.icon;
-  return (
-    <Pressable onPress={onPress} className="flex-1 bg-white rounded-2xl p-3 items-center active:opacity-80" style={Shadows.card}>
-      <View className="w-8 h-8 rounded-lg items-center justify-center mb-1.5" style={{ backgroundColor: item.color + '12' }}>
-        <Icon size={14} color={item.color} />
-      </View>
-      <Text className="text-base font-extrabold text-midnight">{item.value}</Text>
-      <Text className="text-[9px] text-slate-400 font-medium">{item.label}</Text>
-    </Pressable>
+    </View>
   );
 });
 
@@ -143,43 +113,65 @@ export default function AdminDashboard() {
   const router = useRouter();
   const userName = useAuthStore((s) => s.userName);
   const [refreshing, setRefreshing] = useState(false);
-  const [activities, setActivities] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
-  const [stats, setStats] = useState(STAT_CARDS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showSystemHealth, setShowSystemHealth] = useState(false);
-  
+
+  // Dashboard data
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [totalDepartments, setTotalDepartments] = useState(0);
+  const [todayAppointments, setTodayAppointments] = useState(0);
+  const [newPatientsToday, setNewPatientsToday] = useState(0);
+  const [todayPrescriptions, setTodayPrescriptions] = useState(0);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+
   const fetchDashboardData = useCallback(async () => {
     try {
       const res = await api.get('/admin/dashboard');
-      const data = res.data;
-      setStats([
-        { label: 'Total Users', value: data.totalUsers.toString(), icon: Users, color: Colors.primary, trend: '+4%', trendUp: true },
-        { label: 'Active Staff', value: data.activeUsers.toString(), icon: Activity, color: '#22C55E', trend: 'Online', trendUp: true },
-        { label: 'Pending', value: data.inactiveUsers.toString(), icon: ClipboardList, color: '#F59E0B', trend: 'Urgent', trendUp: false },
-        { label: 'Departments', value: data.totalDepartments.toString(), icon: Server, color: '#8B5CF6', trend: 'Stable', trendUp: true },
-      ]);
-      const mappedActivity = data.recentActivity.map((a: any) => ({
-        id: a.id, action: a.action, user: a.user ?? 'System', category: a.category,
-        categoryColor: a.severity === 'critical' ? '#EF4444' : a.severity === 'warning' ? '#F59E0B' : Colors.primary,
+      const d = res.data;
+      setTotalUsers(d.totalUsers ?? 0);
+      setOnlineUsers(d.onlineUsers ?? 0);
+      setTotalDepartments(d.totalDepartments ?? 0);
+      setTodayAppointments(d.todayAppointments ?? 0);
+      setNewPatientsToday(d.newPatientsToday ?? 0);
+      setTodayPrescriptions(d.todayPrescriptions ?? 0);
+      const logs = (d.recentAuditLogs ?? []).map((a: any) => ({
+        id: a.id,
+        action: a.action,
+        user: a.userName ?? 'System',
+        category: a.category,
+        severity: a.severity,
         time: new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        read: true
       }));
-      if (mappedActivity.length > 0) setActivities(mappedActivity);
+      setAuditLogs(logs);
     } catch (error) {
-      if (!isAuthError(error)) {
-        console.log('Failed to fetch dashboard data', error);
-      }
+      if (!isAuthError(error)) console.log('Failed to fetch dashboard data', error);
+    }
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await api.get('/admin/notifications');
+      const items = (res.data ?? []).map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        time: new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: (n.type ?? 'info') as 'info' | 'warning' | 'success' | 'error',
+        read: false,
+      }));
+      setNotifications(items);
+    } catch (error) {
+      if (!isAuthError(error)) console.log('Failed to fetch notifications', error);
     }
   }, []);
 
   React.useEffect(() => {
     fetchDashboardData();
-  }, [fetchDashboardData]);
+    fetchNotifications();
+  }, [fetchDashboardData, fetchNotifications]);
 
   const unreadNotifCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
-  const unreadActivityCount = useMemo(() => activities.filter((a) => !a.read).length, [activities]);
-  const displayActivities = useMemo(() => activities.slice(0, 4), [activities]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -190,32 +182,9 @@ export default function AdminDashboard() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchDashboardData();
+    await Promise.all([fetchDashboardData(), fetchNotifications()]);
     setRefreshing(false);
-  }, [fetchDashboardData]);
-
-  const handleStatPress = useCallback((index: number) => {
-    switch (index) {
-      case 0:
-        router.push('/admin/(tabs)/users' as any);
-        break;
-      case 1:
-        CustomAlert.alert('Active Staff — 86', 'Doctors: 32\nReceptionists: 22\nPharmacists: 18\nAdmins: 14', [
-          { text: 'View Users', onPress: () => router.push('/admin/(tabs)/users' as any) },
-          { text: 'OK' },
-        ]);
-        break;
-      case 2:
-        CustomAlert.alert('Pending Approvals — 5', '3 New user registrations\n1 Role change request\n1 Access permission request', [
-          { text: 'Review Now', onPress: () => router.push('/admin/(tabs)/users' as any) },
-          { text: 'Later' },
-        ]);
-        break;
-      case 3:
-        setShowSystemHealth(true);
-        break;
-    }
-  }, [router]);
+  }, [fetchDashboardData, fetchNotifications]);
 
   const handleQuickAction = useCallback((actionId: string) => {
     switch (actionId) {
@@ -229,34 +198,22 @@ export default function AdminDashboard() {
         router.push('/admin/(tabs)/settings' as any);
         break;
       case 'audit-logs':
-        CustomAlert.alert('Audit Logs', 'Recent Trail:\n\n- [10:32] Admin viewed user list\n- [10:15] Dr. Priya Sharma registered\n- [09:48] Role updated for Priya Sharma\n- [09:30] Ravi Kumar added\n- [08:00] System backup triggered\n- [07:55] Admin logged in\n\nLogs retained for 90 days.', [
-          { text: 'OK' },
-          { text: 'Export', onPress: () => CustomAlert.alert('Exported', 'Audit logs sent to admin email.\nFormat: CSV | Period: 30 days') },
-        ]);
+        if (auditLogs.length === 0) {
+          CustomAlert.alert('Audit Logs', 'No audit logs recorded today.');
+        } else {
+          CustomAlert.alert(
+            'Today\'s Audit Logs',
+            auditLogs.map((a, i) => `${i + 1}. ${a.action}\n   ${a.user} · ${a.time}`).join('\n\n')
+          );
+        }
         break;
     }
-  }, [router]);
-
-  const handleActivityPress = useCallback((item: ActivityItem) => {
-    setActivities((prev) => prev.map((a) => (a.id === item.id ? { ...a, read: true } : a)));
-    CustomAlert.alert(item.action, `User: ${item.user}\nCategory: ${item.category}\nTime: ${item.time}`, [
-      { text: 'Dismiss', style: 'cancel' },
-      {
-        text: 'View Details',
-        onPress: () => {
-          if (item.category === 'User' || item.category === 'Role') router.push('/admin/(tabs)/users' as any);
-          else if (item.category === 'System') router.push('/admin/(tabs)/settings' as any);
-          else if (item.category === 'Security') CustomAlert.alert('Security', 'Security event details would open.\n\nIP: 192.168.1.45\nAction: Failed login attempt\nStatus: Account locked');
-        },
-      },
-    ]);
-  }, [router]);
+  }, [router, auditLogs]);
 
   const handleNotificationPress = useCallback((notif: Notification) => {
     setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)));
     const actions: any[] = [{ text: 'Dismiss', style: 'cancel' }];
     if (notif.type === 'warning') actions.push({ text: 'Review', onPress: () => { setShowNotifications(false); router.push('/admin/(tabs)/users' as any); } });
-    else if (notif.type === 'error') actions.push({ text: 'View Security', onPress: () => { setShowNotifications(false); router.push('/admin/(tabs)/settings' as any); } });
     CustomAlert.alert(notif.title, notif.body, actions);
   }, [router]);
 
@@ -269,23 +226,6 @@ export default function AdminDashboard() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear All', style: 'destructive', onPress: () => setNotifications([]) },
     ]);
-  }, []);
-
-  const handleOverviewPress = useCallback((label: string) => {
-    switch (label) {
-      case 'Appointments':
-        CustomAlert.alert('Today\'s Appointments', 'Total: 142\n\nCompleted: 98\nIn Progress: 12\nUpcoming: 24\nCancelled: 8\n\nBusiest Dept: Cardiology (28)');
-        break;
-      case 'New Patients':
-        CustomAlert.alert('New Patients Today', 'Total: 18\n\nOPD: 12\nEmergency: 4\nReferral: 2\n\nPeak Hour: 10-11 AM (6 registrations)');
-        break;
-      case 'Prescriptions':
-        CustomAlert.alert('Prescriptions Today', 'Total: 96\n\nDispensed: 78\nPending: 12\nClarification: 6\n\nTop Drug: Amlodipine 5mg');
-        break;
-      case 'Revenue':
-        CustomAlert.alert('Today\'s Revenue', 'Total: ₹2,42,500\n\nConsultations: ₹1,28,000\nPharmacy: ₹68,500\nLab Tests: ₹32,000\nOthers: ₹14,000\n\nGrowth vs Yesterday: +8%');
-        break;
-    }
   }, []);
 
   const notifTypeIcon = useCallback((type: string) => {
@@ -346,23 +286,41 @@ export default function AdminDashboard() {
           </Text>
         </View>
 
-        {/* Today's Overview */}
+        {/* Today's Overview (3 cards — no Revenue) */}
         <View className="px-6 mb-4">
           <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Today's Overview</Text>
           <View className="flex-row gap-2.5">
-            {TODAY_OVERVIEW.map((item, idx) => (
-              <OverviewCard key={idx} item={item} onPress={() => handleOverviewPress(item.label)} />
-            ))}
+            <OverviewCard label="Appointments" value={todayAppointments.toString()} icon={Calendar} color={Colors.primary} onPress={() =>
+              CustomAlert.alert("Today's Appointments", `Total: ${todayAppointments}`)
+            } />
+            <OverviewCard label="New Patients" value={newPatientsToday.toString()} icon={UserPlus} color="#059669" onPress={() =>
+              CustomAlert.alert('New Patients Today', `Total: ${newPatientsToday}`)
+            } />
+            <OverviewCard label="Prescriptions" value={todayPrescriptions.toString()} icon={FileText} color="#8B5CF6" onPress={() =>
+              CustomAlert.alert('Prescriptions Today', `Total: ${todayPrescriptions}`)
+            } />
           </View>
         </View>
 
-        {/* Stats Grid */}
+        {/* System Health (2 cards: Total Users + System Health) */}
         <View className="px-6 mb-4">
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">System Stats</Text>
+          <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">System Health</Text>
           <View className="flex-row flex-wrap gap-3">
-            {stats.map((s, i) => (
-              <StatCard key={i} stat={s} onPress={() => handleStatPress(i)} />
-            ))}
+            <StatCard
+              label="Total Users"
+              value={totalUsers.toString()}
+              subLabel={`${onlineUsers} online`}
+              icon={Users}
+              color={Colors.primary}
+              onPress={() => router.push('/admin/(tabs)/users' as any)}
+            />
+            <StatCard
+              label="Departments"
+              value={totalDepartments.toString()}
+              icon={Server}
+              color="#8B5CF6"
+              onPress={() => router.push('/admin/(tabs)/settings' as any)}
+            />
           </View>
         </View>
 
@@ -391,58 +349,38 @@ export default function AdminDashboard() {
           </View>
         </View>
 
-        {/* Recent Activities */}
+        {/* Recent Audit Logs (real data from DB) */}
         <View className="px-6 mb-4">
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
-              <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">Recent Activity</Text>
-              {unreadActivityCount > 0 && (
-                <View className="px-1.5 py-0.5 rounded-full bg-primary">
-                  <Text className="text-[8px] font-bold text-white">{unreadActivityCount}</Text>
-                </View>
-              )}
+              <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">Audit Logs</Text>
+              <View className="flex-row items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100">
+                <Clock size={8} color="#94A3B8" />
+                <Text className="text-[8px] text-slate-400 font-medium">Today</Text>
+              </View>
             </View>
-            <Pressable
-              onPress={() => {
-                CustomAlert.alert('All Activities', activities.map((a, i) => `${i + 1}. ${a.action}\n   ${a.user} · ${a.time}`).join('\n\n'));
-              }}
-              className="flex-row items-center gap-1 active:opacity-70"
-            >
-              <Text className="text-primary text-xs font-semibold">View All</Text>
-              <ChevronRight size={12} color={Colors.primary} />
-            </Pressable>
+            {auditLogs.length > 0 && (
+              <Pressable
+                onPress={() => handleQuickAction('audit-logs')}
+                className="flex-row items-center gap-1 active:opacity-70"
+              >
+                <Text className="text-primary text-xs font-semibold">View All</Text>
+                <ChevronRight size={12} color={Colors.primary} />
+              </Pressable>
+            )}
           </View>
           <View className="bg-white rounded-2xl overflow-hidden" style={Shadows.card}>
-            {displayActivities.map((a, i) => (
-              <ActivityRow
-                key={a.id}
-                item={a}
-                isLast={i === displayActivities.length - 1}
-                onPress={() => handleActivityPress(a)}
-              />
-            ))}
+            {auditLogs.length === 0 ? (
+              <View className="items-center py-8">
+                <Shield size={28} color="#CBD5E1" />
+                <Text className="text-slate-400 mt-2 text-xs">No audit logs today</Text>
+              </View>
+            ) : (
+              auditLogs.map((log, i) => (
+                <AuditRow key={log.id} item={log} isLast={i === auditLogs.length - 1} />
+              ))
+            )}
           </View>
-        </View>
-
-        {/* System Health Quick View */}
-        <View className="px-6">
-          <Pressable
-            onPress={() => setShowSystemHealth(true)}
-            className="bg-white rounded-2xl p-4 flex-row items-center active:opacity-80"
-            style={Shadows.card}
-          >
-            <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center mr-3">
-              <Zap size={18} color="#059669" />
-            </View>
-            <View className="flex-1">
-              <Text className="font-bold text-[13px] text-midnight">System Health</Text>
-              <Text className="text-[11px] text-slate-400 mt-0.5">All services operational · 45ms avg response</Text>
-            </View>
-            <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50">
-              <View className="w-2 h-2 rounded-full bg-emerald-500" />
-              <Text className="text-[10px] font-bold text-emerald-600">99%</Text>
-            </View>
-          </Pressable>
         </View>
       </ScrollView>
 
@@ -475,7 +413,7 @@ export default function AdminDashboard() {
               {notifications.length === 0 ? (
                 <View className="items-center py-12">
                   <Bell size={40} color="#CBD5E1" />
-                  <Text className="text-slate-400 mt-3 text-sm">No notifications</Text>
+                  <Text className="text-slate-400 mt-3 text-sm">No notifications today</Text>
                 </View>
               ) : (
                 <>
@@ -507,49 +445,6 @@ export default function AdminDashboard() {
                 </>
               )}
             </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* System Health Modal */}
-      <Modal visible={showSystemHealth} transparent animationType="fade" onRequestClose={() => setShowSystemHealth(false)}>
-        <Pressable className="flex-1 bg-black/40 items-center justify-center px-6" onPress={() => setShowSystemHealth(false)}>
-          <Pressable onPress={() => {}} className="bg-white rounded-3xl w-full p-6" style={Shadows.presence}>
-            <View className="flex-row items-center justify-between mb-5">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-midnight text-lg font-bold">System Health</Text>
-                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50">
-                  <View className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <Text className="text-[10px] font-bold text-emerald-600">All OK</Text>
-                </View>
-              </View>
-              <Pressable onPress={() => setShowSystemHealth(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center active:opacity-70">
-                <X size={16} color="#64748B" />
-              </Pressable>
-            </View>
-
-            {SYSTEM_HEALTH_ITEMS.map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <View key={i} className="flex-row items-center gap-3 py-3.5" style={i < SYSTEM_HEALTH_ITEMS.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' } : undefined}>
-                  <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: `${item.color}12` }}>
-                    <Icon size={16} color={item.color} />
-                  </View>
-                  <Text className="flex-1 font-semibold text-midnight text-sm">{item.label}</Text>
-                  <View className="flex-row items-center gap-1.5">
-                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <Text className="text-xs font-medium" style={{ color: item.color }}>{item.status}</Text>
-                  </View>
-                </View>
-              );
-            })}
-
-            <View className="mt-4 pt-3 border-t border-slate-100 flex-row items-center justify-between">
-              <Text className="text-slate-400 text-[10px]">Last checked: 2 minutes ago</Text>
-              <Pressable onPress={() => { setShowSystemHealth(false); CustomAlert.alert('Refreshed', 'System health check completed. All services operational.'); }} className="active:opacity-70">
-                <Text className="text-primary text-xs font-bold">Refresh</Text>
-              </Pressable>
-            </View>
           </Pressable>
         </Pressable>
       </Modal>
