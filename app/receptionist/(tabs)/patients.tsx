@@ -1,5 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, User, Phone, ChevronRight, Plus, X, Calendar, Stethoscope, Clock } from 'lucide-react-native';
@@ -83,13 +83,33 @@ export default function PatientsScreen() {
     try {
       setLoading(true);
       const newPatient = await receptionistService.registerWalkIn(newPatientName, newPatientMobile);
-      CustomAlert.alert('Success', `Patient ${newPatient.fullName} registered successfully.`);
       setRegisterModalVisible(false);
       setNewPatientName('');
       setNewPatientMobile('');
       fetchPatients(searchQuery);
+      CustomAlert.alert('Registered', `${newPatient.fullName} has been registered successfully.`);
     } catch (error: any) {
-      CustomAlert.alert('Registration Failed', error.response?.data?.error || 'Failed to register patient.');
+      const status = error.response?.status;
+      const body = error.response?.data;
+      if (status === 409 && body?.existingPatient) {
+        const existing = body.existingPatient as PatientSearchResult;
+        setRegisterModalVisible(false);
+        CustomAlert.alert(
+          'Mobile Already Registered',
+          `This mobile number is already registered to:\n\n${existing.fullName}\n${existing.mobileNumber}\n\nWould you like to search for this patient?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Search Patient',
+              onPress: () => {
+                setSearchQuery(existing.mobileNumber);
+              },
+            },
+          ]
+        );
+      } else {
+        CustomAlert.alert('Registration Failed', body?.error || 'Failed to register patient.');
+      }
     } finally {
       setLoading(false);
     }
@@ -99,6 +119,25 @@ export default function PatientsScreen() {
     setSelectedPatient(patient);
     setDetailModalVisible(true);
   };
+
+  // For today: only show slots after the current time. For future dates: all slots.
+  const availableSlots = useMemo(() => {
+    const isToday = selectedDate === DATE_OPTIONS[0].value;
+    if (!isToday) return TIME_SLOTS;
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    return TIME_SLOTS.filter((t) => {
+      const [hh, mm] = t.value.split(':').map(Number);
+      return hh * 60 + mm > nowMins;
+    });
+  }, [selectedDate]);
+
+  // Clear selected time if it becomes unavailable when date changes to today
+  useEffect(() => {
+    if (selectedTime && !availableSlots.some((t) => t.value === selectedTime)) {
+      setSelectedTime('');
+    }
+  }, [availableSlots]);
 
   const openBookingForPatient = async () => {
     setDetailModalVisible(false);
@@ -420,9 +459,18 @@ export default function PatientsScreen() {
                     })}
                   </ScrollView>
 
-                  <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-5 mb-3">Select Time</Text>
+                  <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-5 mb-3">
+                    Select Time{selectedDate === DATE_OPTIONS[0].value ? ' (Today — future slots only)' : ''}
+                  </Text>
+                  {availableSlots.length === 0 ? (
+                    <View className="py-6 items-center">
+                      <Clock size={28} color="#CBD5E1" />
+                      <Text className="text-slate-400 text-xs mt-2 text-center">No more slots available today.</Text>
+                      <Text className="text-slate-300 text-xs mt-1 text-center">Please select tomorrow or a future date.</Text>
+                    </View>
+                  ) : (
                   <View className="flex-row flex-wrap gap-2">
-                    {TIME_SLOTS.map((t) => {
+                    {availableSlots.map((t) => {
                       const isSelected = selectedTime === t.value;
                       return (
                         <Pressable
@@ -439,6 +487,7 @@ export default function PatientsScreen() {
                       );
                     })}
                   </View>
+                  )}
 
                   <Pressable
                     onPress={handleBookingSubmit}

@@ -249,6 +249,27 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] Mobile: appointments.tsx — individual filter tabs retain existing flat filtered list behaviour
   * [x] Mobile: appointments.tsx — header subtitle shows total count + active (non-completed) count
 
+* [x] Phase 23: Receptionist Dashboard Navigation + Real Notifications (2026-03-27) - COMPLETED
+  * [x] Backend: GET /api/reception/notifications — last 24h audit log events (appointment + reception categories), friendly titles + filter hints
+  * [x] Mobile: receptionist/(tabs)/index.tsx — stats cards navigate to Appointments tab with filter (all/arrived/in_consultation/completed)
+  * [x] Mobile: index.tsx — New Reg → Patients tab; Instant Check-in → Appointments (confirmed filter); Emergency → Patients tab; Schedule → Appointments (confirmed filter)
+  * [x] Mobile: index.tsx — "View All" navigates to Appointments tab; upcoming list shows confirmed/pending only; checkIn() used consistently
+  * [x] Mobile: index.tsx — notifications modal shows real audit log data; tapping notification navigates to Appointments with relevant filter
+  * [x] Mobile: appointments.tsx — useLocalSearchParams reads filter param on navigation; useEffect applies it; useFocusEffect reloads list on tab focus
+  * [x] Commit: fa9fe06
+
+* [x] Phase 24: Patient Registration & Appointment Booking Improvements (2026-03-27) - COMPLETED
+  * ── Schema ──
+  * [x] No schema changes — unique (hospital_id, mobile_number) in patients table retained; overbooking removed at application layer only
+  * ── Backend ──
+  * [x] CreatePatient: 409 Conflict now returns existingPatient object {id, fullName, mobileNumber, initials} so frontend can offer "Use Existing Patient"
+  * [x] BookAppointment: Removed double-booking conflict check — multiple appointments per doctor slot now allowed
+  * ── Frontend ──
+  * [x] patients.tsx: handleRegisterPatient catches 409 with existingPatient body → warning dialog: "Search Patient" pre-fills search bar with mobile number
+  * [x] patients.tsx: availableSlots computed — when Today is selected, filters out past time slots (compares slot HH:MM against current time); future dates show all 16 slots
+  * [x] patients.tsx: useEffect clears selectedTime if it becomes unavailable after date changes to today
+  * [x] patients.tsx: Time section header shows "(Today — future slots only)" hint; empty-slots state shown when no more slots remain today
+
 * [x] Phase 18: Admin Settings Module (Full Stack — 6 Panels) - COMPLETED
   * ── Phase 18.1: Database Design & Schema ──
   * [x] hospitals table already contains all needed columns (name, address, city, state, phone, email, logo_url, license_no, status) — no migration needed
@@ -364,7 +385,8 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * PATCH /api/reception/profile     — Update receptionist profile (email, department)
 * GET  /api/reception/stats        — Real stats: registeredToday, appointmentsToday, walkInsToday, pendingCheckIns
 * GET  /api/reception/doctors      — List active accepting doctors (name, specialty, fee, availability)
-* POST /api/reception/book-appointment — Book appointment for patient (double-booking validation, REC-{date}-{guid6} reference)
+* POST /api/reception/book-appointment — Book appointment for patient (overbooking allowed, REC-{date}-{guid6} reference)
+* GET  /api/reception/notifications   — Last 24h audit events (appointment + reception categories) with filter hints
 * GET  /api/pharmacy/dashboard     — Pharmacist daily stats (pending, dispensed, rejected, total)
 * GET  /api/pharmacy/prescriptions  — Today's prescription queue (filterable by status, searchable)
 * PATCH /api/pharmacy/prescriptions/{id}/dispense — Mark prescription as dispensed

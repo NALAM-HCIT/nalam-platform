@@ -311,7 +311,17 @@ public static class ReceptionistEndpoints
             .FirstOrDefaultAsync(p => p.HospitalId == hospitalId && p.MobileNumber == mobile);
 
         if (existingPatient != null)
-            return Results.Conflict(new { error = "Patient already exists. Use the search function." });
+            return Results.Conflict(new
+            {
+                error = "This mobile number is already registered for this hospital.",
+                existingPatient = new
+                {
+                    id = existingPatient.Id,
+                    fullName = existingPatient.FullName,
+                    mobileNumber = existingPatient.MobileNumber,
+                    initials = GetInitials(existingPatient.FullName)
+                }
+            });
 
         var patient = new Patient
         {
@@ -463,16 +473,6 @@ public static class ReceptionistEndpoints
         var doctor = await db.DoctorProfiles.AsNoTracking()
             .FirstOrDefaultAsync(dp => dp.Id == request.DoctorProfileId && dp.HospitalId == hospitalId);
         if (doctor == null) return Results.BadRequest(new { error = "Doctor not found." });
-
-        // Check for double-booking
-        var conflict = await db.Appointments.AsNoTracking()
-            .AnyAsync(a => a.HospitalId == hospitalId
-                        && a.DoctorProfileId == request.DoctorProfileId
-                        && a.ScheduleDate == scheduleDate
-                        && a.StartTime == startTime
-                        && a.Status != "cancelled");
-        if (conflict)
-            return Results.Conflict(new { error = "This time slot is already booked. Please choose another." });
 
         var endTime = startTime.AddMinutes(30);
         var bookingRef = $"REC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
