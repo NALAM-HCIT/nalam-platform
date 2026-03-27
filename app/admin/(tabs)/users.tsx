@@ -325,7 +325,7 @@ export default function UsersScreen() {
   const handleUserActions = useCallback((user: UserItem) => {
     CustomAlert.alert(user.name, `${user.role} | ${user.department}`, [
       { text: 'View Details', onPress: () => handleUserPress(user) },
-      { text: 'Change Role', onPress: () => handleEditRole(user) },
+      { text: 'Manage Roles', onPress: () => handleEditRole(user) },
       {
         text: user.status === 'active' ? 'Deactivate' : 'Activate',
         onPress: () => handleToggleStatus(user),
@@ -495,7 +495,7 @@ export default function UsersScreen() {
 
                 {/* Action Buttons */}
                 <View className="gap-3 mb-6">
-                  <ActionButton icon={Shield} label="Change Role" color={Colors.primary} bgColor="#EFF6FF" onPress={() => {
+                  <ActionButton icon={Shield} label="Manage Roles" color={Colors.primary} bgColor="#EFF6FF" onPress={() => {
                     const u = selectedUser;
                     setShowUserDetail(false);
                     setTimeout(() => handleEditRole(u), 500);
@@ -525,11 +525,11 @@ export default function UsersScreen() {
         </Pressable>
       </Modal>
 
-      {/* Change Role Modal */}
+      {/* Manage Roles Modal */}
       <Modal visible={showRoleModal} transparent animationType="fade" onRequestClose={() => setShowRoleModal(false)}>
         <Pressable className="flex-1 bg-black/40 justify-center items-center px-6" onPress={() => setShowRoleModal(false)}>
           <Pressable onPress={() => {}} className="bg-white rounded-3xl w-full p-6" style={Shadows.card}>
-            <Text className="text-lg font-extrabold text-midnight text-center mb-1">Change Roles</Text>
+            <Text className="text-lg font-extrabold text-midnight text-center mb-1">Manage Roles</Text>
             <Text className="text-xs text-slate-400 text-center mb-5">
               Select one or more roles for {roleModalUser?.name}
             </Text>
