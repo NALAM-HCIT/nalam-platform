@@ -88,7 +88,8 @@ public record AppointmentResponse(
     DateTime CreatedAt,
     string? PatientName = null,
     string? PatientInitials = null,
-    Guid? PatientId = null
+    Guid? PatientId = null,
+    Guid? DoctorProfileId = null
 );
 
 // ── Update / Cancel ────────────────────────────────────────

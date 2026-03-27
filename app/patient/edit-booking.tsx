@@ -1,71 +1,65 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
 import {
-  ArrowLeft, MapPin, User, Video, UserSearch, ChevronRight,
-  Building2, Star, Briefcase, Sun, CloudSun, Moon, AlertCircle,
+  getAppointment,
+  getDoctorAvailability,
+  updateAppointment,
+  AppointmentResponse,
+  AvailableSlot,
+  SlotGroup,
+} from '@/services/appointmentService';
+import {
+  ArrowLeft, MapPin, User, Video, Star, Sun, CloudSun, Moon,
+  AlertCircle, Calendar,
 } from 'lucide-react-native';
 
-/* ───── Data ───── */
+/* ───── Helpers ───── */
 
-const DOCTOR = {
-  name: 'Dr. Aruna Devi',
-  initials: 'AD',
-  specialty: 'Cardiologist',
-  location: 'Nalam Hospital, Wing A',
-  rating: 4.9,
-  exp: 12,
-};
-
-const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const PREV_MONTH_DAYS = [28, 29, 30];
-const CALENDAR_DAYS = Array.from({ length: 11 }, (_, i) => i + 1);
-const UNAVAILABLE_DAYS = new Set([7, 8]); // Sunday, holidays
-
-interface SlotGroup {
-  label: string;
-  icon: React.ElementType;
-  color: string;
-  slots: string[];
+function toDateLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-const SLOT_GROUPS: SlotGroup[] = [
-  { label: 'Morning', icon: Sun, color: '#F59E0B', slots: ['09:00 AM', '09:30 AM', '10:30 AM'] },
-  { label: 'Afternoon', icon: CloudSun, color: '#F97316', slots: ['02:30 PM', '03:00 PM', '04:00 PM'] },
-  { label: 'Evening', icon: Moon, color: '#8B5CF6', slots: ['05:30 PM', '06:00 PM'] },
-];
+function isToday(dateStr: string): boolean {
+  return new Date(dateStr).toDateString() === new Date().toDateString();
+}
+
+function isPast(dateStr: string): boolean {
+  return new Date(dateStr) < new Date(new Date().toDateString());
+}
+
+const PERIOD_ICONS: Record<string, React.ElementType> = { Morning: Sun, Afternoon: CloudSun, Evening: Moon };
+const PERIOD_COLORS: Record<string, string> = { Morning: '#F59E0B', Afternoon: '#F97316', Evening: '#8B5CF6' };
 
 /* ───── Sub-components ───── */
 
-const TimeSlotChip = React.memo(function TimeSlotChip({
-  slot,
-  isSelected,
-  onPress,
-}: {
-  slot: string;
-  isSelected: boolean;
-  onPress: () => void;
-}) {
+const SlotChip = React.memo(function SlotChip({
+  slot, isSelected, onPress,
+}: { slot: AvailableSlot; isSelected: boolean; onPress: () => void }) {
+  const isFull = slot.bookedCount >= slot.maxCapacity;
+  const disabled = isFull;
   return (
     <Pressable
-      onPress={onPress}
-      className={`px-4 py-2.5 rounded-xl border ${
-        isSelected
-          ? 'bg-primary/10 border-primary'
-          : 'border-slate-200 bg-white'
+      onPress={!disabled ? onPress : undefined}
+      className={`px-3 py-2 rounded-xl border ${
+        disabled ? 'border-slate-100 bg-slate-50 opacity-40'
+        : isSelected ? 'bg-primary/10 border-primary'
+        : 'border-slate-200 bg-white'
       }`}
-      style={!isSelected ? Shadows.card : undefined}
+      style={!isSelected && !disabled ? Shadows.card : undefined}
     >
-      <Text
-        className={`text-sm ${
-          isSelected ? 'font-bold text-primary' : 'font-medium text-midnight'
-        }`}
-      >
-        {slot}
+      <Text className={`text-xs font-semibold ${isSelected ? 'text-primary' : disabled ? 'text-slate-300' : 'text-midnight'}`}>
+        {slot.startTime}
       </Text>
+      {slot.maxCapacity > 1 && (
+        <Text className={`text-[9px] font-medium mt-0.5 ${isFull ? 'text-red-400' : 'text-slate-400'}`}>
+          {slot.bookedCount}/{slot.maxCapacity}
+        </Text>
+      )}
     </Pressable>
   );
 });
@@ -74,36 +68,107 @@ const TimeSlotChip = React.memo(function TimeSlotChip({
 
 export default function EditBookingScreen() {
   const router = useRouter();
-  const { type } = useLocalSearchParams<{ type?: string }>();
-  const [selectedDay, setSelectedDay] = useState(5);
-  const [selectedTime, setSelectedTime] = useState('11:00 AM');
+  const { id, type } = useLocalSearchParams<{ id?: string; type?: string }>();
+
+  const [appointment, setAppointment] = useState<AppointmentResponse | null>(null);
+  const [loadingAppt, setLoadingAppt] = useState(true);
+
+  const [dates, setDates] = useState<{ date: string; availableSlots: number }[]>([]);
+  const [selectedDate, setSelectedDate] = useState('');
+
+  const [slotGroups, setSlotGroups] = useState<SlotGroup[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+
   const [consultationType, setConsultationType] = useState<'in-person' | 'online'>(
     type === 'online' ? 'online' : 'in-person',
   );
+  const [saving, setSaving] = useState(false);
 
-  const hasChanges = useMemo(() => {
-    // Compare against original booking values
-    return selectedDay !== 5 || selectedTime !== '11:00 AM' || consultationType !== (type === 'online' ? 'online' : 'in-person');
-  }, [selectedDay, selectedTime, consultationType, type]);
+  // Load appointment + 14-day availability on mount
+  useEffect(() => {
+    if (!id) { setLoadingAppt(false); return; }
+    getAppointment(id)
+      .then(async (appt) => {
+        setAppointment(appt);
+        if (!appt.doctorProfileId) return;
+        const today = new Date().toISOString().split('T')[0];
+        const avail = await getDoctorAvailability(appt.doctorProfileId, today, 14);
+        const futureDates = avail.dates.filter((d) => !isPast(d.date));
+        setDates(futureDates);
+        // Pre-select appointment's current date if still available
+        const existingDate = futureDates.find((d) => d.date === appt.scheduleDate);
+        const defaultDate = existingDate ? appt.scheduleDate : (futureDates[0]?.date ?? '');
+        setSelectedDate(defaultDate);
+      })
+      .catch(() => CustomAlert.alert('Error', 'Failed to load appointment details.'))
+      .finally(() => setLoadingAppt(false));
+  }, [id]);
 
-  const handleConfirm = useCallback(() => {
+  // Fetch slots when selected date changes
+  useEffect(() => {
+    if (!selectedDate || !appointment?.doctorProfileId) return;
+    let cancelled = false;
+    setLoadingSlots(true);
+    setSlotGroups([]);
+    setSelectedSlot(null);
+    getDoctorAvailability(appointment.doctorProfileId, selectedDate, 1)
+      .then((avail) => {
+        if (!cancelled) {
+          setSlotGroups(avail.slotGroups);
+          // Pre-select current slot if same date
+          if (selectedDate === appointment.scheduleDate) {
+            for (const g of avail.slotGroups) {
+              const match = g.slots.find((s) => s.startTime === appointment.startTime);
+              if (match) { setSelectedSlot(match); break; }
+            }
+          }
+        }
+      })
+      .catch(() => { if (!cancelled) CustomAlert.alert('Error', 'Failed to load time slots.'); })
+      .finally(() => { if (!cancelled) setLoadingSlots(false); });
+    return () => { cancelled = true; };
+  }, [selectedDate, appointment]);
+
+  const hasChanges =
+    selectedSlot !== null &&
+    (selectedDate !== appointment?.scheduleDate ||
+      selectedSlot.startTime !== appointment?.startTime ||
+      consultationType !== (appointment?.consultationType === 'online' ? 'online' : 'in-person'));
+
+  const handleConfirm = useCallback(async () => {
+    if (!id || !selectedSlot || !selectedDate) return;
     if (!hasChanges) {
-      CustomAlert.alert('No Changes', 'You haven\'t made any changes to your booking.');
+      CustomAlert.alert('No Changes', "You haven't changed anything.");
       return;
     }
-    router.push('/patient/edit-success');
-  }, [hasChanges, router]);
+    setSaving(true);
+    try {
+      await updateAppointment(id, {
+        scheduleDate: selectedDate,
+        startTime: selectedSlot.startTime,
+        consultationType,
+      });
+      router.push('/patient/edit-success');
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Failed to reschedule.';
+      CustomAlert.alert('Reschedule Failed', msg);
+    } finally {
+      setSaving(false);
+    }
+  }, [id, selectedSlot, selectedDate, consultationType, hasChanges, router]);
 
-  const handleChangeDoctor = useCallback(() => {
-    CustomAlert.alert(
-      'Change Doctor',
-      'This will take you to the doctor listing to select a new consultant.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => router.push('/patient/consultation-type') },
-      ],
+  if (loadingAppt) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F8FAFC] items-center justify-center" edges={['top']}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text className="text-slate-400 text-sm mt-3">Loading booking details...</Text>
+      </SafeAreaView>
     );
-  }, [router]);
+  }
+
+  const initials = appointment?.doctorInitials ||
+    appointment?.doctorName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '—';
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -113,19 +178,8 @@ export default function EditBookingScreen() {
           <ArrowLeft size={22} color="#0B1B3D" />
         </Pressable>
         <Text className="text-lg font-bold text-midnight flex-1 text-center pr-10 tracking-tight">
-          Edit Booking
+          Reschedule Appointment
         </Text>
-      </View>
-
-      {/* Progress */}
-      <View className="px-5 pb-4">
-        <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-xs text-slate-400 font-medium">Modification Progress</Text>
-          <Text className="text-xs text-primary font-bold">Step 2 of 3</Text>
-        </View>
-        <View className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-          <View className="h-full bg-primary rounded-full w-2/3" />
-        </View>
       </View>
 
       <ScrollView
@@ -133,31 +187,30 @@ export default function EditBookingScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Current Doctor */}
-        <View className="mb-5">
-          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-            Current Doctor
-          </Text>
-          <View className="bg-white rounded-[20px] p-4 flex-row items-center gap-3" style={Shadows.card}>
-            <View className="w-14 h-14 rounded-xl bg-primary/10 items-center justify-center">
-              <Text className="text-lg font-bold text-primary">{DOCTOR.initials}</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-[15px] font-bold text-midnight">{DOCTOR.name}</Text>
-              <Text className="text-primary text-xs font-semibold">{DOCTOR.specialty}</Text>
-              <View className="flex-row items-center gap-2.5 mt-1">
-                <View className="flex-row items-center gap-1">
-                  <MapPin size={10} color="#94A3B8" />
-                  <Text className="text-[10px] text-slate-400 font-medium">{DOCTOR.location}</Text>
-                </View>
-                <View className="flex-row items-center gap-1">
-                  <Star size={10} color="#EAB308" fill="#EAB308" />
-                  <Text className="text-[10px] text-midnight font-bold">{DOCTOR.rating}</Text>
+        {/* Doctor Card */}
+        {appointment && (
+          <View className="mb-5 mt-2">
+            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Doctor</Text>
+            <View className="bg-white rounded-[20px] p-4 flex-row items-center gap-3" style={Shadows.card}>
+              <View className="w-14 h-14 rounded-xl bg-primary/10 items-center justify-center">
+                <Text className="text-lg font-bold text-primary">{initials}</Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-[15px] font-bold text-midnight">{appointment.doctorName}</Text>
+                <Text className="text-primary text-xs font-semibold">{appointment.specialty}</Text>
+                <View className="flex-row items-center gap-2 mt-1">
+                  {appointment.doctorRating && (
+                    <View className="flex-row items-center gap-1">
+                      <Star size={10} color="#EAB308" fill="#EAB308" />
+                      <Text className="text-[10px] text-midnight font-bold">{appointment.doctorRating.toFixed(1)}</Text>
+                    </View>
+                  )}
+                  <Text className="text-[10px] text-slate-400">Ref: {appointment.bookingReference}</Text>
                 </View>
               </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Consultation Type Toggle */}
         <View className="mb-5">
@@ -175,9 +228,7 @@ export default function EditBookingScreen() {
                 <Pressable
                   key={ct.key}
                   onPress={() => setConsultationType(ct.key)}
-                  className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-full ${
-                    isActive ? 'bg-white' : ''
-                  }`}
+                  className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-full ${isActive ? 'bg-white' : ''}`}
                   style={isActive ? Shadows.card : undefined}
                 >
                   <Icon size={16} color={isActive ? Colors.primary : '#64748B'} />
@@ -190,102 +241,102 @@ export default function EditBookingScreen() {
           </View>
         </View>
 
-        {/* Calendar */}
+        {/* Date Picker */}
         <View className="mb-5">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Reschedule Date
-            </Text>
-            <Text className="text-xs font-bold text-primary">March 2026</Text>
-          </View>
-          <View className="bg-white rounded-[20px] p-4" style={Shadows.card}>
-            {/* Day headers */}
-            <View className="flex-row mb-2">
-              {DAY_HEADERS.map((day, i) => (
-                <View key={i} className="flex-1 items-center">
-                  <Text className="text-[10px] font-bold text-slate-400 uppercase">{day}</Text>
-                </View>
-              ))}
+          <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+            Select New Date
+          </Text>
+          {dates.length === 0 ? (
+            <View className="bg-white rounded-2xl p-6 items-center" style={Shadows.card}>
+              <Calendar size={24} color="#94A3B8" />
+              <Text className="text-slate-400 text-sm mt-2">No available dates in the next 14 days</Text>
             </View>
-
-            {/* Calendar grid */}
-            <View className="flex-row flex-wrap">
-              {PREV_MONTH_DAYS.map((d) => (
-                <View key={`prev-${d}`} className="w-[14.28%] h-10 items-center justify-center">
-                  <Text className="text-sm text-slate-200">{d}</Text>
-                </View>
-              ))}
-              {CALENDAR_DAYS.map((d) => {
-                const isSelected = d === selectedDay;
-                const isUnavailable = UNAVAILABLE_DAYS.has(d);
-                return (
-                  <Pressable
-                    key={d}
-                    disabled={isUnavailable}
-                    onPress={() => setSelectedDay(d)}
-                    className={`w-[14.28%] h-10 items-center justify-center rounded-full ${
-                      isUnavailable ? 'opacity-30' : isSelected ? 'bg-primary' : ''
-                    }`}
-                    style={isSelected ? Shadows.focus : undefined}
-                  >
-                    <Text
-                      className={`text-sm ${
-                        isUnavailable
-                          ? 'text-slate-300 line-through'
-                          : isSelected
-                          ? 'font-bold text-white'
-                          : 'font-medium text-midnight'
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
+              <View className="flex-row gap-2 px-1 pb-1">
+                {dates.map((d) => {
+                  const isSelected = d.date === selectedDate;
+                  const today = isToday(d.date);
+                  return (
+                    <Pressable
+                      key={d.date}
+                      onPress={() => setSelectedDate(d.date)}
+                      className={`items-center px-3 py-3 rounded-2xl min-w-[68px] ${
+                        isSelected ? 'bg-primary' : 'bg-white'
                       }`}
+                      style={isSelected ? Shadows.focus : Shadows.card}
                     >
-                      {d}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+                      <Text className={`text-[10px] font-bold uppercase ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>
+                        {toDateLabel(d.date).split(' ')[0]}
+                      </Text>
+                      <Text className={`text-xl font-extrabold ${isSelected ? 'text-white' : 'text-midnight'}`}>
+                        {new Date(d.date).getDate()}
+                      </Text>
+                      <Text className={`text-[10px] font-medium ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                        {toDateLabel(d.date).split(' ').slice(1).join(' ')}
+                      </Text>
+                      {today && (
+                        <View className={`mt-1 w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
+                      )}
+                      {d.availableSlots === 0 && (
+                        <Text className={`text-[9px] mt-0.5 ${isSelected ? 'text-white/60' : 'text-red-400'}`}>Full</Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          )}
         </View>
 
         {/* Time Slots */}
-        {SLOT_GROUPS.map((group) => {
-          const Icon = group.icon;
-          return (
-            <View key={group.label} className="mb-4">
-              <View className="flex-row items-center gap-2 mb-2.5">
-                <Icon size={14} color={group.color} />
-                <Text className="text-xs font-bold text-midnight">{group.label}</Text>
+        {selectedDate !== '' && (
+          <View className="mb-4">
+            <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+              Select Time Slot
+            </Text>
+            {loadingSlots ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : slotGroups.length === 0 ? (
+              <View className="bg-white rounded-2xl p-6 items-center" style={Shadows.card}>
+                <Text className="text-slate-400 text-sm">No slots available for this date</Text>
               </View>
-              <View className="flex-row flex-wrap gap-2">
-                {group.slots.map((slot) => (
-                  <TimeSlotChip
-                    key={slot}
-                    slot={slot}
-                    isSelected={slot === selectedTime}
-                    onPress={() => setSelectedTime(slot)}
-                  />
-                ))}
-              </View>
-            </View>
-          );
-        })}
-
-        {/* Change Doctor */}
-        <Pressable
-          onPress={handleChangeDoctor}
-          className="flex-row items-center justify-between p-4 rounded-2xl bg-primary/5 border border-primary/20 mt-2 active:opacity-80"
-        >
-          <View className="flex-row items-center gap-3">
-            <UserSearch size={18} color={Colors.primary} />
-            <Text className="text-primary font-semibold text-sm">Change Consultant Doctor</Text>
+            ) : (
+              slotGroups.map((group) => {
+                const Icon = PERIOD_ICONS[group.period] ?? Sun;
+                const color = PERIOD_COLORS[group.period] ?? '#64748B';
+                const available = group.slots.filter((s) => s.bookedCount < s.maxCapacity).length;
+                return (
+                  <View key={group.period} className="mb-4">
+                    <View className="flex-row items-center justify-between mb-2.5">
+                      <View className="flex-row items-center gap-2">
+                        <Icon size={14} color={color} />
+                        <Text className="text-xs font-bold text-midnight">{group.period}</Text>
+                      </View>
+                      <Text className="text-[10px] text-slate-400">{available} of {group.slots.length} available</Text>
+                    </View>
+                    <View className="flex-row flex-wrap gap-2">
+                      {group.slots.map((slot) => (
+                        <SlotChip
+                          key={slot.startTime}
+                          slot={slot}
+                          isSelected={selectedSlot?.startTime === slot.startTime}
+                          onPress={() => setSelectedSlot(slot)}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
-          <ChevronRight size={18} color={Colors.primary} />
-        </Pressable>
+        )}
 
         {/* Policy Note */}
-        <View className="flex-row items-start gap-2 mt-4 px-1">
+        <View className="flex-row items-start gap-2 mt-2 px-1">
           <AlertCircle size={12} color="#94A3B8" />
           <Text className="text-[10px] text-slate-400 flex-1 leading-[14px]">
-            Free rescheduling up to 4 hours before your appointment. Changes within 4 hours may incur a Rs. 50 fee.
+            Free rescheduling up to 4 hours before your appointment. Changes within 4 hours may not be allowed.
           </Text>
         </View>
       </ScrollView>
@@ -295,12 +346,16 @@ export default function EditBookingScreen() {
         <SafeAreaView edges={['bottom']}>
           <Pressable
             onPress={handleConfirm}
-            className={`w-full py-4 rounded-full items-center ${hasChanges ? 'bg-primary' : 'bg-slate-200'}`}
+            disabled={!hasChanges || saving}
+            className={`w-full py-4 rounded-full items-center flex-row justify-center gap-2 ${hasChanges && !saving ? 'bg-primary' : 'bg-slate-200'}`}
             style={hasChanges ? Shadows.focus : undefined}
           >
-            <Text className={`font-bold text-base ${hasChanges ? 'text-white' : 'text-slate-400'}`}>
-              Confirm Changes
-            </Text>
+            {saving
+              ? <ActivityIndicator size="small" color="#FFFFFF" />
+              : <Text className={`font-bold text-base ${hasChanges ? 'text-white' : 'text-slate-400'}`}>
+                  {selectedSlot ? 'Confirm Changes' : 'Select a Time Slot'}
+                </Text>
+            }
           </Pressable>
         </SafeAreaView>
       </View>

@@ -79,6 +79,7 @@ export interface AppointmentResponse {
   doctorExperience: number | null;
   cancelReason: string | null;
   createdAt: string;
+  doctorProfileId: string | null;
 }
 
 export interface AppointmentListResponse {

@@ -93,7 +93,8 @@ public static class AppointmentEndpoints
             a.CreatedAt,
             patientName,
             patientName != null ? GetInitials(patientName) : null,
-            a.PatientId
+            a.PatientId,
+            a.DoctorProfileId
         );
     }
 
