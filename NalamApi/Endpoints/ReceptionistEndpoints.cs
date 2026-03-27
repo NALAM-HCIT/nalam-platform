@@ -89,6 +89,7 @@ public static class ReceptionistEndpoints
         NalamDbContext db,
         HttpContext ctx,
         string? status = null,
+        string? priority = null,
         string? search = null)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -102,21 +103,24 @@ public static class ReceptionistEndpoints
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
-        {
             query = query.Where(a => a.Status == status.ToLower());
-        }
+
+        if (!string.IsNullOrWhiteSpace(priority))
+            query = query.Where(a => a.Priority == priority.ToLower());
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var q = search.ToLower();
-            query = query.Where(a => 
+            query = query.Where(a =>
                 (a.Patient != null && a.Patient.FullName.ToLower().Contains(q)) ||
                 (a.Patient != null && a.Patient.MobileNumber.Contains(q)) ||
                 a.BookingReference.ToLower().Contains(q));
         }
 
+        // Emergency first, then by time
         var rawQueue = await query
-            .OrderBy(a => a.StartTime)
+            .OrderByDescending(a => a.Priority == "emergency")
+            .ThenBy(a => a.StartTime)
             .Select(a => new
             {
                 id = a.Id,
@@ -127,11 +131,11 @@ public static class ReceptionistEndpoints
                 time = a.StartTime.ToString("HH:mm"),
                 type = a.ConsultationType,
                 status = a.Status,
-                paymentStatus = a.PaymentStatus
+                paymentStatus = a.PaymentStatus,
+                priority = a.Priority,
             })
             .ToListAsync();
 
-        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
         var queue = rawQueue.Select(a => new
         {
             a.id,
@@ -143,7 +147,8 @@ public static class ReceptionistEndpoints
             a.time,
             a.type,
             a.status,
-            a.paymentStatus
+            a.paymentStatus,
+            a.priority,
         }).ToList();
 
         return Results.Ok(queue);
@@ -477,6 +482,7 @@ public static class ReceptionistEndpoints
         var endTime = startTime.AddMinutes(30);
         var bookingRef = $"REC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
 
+        var priority = (request.Priority?.ToLower() == "emergency") ? "emergency" : "normal";
         var appointment = new Appointment
         {
             HospitalId = hospitalId,
@@ -492,6 +498,7 @@ public static class ReceptionistEndpoints
             PaymentMethod = "counter",
             BookingReference = bookingRef,
             Notes = request.Notes,
+            Priority = priority,
         };
 
         db.Appointments.Add(appointment);
@@ -564,5 +571,6 @@ public record BookAppointmentRequest(
     string ScheduleDate,
     string StartTime,
     string? ConsultationType,
-    string? Notes
+    string? Notes,
+    string? Priority  // "normal" or "emergency"
 );

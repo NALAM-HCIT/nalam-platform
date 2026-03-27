@@ -22,6 +22,7 @@ export interface QueuePatient {
     type: string;
     status: string;
     paymentStatus: string;
+    priority: string;
 }
 
 export interface PatientSearchResult {
@@ -150,6 +151,7 @@ export const receptionistService = {
         startTime: string;
         consultationType?: string;
         notes?: string;
+        priority?: string;
     }): Promise<{ bookingReference: string }> => {
         const response = await api.post('/reception/book-appointment', data);
         return response.data;

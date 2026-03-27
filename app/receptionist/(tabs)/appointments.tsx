@@ -10,10 +10,11 @@ import { StatusChip } from '@/components';
 import { receptionistService, QueuePatient } from '@/services/receptionistService';
 import { isAuthError } from '@/services/api';
 
-type AppointmentStatus = 'all' | 'confirmed' | 'arrived' | 'in_consultation' | 'completed';
+type AppointmentStatus = 'all' | 'confirmed' | 'arrived' | 'in_consultation' | 'completed' | 'emergency';
 
 const filterTabs: { label: string; value: AppointmentStatus }[] = [
   { label: 'All', value: 'all' },
+  { label: 'Emergency', value: 'emergency' },
   { label: 'Waiting', value: 'arrived' },
   { label: 'In Consult', value: 'in_consultation' },
   { label: 'Upcoming', value: 'confirmed' },
@@ -25,12 +26,13 @@ const SECTIONS: {
   label: string;
   color: string;
   bg: string;
-  icon: React.ReactNode;
+  priorityFilter?: boolean;
 }[] = [
-  { key: 'arrived', label: 'Waiting', color: '#F59E0B', bg: '#FEF3C7', icon: null },
-  { key: 'in_consultation', label: 'In Consultation', color: '#EF4444', bg: '#FEE2E2', icon: null },
-  { key: 'confirmed', label: 'Upcoming', color: '#1A73E8', bg: '#EFF6FF', icon: null },
-  { key: 'completed', label: 'Completed', color: '#10B981', bg: '#D1FAE5', icon: null },
+  { key: 'emergency', label: 'Emergency', color: '#DC2626', bg: '#FEE2E2', priorityFilter: true },
+  { key: 'arrived', label: 'Waiting', color: '#F59E0B', bg: '#FEF3C7' },
+  { key: 'in_consultation', label: 'In Consultation', color: '#EF4444', bg: '#FEE2E2' },
+  { key: 'confirmed', label: 'Upcoming', color: '#1A73E8', bg: '#EFF6FF' },
+  { key: 'completed', label: 'Completed', color: '#10B981', bg: '#D1FAE5' },
 ];
 
 const statusLabel = (status: string) => {
@@ -96,6 +98,7 @@ export default function AppointmentsScreen() {
 
   const filteredAppointments = useMemo(() => {
     if (activeFilter === 'all') return searchFiltered;
+    if (activeFilter === 'emergency') return searchFiltered.filter((a) => a.priority === 'emergency');
     return searchFiltered.filter((a) => a.status === activeFilter);
   }, [searchFiltered, activeFilter]);
 
@@ -178,7 +181,9 @@ export default function AppointmentsScreen() {
   const renderGroupedSections = () => (
     <>
       {SECTIONS.map((section) => {
-        const items = searchFiltered.filter((a) => a.status === section.key);
+        const items = section.priorityFilter
+          ? searchFiltered.filter((a) => a.priority === 'emergency')
+          : searchFiltered.filter((a) => a.status === section.key);
         if (items.length === 0) return null;
         return (
           <View key={section.key} className="mb-2">
@@ -267,6 +272,8 @@ export default function AppointmentsScreen() {
             const isActive = activeFilter === tab.value;
             const count = tab.value === 'all'
               ? appointments.length
+              : tab.value === 'emergency'
+              ? appointments.filter((a) => a.priority === 'emergency').length
               : appointments.filter((a) => a.status === tab.value).length;
             return (
               <Pressable

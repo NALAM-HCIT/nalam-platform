@@ -85,6 +85,14 @@ public class Appointment
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Appointment priority: "normal" (default) or "emergency".
+    /// Emergency appointments are surfaced first in the receptionist queue.
+    /// </summary>
+    [Required, MaxLength(20)]
+    [Column("priority")]
+    public string Priority { get; set; } = "normal";
+
+    /// <summary>
     /// Tracks prescription dispensing: null (no prescription), pending, dispensed, rejected.
     /// Set to "pending" when doctor completes consultation with prescription notes.
     /// </summary>

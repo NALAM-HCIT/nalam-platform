@@ -15,7 +15,7 @@ import { isAuthError } from '@/services/api';
 import { Shadows } from '@/constants/theme';
 import {
   Bell, UserCheck, Clock, Stethoscope, Building2,
-  UserPlus, QrCode, AlertTriangle, CalendarPlus, ChevronRight, X,
+  UserPlus, AlertTriangle, CalendarPlus, ChevronRight, X,
 } from 'lucide-react-native';
 
 export default function ReceptionistDashboard() {
@@ -73,42 +73,10 @@ export default function ReceptionistDashboard() {
         router.push('/receptionist/(tabs)/patients');
         break;
 
-      case 1: // Instant Check-in → Appointments tab filtered to confirmed (ready to check in)
-        CustomAlert.alert(
-          'Instant Check-in',
-          'Showing today\'s upcoming patients. Tap any patient card to check them in.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Go to List',
-              onPress: () =>
-                router.push({
-                  pathname: '/receptionist/(tabs)/appointments',
-                  params: { filter: 'confirmed' },
-                }),
-            },
-          ]
-        );
-        break;
-
-      case 2: // Emergency → Patients tab for walk-in registration
-        CustomAlert.alert(
-          'Emergency Registration',
-          'Register the patient as a walk-in and book an appointment. Add "EMERGENCY" in the appointment notes for priority.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Register Patient',
-              onPress: () => router.push('/receptionist/(tabs)/patients'),
-            },
-          ]
-        );
-        break;
-
-      case 3: // Schedule → Appointments tab filtered to confirmed (upcoming schedule)
+      case 1: // Emergency → Appointments filtered to emergency priority
         router.push({
           pathname: '/receptionist/(tabs)/appointments',
-          params: { filter: 'confirmed' },
+          params: { filter: 'emergency' },
         });
         break;
     }
@@ -163,9 +131,7 @@ export default function ReceptionistDashboard() {
 
   const quickActions = [
     { icon: UserPlus, label: 'New Reg', color: '#1A73E8', emergency: false },
-    { icon: QrCode, label: 'Instant\nCheck-in', color: '#1A73E8', emergency: false },
     { icon: AlertTriangle, label: 'Emergency', color: '#DC2626', emergency: true },
-    { icon: CalendarPlus, label: 'Schedule', color: '#1A73E8', emergency: false },
   ];
 
   return (

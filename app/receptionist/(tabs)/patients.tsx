@@ -2,7 +2,7 @@ import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, User, Phone, ChevronRight, Plus, X, Calendar, Stethoscope, Clock } from 'lucide-react-native';
+import { Search, User, Phone, ChevronRight, Plus, X, Calendar, Stethoscope, Clock, AlertTriangle } from 'lucide-react-native';
 import { Shadows, Colors } from '@/constants/theme';
 import { receptionistService, PatientSearchResult, DoctorItem } from '@/services/receptionistService';
 import { isAuthError } from '@/services/api';
@@ -55,6 +55,7 @@ export default function PatientsScreen() {
   const [selectedDate, setSelectedDate] = useState(DATE_OPTIONS[0].value);
   const [selectedTime, setSelectedTime] = useState('');
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [bookingPriority, setBookingPriority] = useState<'normal' | 'emergency'>('normal');
 
   const fetchPatients = useCallback(async (query?: string) => {
     setLoading(true);
@@ -145,6 +146,7 @@ export default function PatientsScreen() {
     setSelectedDoctor(null);
     setSelectedDate(DATE_OPTIONS[0].value);
     setSelectedTime('');
+    setBookingPriority('normal');
     setBookingModalVisible(true);
     setDoctorsLoading(true);
     try {
@@ -167,6 +169,7 @@ export default function PatientsScreen() {
         scheduleDate: selectedDate,
         startTime: selectedTime,
         consultationType: 'in-person',
+        priority: bookingPriority,
       });
       setBookingModalVisible(false);
       CustomAlert.alert(
@@ -372,6 +375,27 @@ export default function PatientsScreen() {
               {/* Step 1: Select Doctor */}
               {bookingStep === 1 && (
                 <View className="px-6 pt-4">
+                  {/* Priority selector */}
+                  <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Appointment Category</Text>
+                  <View className="flex-row gap-3 mb-5">
+                    <Pressable
+                      onPress={() => setBookingPriority('normal')}
+                      className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-2xl border active:opacity-80 ${bookingPriority === 'normal' ? 'bg-primary border-primary' : 'bg-white border-slate-200'}`}
+                      style={bookingPriority !== 'normal' ? Shadows.card : undefined}
+                    >
+                      <Calendar size={16} color={bookingPriority === 'normal' ? '#fff' : '#64748B'} />
+                      <Text className={`text-sm font-bold ${bookingPriority === 'normal' ? 'text-white' : 'text-slate-600'}`}>Regular</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setBookingPriority('emergency')}
+                      className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-2xl border active:opacity-80 ${bookingPriority === 'emergency' ? 'bg-red-600 border-red-600' : 'bg-red-50 border-red-200'}`}
+                      style={bookingPriority !== 'emergency' ? Shadows.card : undefined}
+                    >
+                      <AlertTriangle size={16} color={bookingPriority === 'emergency' ? '#fff' : '#DC2626'} />
+                      <Text className={`text-sm font-bold ${bookingPriority === 'emergency' ? 'text-white' : 'text-red-600'}`}>Emergency</Text>
+                    </Pressable>
+                  </View>
+
                   <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Select Doctor</Text>
                   {doctorsLoading ? (
                     <View className="items-center py-10">
