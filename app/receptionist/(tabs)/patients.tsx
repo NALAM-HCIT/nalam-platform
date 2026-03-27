@@ -1,13 +1,15 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, User, Phone, ChevronRight, Plus, X, Calendar, Stethoscope, Clock, AlertTriangle } from 'lucide-react-native';
+import { Search, User, Phone, ChevronRight, Plus, X, Calendar, Stethoscope, Clock, AlertTriangle, Sun, CloudSun, Moon } from 'lucide-react-native';
 import { Shadows, Colors } from '@/constants/theme';
 import { receptionistService, PatientSearchResult, DoctorItem } from '@/services/receptionistService';
+import type { SlotGroup, AvailableSlot } from '@/services/appointmentService';
 import { isAuthError } from '@/services/api';
 
-// Generate next N days as { label, value: 'yyyy-MM-dd' }
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 function getNextDays(n: number) {
   const days = [];
   const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -23,18 +25,91 @@ function getNextDays(n: number) {
   return days;
 }
 
-const TIME_SLOTS = Array.from({ length: 16 }, (_, i) => {
-  const totalMins = 9 * 60 + i * 30;
-  const h = Math.floor(totalMins / 60);
-  const m = totalMins % 60;
-  const hh = String(h).padStart(2, '0');
-  const mm = String(m).padStart(2, '0');
-  const ampm = h < 12 ? 'AM' : 'PM';
-  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return { label: `${h12}:${mm} ${ampm}`, value: `${hh}:${mm}` };
-});
+/** Convert "10:30 AM" → "10:30" (24-hour HH:mm for API) */
+function to24h(display: string): string {
+  const m = display.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return display;
+  let h = parseInt(m[1], 10);
+  const mins = m[2];
+  const ap = m[3].toUpperCase();
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${mins}`;
+}
 
 const DATE_OPTIONS = getNextDays(7);
+
+const PERIOD_ICONS: Record<string, React.ElementType> = {
+  Morning: Sun,
+  Afternoon: CloudSun,
+  Evening: Moon,
+};
+const PERIOD_COLORS: Record<string, string> = {
+  Morning: '#F59E0B',
+  Afternoon: '#F97316',
+  Evening: '#8B5CF6',
+};
+
+// ── Sub-component ─────────────────────────────────────────────────────────────
+
+const SlotChip = React.memo(function SlotChip({
+  slot,
+  isSelected,
+  onPress,
+}: {
+  slot: AvailableSlot;
+  isSelected: boolean;
+  onPress: () => void;
+}) {
+  const showOccupancy = slot.maxCapacity > 1;
+  const isFull = !slot.isAvailable;
+
+  return (
+    <Pressable
+      onPress={isFull ? undefined : onPress}
+      disabled={isFull}
+      className={`px-3 py-2 rounded-xl border active:opacity-80 ${
+        isFull
+          ? 'bg-slate-50 border-slate-100 opacity-40'
+          : isSelected
+          ? 'bg-primary border-primary'
+          : 'bg-white border-slate-200'
+      }`}
+      style={!isSelected && !isFull ? Shadows.card : undefined}
+    >
+      <View className="flex-row items-center gap-1">
+        <Clock
+          size={10}
+          color={isFull ? '#CBD5E1' : isSelected ? '#fff' : '#94A3B8'}
+        />
+        <Text
+          className={`text-xs font-bold ${
+            isFull ? 'text-slate-300' : isSelected ? 'text-white' : 'text-slate-600'
+          }`}
+        >
+          {slot.startTime}
+        </Text>
+      </View>
+      {showOccupancy && (
+        <Text
+          className={`text-[9px] font-bold mt-0.5 ${
+            isFull
+              ? 'text-slate-300'
+              : isSelected
+              ? 'text-white/70'
+              : slot.bookedCount === 0
+              ? 'text-emerald-500'
+              : 'text-amber-500'
+          }`}
+        >
+          {isFull ? 'Full' : `${slot.bookedCount}/${slot.maxCapacity}`}
+        </Text>
+      )}
+    </Pressable>
+  );
+});
+
+// ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function PatientsScreen() {
   const [patients, setPatients] = useState<PatientSearchResult[]>([]);
@@ -53,9 +128,13 @@ export default function PatientsScreen() {
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorItem | null>(null);
   const [selectedDate, setSelectedDate] = useState(DATE_OPTIONS[0].value);
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [slotGroups, setSlotGroups] = useState<SlotGroup[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [bookingPriority, setBookingPriority] = useState<'normal' | 'emergency'>('normal');
+
+  // ── Patient list ──
 
   const fetchPatients = useCallback(async (query?: string) => {
     setLoading(true);
@@ -70,11 +149,27 @@ export default function PatientsScreen() {
   }, []);
 
   useEffect(() => { fetchPatients(); }, [fetchPatients]);
-
   useEffect(() => {
     const t = setTimeout(() => fetchPatients(searchQuery), 500);
     return () => clearTimeout(t);
   }, [searchQuery, fetchPatients]);
+
+  // ── Slot fetching — triggers when doctor or date changes in Step 2 ──
+
+  useEffect(() => {
+    if (!selectedDoctor || bookingStep !== 2) return;
+    let cancelled = false;
+    setSlotsLoading(true);
+    setSlotGroups([]);
+    setSelectedSlot(null);
+    receptionistService.getAvailableSlots(selectedDoctor.id, selectedDate)
+      .then((groups) => { if (!cancelled) setSlotGroups(groups); })
+      .catch(() => { if (!cancelled) CustomAlert.alert('Error', 'Failed to load time slots.'); })
+      .finally(() => { if (!cancelled) setSlotsLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedDoctor, selectedDate, bookingStep]);
+
+  // ── Registration ──
 
   const handleRegisterPatient = async () => {
     if (!newPatientName.trim() || !newPatientMobile.trim()) {
@@ -100,12 +195,7 @@ export default function PatientsScreen() {
           `This mobile number is already registered to:\n\n${existing.fullName}\n${existing.mobileNumber}\n\nWould you like to search for this patient?`,
           [
             { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Search Patient',
-              onPress: () => {
-                setSearchQuery(existing.mobileNumber);
-              },
-            },
+            { text: 'Search Patient', onPress: () => setSearchQuery(existing.mobileNumber) },
           ]
         );
       } else {
@@ -116,36 +206,15 @@ export default function PatientsScreen() {
     }
   };
 
-  const openPatientDetail = (patient: PatientSearchResult) => {
-    setSelectedPatient(patient);
-    setDetailModalVisible(true);
-  };
-
-  // For today: only show slots after the current time. For future dates: all slots.
-  const availableSlots = useMemo(() => {
-    const isToday = selectedDate === DATE_OPTIONS[0].value;
-    if (!isToday) return TIME_SLOTS;
-    const now = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
-    return TIME_SLOTS.filter((t) => {
-      const [hh, mm] = t.value.split(':').map(Number);
-      return hh * 60 + mm > nowMins;
-    });
-  }, [selectedDate]);
-
-  // Clear selected time if it becomes unavailable when date changes to today
-  useEffect(() => {
-    if (selectedTime && !availableSlots.some((t) => t.value === selectedTime)) {
-      setSelectedTime('');
-    }
-  }, [availableSlots]);
+  // ── Booking ──
 
   const openBookingForPatient = async () => {
     setDetailModalVisible(false);
     setBookingStep(1);
     setSelectedDoctor(null);
     setSelectedDate(DATE_OPTIONS[0].value);
-    setSelectedTime('');
+    setSelectedSlot(null);
+    setSlotGroups([]);
     setBookingPriority('normal');
     setBookingModalVisible(true);
     setDoctorsLoading(true);
@@ -160,28 +229,34 @@ export default function PatientsScreen() {
   };
 
   const handleBookingSubmit = async () => {
-    if (!selectedPatient || !selectedDoctor || !selectedDate || !selectedTime) return;
+    if (!selectedPatient || !selectedDoctor || !selectedDate || !selectedSlot) return;
     setBookingSubmitting(true);
     try {
       const result = await receptionistService.bookAppointment({
         patientId: selectedPatient.id,
         doctorProfileId: selectedDoctor.id,
         scheduleDate: selectedDate,
-        startTime: selectedTime,
+        startTime: to24h(selectedSlot.startTime),
         consultationType: 'in-person',
         priority: bookingPriority,
       });
       setBookingModalVisible(false);
       CustomAlert.alert(
         'Appointment Booked',
-        `Booking confirmed!\n\nRef: ${result.bookingReference}\nPatient: ${selectedPatient.fullName}\nDoctor: ${selectedDoctor.name}\nDate: ${selectedDate}\nTime: ${TIME_SLOTS.find(t => t.value === selectedTime)?.label}\n\nPayment: Collect at counter`
+        `Booking confirmed!\n\nRef: ${result.bookingReference}\nPatient: ${selectedPatient.fullName}\nDoctor: ${selectedDoctor.name}\nDate: ${selectedDate}\nTime: ${selectedSlot.startTime}\n\nPayment: Collect at counter`
       );
     } catch (e: any) {
-      CustomAlert.alert('Booking Failed', e.response?.data?.error || 'Failed to book appointment.');
+      const msg = e.response?.data?.innerError || e.response?.data?.error || 'Failed to book appointment.';
+      CustomAlert.alert('Booking Failed', msg);
     } finally {
       setBookingSubmitting(false);
     }
   };
+
+  const allSlots = slotGroups.flatMap((g) => g.slots);
+  const hasAnySlot = allSlots.length > 0;
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
@@ -201,7 +276,7 @@ export default function PatientsScreen() {
         </Pressable>
       </View>
 
-      {/* Search Bar */}
+      {/* Search */}
       <View className="px-6 mt-2 mb-4">
         <View className="flex-row items-center bg-white rounded-2xl px-4 py-3 border border-slate-100" style={Shadows.card}>
           <Search size={18} color="#94A3B8" />
@@ -238,7 +313,7 @@ export default function PatientsScreen() {
           patients.map((p) => (
             <Pressable
               key={p.id}
-              onPress={() => openPatientDetail(p)}
+              onPress={() => { setSelectedPatient(p); setDetailModalVisible(true); }}
               className="bg-white rounded-2xl p-4 mb-3 flex-row items-center gap-4 border border-slate-50 active:opacity-80"
               style={Shadows.card}
             >
@@ -258,13 +333,13 @@ export default function PatientsScreen() {
         )}
       </ScrollView>
 
-      {/* Walk-in Registration Modal */}
+      {/* ── Walk-in Registration Modal ── */}
       <Modal visible={registerModalVisible} animationType="slide" transparent>
         <View className="flex-1 bg-black/50 justify-end">
           <View className="bg-white rounded-t-3xl p-6 pb-12">
             <View className="flex-row items-center justify-between mb-6">
               <Text className="text-xl font-bold text-midnight">Walk-In Registration</Text>
-              <Pressable onPress={() => setRegisterModalVisible(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center active:opacity-70">
+              <Pressable onPress={() => setRegisterModalVisible(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center">
                 <X size={18} color="#64748B" />
               </Pressable>
             </View>
@@ -299,13 +374,13 @@ export default function PatientsScreen() {
         </View>
       </Modal>
 
-      {/* Patient Detail Modal */}
+      {/* ── Patient Detail Modal ── */}
       <Modal visible={detailModalVisible} animationType="fade" transparent>
         <View className="flex-1 bg-black/50 justify-center items-center p-6">
           <View className="bg-white rounded-3xl w-full max-h-[80%] overflow-hidden">
             <View className="flex-row items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
               <Text className="text-lg font-bold text-midnight">Patient Summary</Text>
-              <Pressable onPress={() => setDetailModalVisible(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center active:opacity-70">
+              <Pressable onPress={() => setDetailModalVisible(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center">
                 <X size={18} color="#64748B" />
               </Pressable>
             </View>
@@ -350,10 +425,10 @@ export default function PatientsScreen() {
         </View>
       </Modal>
 
-      {/* Book Appointment Modal */}
+      {/* ── Book Appointment Modal ── */}
       <Modal visible={bookingModalVisible} animationType="slide" transparent>
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl" style={{ maxHeight: '90%' }}>
+          <View className="bg-white rounded-t-3xl" style={{ maxHeight: '92%' }}>
             {/* Header */}
             <View className="flex-row items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
               <View>
@@ -365,17 +440,17 @@ export default function PatientsScreen() {
                   <View className={`w-2 h-2 rounded-full ${bookingStep >= 1 ? 'bg-primary' : 'bg-slate-200'}`} />
                   <View className={`w-2 h-2 rounded-full ${bookingStep >= 2 ? 'bg-primary' : 'bg-slate-200'}`} />
                 </View>
-                <Pressable onPress={() => setBookingModalVisible(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center active:opacity-70">
+                <Pressable onPress={() => setBookingModalVisible(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center">
                   <X size={16} color="#64748B" />
                 </Pressable>
               </View>
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-              {/* Step 1: Select Doctor */}
+
+              {/* ── Step 1: Priority + Doctor ── */}
               {bookingStep === 1 && (
                 <View className="px-6 pt-4">
-                  {/* Priority selector */}
                   <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Appointment Category</Text>
                   <View className="flex-row gap-3 mb-5">
                     <Pressable
@@ -444,14 +519,17 @@ export default function PatientsScreen() {
                     className={`mt-5 w-full py-4 rounded-full items-center ${selectedDoctor ? 'bg-primary' : 'bg-slate-200'}`}
                     style={selectedDoctor ? Shadows.focus : undefined}
                   >
-                    <Text className={`font-bold text-base ${selectedDoctor ? 'text-white' : 'text-slate-400'}`}>Next → Date & Time</Text>
+                    <Text className={`font-bold text-base ${selectedDoctor ? 'text-white' : 'text-slate-400'}`}>
+                      Next → Date & Time
+                    </Text>
                   </Pressable>
                 </View>
               )}
 
-              {/* Step 2: Date + Time */}
+              {/* ── Step 2: Date + Slots from API ── */}
               {bookingStep === 2 && (
                 <View className="px-6 pt-4">
+                  {/* Selected doctor summary */}
                   {selectedDoctor && (
                     <Pressable
                       onPress={() => setBookingStep(1)}
@@ -466,6 +544,7 @@ export default function PatientsScreen() {
                     </Pressable>
                   )}
 
+                  {/* Date chips */}
                   <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Select Date</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
                     {DATE_OPTIONS.map((d) => {
@@ -483,44 +562,66 @@ export default function PatientsScreen() {
                     })}
                   </ScrollView>
 
+                  {/* Time slots */}
                   <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-5 mb-3">
                     Select Time{selectedDate === DATE_OPTIONS[0].value ? ' (Today — future slots only)' : ''}
                   </Text>
-                  {availableSlots.length === 0 ? (
+
+                  {slotsLoading ? (
+                    <View className="py-8 items-center">
+                      <ActivityIndicator color={Colors.primary} />
+                      <Text className="text-slate-400 text-xs mt-2">Loading available slots...</Text>
+                    </View>
+                  ) : !hasAnySlot ? (
                     <View className="py-6 items-center">
                       <Clock size={28} color="#CBD5E1" />
-                      <Text className="text-slate-400 text-xs mt-2 text-center">No more slots available today.</Text>
-                      <Text className="text-slate-300 text-xs mt-1 text-center">Please select tomorrow or a future date.</Text>
+                      <Text className="text-slate-400 text-xs mt-2 text-center">
+                        {selectedDate === DATE_OPTIONS[0].value
+                          ? 'No more slots available today.'
+                          : 'No slots available on this date.'}
+                      </Text>
+                      <Text className="text-slate-300 text-xs mt-1 text-center">Please select a different date.</Text>
                     </View>
                   ) : (
-                  <View className="flex-row flex-wrap gap-2">
-                    {availableSlots.map((t) => {
-                      const isSelected = selectedTime === t.value;
+                    slotGroups.map((group) => {
+                      const PeriodIcon = PERIOD_ICONS[group.period] ?? Clock;
+                      const periodColor = PERIOD_COLORS[group.period] ?? '#94A3B8';
                       return (
-                        <Pressable
-                          key={t.value}
-                          onPress={() => setSelectedTime(t.value)}
-                          className={`px-3 py-2 rounded-xl border active:opacity-80 ${isSelected ? 'bg-primary border-primary' : 'bg-white border-slate-200'}`}
-                          style={!isSelected ? Shadows.card : undefined}
-                        >
-                          <View className="flex-row items-center gap-1">
-                            <Clock size={10} color={isSelected ? '#fff' : '#94A3B8'} />
-                            <Text className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-600'}`}>{t.label}</Text>
+                        <View key={group.period} className="mb-4">
+                          {/* Period header */}
+                          <View className="flex-row items-center gap-2 mb-2">
+                            <PeriodIcon size={13} color={periodColor} />
+                            <Text className="text-xs font-bold" style={{ color: periodColor }}>
+                              {group.period}
+                            </Text>
+                            <Text className="text-[10px] text-slate-400 font-medium">
+                              · {group.slots.filter((s) => s.isAvailable).length} of {group.slots.length} available
+                            </Text>
                           </View>
-                        </Pressable>
+                          {/* Slot chips */}
+                          <View className="flex-row flex-wrap gap-2">
+                            {group.slots.map((slot) => (
+                              <SlotChip
+                                key={slot.startTime}
+                                slot={slot}
+                                isSelected={selectedSlot?.startTime === slot.startTime}
+                                onPress={() => setSelectedSlot(slot)}
+                              />
+                            ))}
+                          </View>
+                        </View>
                       );
-                    })}
-                  </View>
+                    })
                   )}
 
                   <Pressable
                     onPress={handleBookingSubmit}
-                    disabled={!selectedTime || bookingSubmitting}
-                    className={`mt-6 w-full py-4 rounded-full items-center flex-row justify-center gap-2 ${selectedTime && !bookingSubmitting ? 'bg-primary' : 'bg-slate-200'}`}
-                    style={selectedTime && !bookingSubmitting ? Shadows.focus : undefined}
+                    disabled={!selectedSlot || bookingSubmitting}
+                    className={`mt-4 w-full py-4 rounded-full items-center flex-row justify-center gap-2 ${selectedSlot && !bookingSubmitting ? 'bg-primary' : 'bg-slate-200'}`}
+                    style={selectedSlot && !bookingSubmitting ? Shadows.focus : undefined}
                   >
-                    <Calendar size={18} color={selectedTime && !bookingSubmitting ? '#fff' : '#94A3B8'} />
-                    <Text className={`font-bold text-base ${selectedTime && !bookingSubmitting ? 'text-white' : 'text-slate-400'}`}>
+                    <Calendar size={18} color={selectedSlot && !bookingSubmitting ? '#fff' : '#94A3B8'} />
+                    <Text className={`font-bold text-base ${selectedSlot && !bookingSubmitting ? 'text-white' : 'text-slate-400'}`}>
                       {bookingSubmitting ? 'Booking...' : 'Confirm Appointment'}
                     </Text>
                   </Pressable>

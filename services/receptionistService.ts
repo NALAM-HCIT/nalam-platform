@@ -1,4 +1,5 @@
 import { api } from './api';
+import type { SlotGroup } from './appointmentService';
 
 export interface ReceptionDashboardStats {
     date: string;
@@ -155,6 +156,18 @@ export const receptionistService = {
     }): Promise<{ bookingReference: string }> => {
         const response = await api.post('/reception/book-appointment', data);
         return response.data;
+    },
+
+    /**
+     * Fetch available time slots for a doctor on a specific date.
+     * Reuses the patient-facing availability endpoint so all business rules
+     * (IST timezone, past-slot filtering, capacity counting) are identical.
+     */
+    getAvailableSlots: async (doctorProfileId: string, date: string): Promise<SlotGroup[]> => {
+        const response = await api.get(`/appointments/doctors/${doctorProfileId}/availability`, {
+            params: { startDate: date, days: 1 },
+        });
+        return response.data?.slotGroups ?? [];
     },
 
     getNotifications: async (): Promise<ReceptionNotification[]> => {

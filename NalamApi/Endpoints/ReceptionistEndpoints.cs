@@ -487,14 +487,45 @@ public static class ReceptionistEndpoints
             .FirstOrDefaultAsync(p => p.Id == request.PatientId && p.HospitalId == hospitalId);
         if (patient == null) return Results.BadRequest(new { error = "Patient not found." });
 
-        var doctor = await db.DoctorProfiles.AsNoTracking()
+        var doctor = await db.DoctorProfiles
+            .Include(dp => dp.User)
             .FirstOrDefaultAsync(dp => dp.Id == request.DoctorProfileId && dp.HospitalId == hospitalId);
         if (doctor == null) return Results.BadRequest(new { error = "Doctor not found." });
 
-        var endTime = startTime.AddMinutes(30);
-        var bookingRef = $"REC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
+        // Validate slot against doctor's schedule (same logic as patient booking)
+        var dayOfWeek = (int)scheduleDate.DayOfWeek;
+        var consultationType = request.ConsultationType ?? "in-person";
+        var schedule = await db.DoctorSchedules
+            .Where(ds => ds.DoctorProfileId == request.DoctorProfileId
+                && ds.IsActive
+                && ds.DayOfWeek == dayOfWeek
+                && ds.StartTime <= startTime
+                && ds.EndTime >= startTime.AddMinutes(ds.SlotDurationMinutes)
+                && (ds.ConsultationType == "both" || ds.ConsultationType == consultationType))
+            .FirstOrDefaultAsync();
 
+        if (schedule == null)
+            return Results.BadRequest(new { error = "The selected time slot is not within the doctor's schedule for this day." });
+
+        var endTime = startTime.AddMinutes(schedule.SlotDurationMinutes);
+        var bookingRef = $"REC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
         var priority = (request.Priority?.ToLower() == "emergency") ? "emergency" : "normal";
+
+        // Capacity check + insert wrapped in transaction to prevent overbooking
+        await using var tx = await db.Database.BeginTransactionAsync();
+
+        var bookedCount = await db.Appointments.CountAsync(a =>
+            a.DoctorProfileId == request.DoctorProfileId
+            && a.ScheduleDate == scheduleDate
+            && a.StartTime == startTime
+            && a.Status != "cancelled");
+
+        if (bookedCount >= schedule.MaxPatientsPerSlot)
+        {
+            await tx.RollbackAsync();
+            return Results.Conflict(new { error = $"This slot is fully booked ({bookedCount}/{schedule.MaxPatientsPerSlot} patients). Please choose another slot." });
+        }
+
         var appointment = new Appointment
         {
             HospitalId = hospitalId,
@@ -503,7 +534,7 @@ public static class ReceptionistEndpoints
             ScheduleDate = scheduleDate,
             StartTime = startTime,
             EndTime = endTime,
-            ConsultationType = request.ConsultationType ?? "in-person",
+            ConsultationType = consultationType,
             Status = "confirmed",
             ConsultationFee = doctor.ConsultationFee,
             PaymentStatus = "pending",
@@ -514,19 +545,32 @@ public static class ReceptionistEndpoints
         };
 
         db.Appointments.Add(appointment);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            await tx.RollbackAsync();
+            return Results.Problem(detail: ex.InnerException?.Message ?? ex.Message, title: "Booking failed", statusCode: 500);
+        }
+        await tx.CommitAsync();
 
         await auditService.LogAsync(hospitalId, GetUserId(ctx),
             $"Appointment booked by receptionist: {bookingRef} for {patient.FullName}",
-            "appointment", "info");
+            "appointment", "info",
+            $"Date: {scheduleDate}, Time: {startTime}, Slot: {bookedCount + 1}/{schedule.MaxPatientsPerSlot}");
 
         return Results.Created($"/api/reception/appointments/{appointment.Id}", new
         {
             id = appointment.Id,
             bookingReference = bookingRef,
             patientName = patient.FullName,
+            doctorName = doctor.User?.FullName ?? "",
             scheduleDate = scheduleDate.ToString("yyyy-MM-dd"),
             startTime = startTime.ToString("HH:mm"),
+            endTime = endTime.ToString("HH:mm"),
+            slotOccupancy = $"{bookedCount + 1}/{schedule.MaxPatientsPerSlot}",
             status = "confirmed",
         });
     }
