@@ -286,6 +286,65 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] patients.tsx: bookingPriority state ('normal'|'emergency'); Regular/Emergency toggle selector added at top of Step 1 in booking modal; priority passed to bookAppointment API call
   * [x] Commits: b5f5656 (feature), f3093dc (idempotent migrations fix)
 
+* [x] Phase 26: Patient Booking Review — Razorpay, Pay on Visit, Real Patient Details - COMPLETED
+  * ── Frontend ──
+  * [x] booking-review.tsx: Removed hardcoded "John Doe"; Patient Details section reads real name + phone from useAuthStore
+  * [x] booking-review.tsx: Removed Insurance Coverage payment option
+  * [x] booking-review.tsx: Added "Pay on Visit" — skips payment, books directly with paymentStatus=pending
+  * [x] booking-review.tsx: Razorpay integration (KEY_ID: rzp_test_h8mR4F2lGwgFX4) — lazy require() inside try/catch (prevents Expo Go native module crash)
+  * [x] booking-review.tsx: CTA label dynamic — "Confirm Booking" for Pay on Visit, "Pay ₹X & Confirm" for online payment
+  * [x] booking-review.tsx: Razorpay null-check — shows alert to use native build if module unavailable (Expo Go)
+  * ── Backend ──
+  * [x] AppointmentEndpoints.cs: PaymentStatus = "pending" when paymentMethod == "pay_on_visit", else "paid"
+  * [x] AppointmentEndpoints.cs: Booking reference changed from sequential counter to random hex — NLM-{year}-{guid6} (global uniqueness, no FK collision)
+  * [x] AppointmentEndpoints.cs: DbUpdateException caught + inner exception message exposed in response ({error, innerError, stackTrace})
+  * [x] AppointmentEndpoints.cs: AuditLog.UserId = null for patient-initiated actions (CreateAppointment, UpdateAppointment, CancelAppointment) — prevents FK violation (patients table ≠ users table)
+  * ── Bug Fixes ──
+  * [x] stores/authStore.ts: userName + userId now persisted to SecureStore on login() and restored in checkAuth() — survives app restart
+  * [x] Fixed "Booking Failed: An error occurred while saving the entity changes" — root cause was AuditLog FK constraint (patientId ≠ userId)
+  * [x] Commits: a01b0d1 → 22c276b → 3afc2f6 → 3330bb0 → b3c367c
+
+* [x] Phase 27: Receptionist Booking — Real Doctor Schedule Slots from DB - COMPLETED
+  * ── Backend ──
+  * [x] ReceptionistEndpoints.cs BookAppointment: Added .Include(dp => dp.User) to doctor fetch
+  * [x] ReceptionistEndpoints.cs BookAppointment: Schedule validation — queries doctor_schedules by (doctorProfileId, dayOfWeek, startTime, consultationType), returns 400 if no matching schedule
+  * [x] ReceptionistEndpoints.cs BookAppointment: endTime = startTime.AddMinutes(schedule.SlotDurationMinutes) (was hardcoded 30 min)
+  * [x] ReceptionistEndpoints.cs BookAppointment: Transaction-wrapped capacity check — CountAsync booked slots, Conflict(409) if bookedCount >= MaxPatientsPerSlot
+  * [x] ReceptionistEndpoints.cs BookAppointment: DbUpdateException catch with inner exception exposure
+  * [x] ReceptionistEndpoints.cs BookAppointment: Response includes endTime, slotOccupancy, doctorName; audit log includes slotOccupancy
+  * ── Frontend ──
+  * [x] receptionistService.ts: Added getAvailableSlots(doctorProfileId, date) — calls GET /api/appointments/doctors/{id}/availability?startDate={date}&days=1; returns SlotGroup[]
+  * [x] patients.tsx: Removed hardcoded TIME_SLOTS (9AM-2PM, 16 slots); replaced with API-driven slot groups (Morning/Afternoon/Evening)
+  * [x] patients.tsx: SlotChip sub-component — shows occupancy badge (bookedCount/maxCapacity), disabled when full
+  * [x] patients.tsx: useEffect fetches slots when doctor selected + bookingStep==2; cancelled on cleanup
+  * [x] patients.tsx: Today → future slots only; future date → all slots (same business rules as patient booking — handled server-side in IST timezone)
+  * [x] patients.tsx: handleBookingSubmit uses to24h() helper to convert display time → 24h for API; error reads innerError || error
+  * [x] Commit: 723095f
+
+* [x] Phase 28: Patient Profile — Full Live Data (2026-03-27) - COMPLETED
+  * ── Backend ──
+  * [x] GET /api/patient/profile — already existed in PatientProfileEndpoints.cs; returns all profile fields (no new endpoints needed)
+  * [x] PUT /api/patient/profile — already existed; partial update (null fields skipped)
+  * ── Frontend ──
+  * [x] services/patientService.ts: Added PatientProfile interface (id, fullName, mobileNumber, email, profilePhotoUrl, bloodGroup, dateOfBirth, gender, address, city, state, pincode, emergencyContact*, insurance*, hospitalName)
+  * [x] services/patientService.ts: Added UpdatePatientProfileRequest interface (all fields optional)
+  * [x] services/patientService.ts: Added getProfile() → GET /api/patient/profile
+  * [x] services/patientService.ts: Added updateProfile(data) → PUT /api/patient/profile
+  * [x] patient/(tabs)/profile.tsx: Removed hardcoded PATIENT_INFO constant (fake UHID, blood, age, gender, email, address, emergency contact)
+  * [x] patient/(tabs)/profile.tsx: Loads profile + stats in parallel via Promise.all on screen focus (useFocusEffect — re-fetches when returning from edit-profile)
+  * [x] patient/(tabs)/profile.tsx: UHID derived as NLM-{first UUID segment} from patient.id
+  * [x] patient/(tabs)/profile.tsx: Age computed from dateOfBirth (YYYY-MM-DD → years)
+  * [x] patient/(tabs)/profile.tsx: Email/address show "Add…" prompts if empty; emergency contact shows "Tap to add" if not set
+  * [x] patient/(tabs)/profile.tsx: Menu subtitles dynamic — active Rx count, total past visits, real insurance provider name
+  * [x] patient/(tabs)/profile.tsx: ActivityIndicator shown in info card while loading
+  * [x] patient/edit-profile.tsx: Shows full-screen loading spinner while fetching profile on mount
+  * [x] patient/edit-profile.tsx: All form fields pre-populated from GET /api/patient/profile
+  * [x] patient/edit-profile.tsx: Added City, State, Pincode, Insurance Provider, Policy Number fields (were missing)
+  * [x] patient/edit-profile.tsx: Save button calls PUT /api/patient/profile; ActivityIndicator during save; API error shown on failure
+  * [x] patient/edit-profile.tsx: UHID displayed from real patient ID
+  * [x] Deferred (no backend): Vital signs (records.tsx), Pharmacy order history (order-history.tsx), Preferences/Security/Support (device-level settings)
+  * [x] Commits: 7a43a9a (live data) → 1a72f41 (focus refresh fix)
+
 * [x] Phase 18: Admin Settings Module (Full Stack — 6 Panels) - COMPLETED
   * ── Phase 18.1: Database Design & Schema ──
   * [x] hospitals table already contains all needed columns (name, address, city, state, phone, email, logo_url, license_no, status) — no migration needed
@@ -423,6 +482,8 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * POST /api/admin/clear-cache            — Evict dashboard cache for hospital
 * GET  /api/admin/integrations           — List integrations (auto-seeds 5 defaults on first access)
 * PATCH /api/admin/integrations/{id}     — Toggle integration connection status
+* GET  /api/patient/profile              — Full patient profile (id, fullName, mobile, email, bloodGroup, DOB, gender, address, city, state, pincode, emergency contact, insurance, hospitalName)
+* PUT  /api/patient/profile              — Partial update patient profile (all fields optional, null fields skipped)
 
 5.5. PAYMENT GATEWAY
 ------------------------------------------------------
@@ -486,11 +547,13 @@ Mobile App Key Files (Receptionist Flow):
 ├── app/receptionist/(tabs)/patients.tsx (search + walk-in registration)
 └── app/receptionist/patient-arrival.tsx (token + vitals + room assignment)
 
-Mobile App Key Files (Patient Screens — Phase 8):
-├── services/patientService.ts (API service layer)
+Mobile App Key Files (Patient Screens — Phase 8 + 26-28):
+├── services/patientService.ts (PatientProfile type, getProfile, updateProfile, consultation history, prescriptions, stats)
 ├── app/patient/(tabs)/records.tsx (live consultation history)
-├── app/patient/(tabs)/profile.tsx (live profile stats)
-└── app/patient/digital-prescription.tsx (live prescription detail)
+├── app/patient/(tabs)/profile.tsx (live full profile — useFocusEffect re-fetches on return from edit)
+├── app/patient/edit-profile.tsx (loads from API, saves to API, all fields including city/state/pincode/insurance)
+├── app/patient/digital-prescription.tsx (live prescription detail)
+└── app/patient/booking-review.tsx (Razorpay + Pay on Visit + real patient details from authStore)
 
 Mobile App Key Files (Doctor Portal — Phase 9):
 ├── services/doctorPortalService.ts (API service layer)
