@@ -520,8 +520,16 @@ export default function UsersScreen() {
                 {/* Action Buttons */}
                 <View className="gap-3 mb-6">
                   <View className="flex-row gap-3">
-                    <ActionButton icon={Shield} label="Change Role" color={Colors.primary} bgColor="#EFF6FF" onPress={() => handleEditRole(selectedUser)} />
-                    <ActionButton icon={Key} label="Reset Auth" color="#F59E0B" bgColor="#FFFBEB" onPress={() => handleResetPassword(selectedUser)} />
+                    <ActionButton icon={Shield} label="Change Role" color={Colors.primary} bgColor="#EFF6FF" onPress={() => {
+                      const u = selectedUser;
+                      setShowUserDetail(false);
+                      setTimeout(() => handleEditRole(u), 350);
+                    }} />
+                    <ActionButton icon={Key} label="Reset Auth" color="#F59E0B" bgColor="#FFFBEB" onPress={() => {
+                      const u = selectedUser;
+                      setShowUserDetail(false);
+                      setTimeout(() => handleResetPassword(u), 350);
+                    }} />
                   </View>
                   <View className="flex-row gap-3">
                     <ActionButton
@@ -529,9 +537,17 @@ export default function UsersScreen() {
                       label={selectedUser.status === 'active' ? 'Deactivate' : 'Activate'}
                       color={selectedUser.status === 'active' ? '#64748B' : '#059669'}
                       bgColor={selectedUser.status === 'active' ? '#F1F5F9' : '#F0FDF4'}
-                      onPress={() => handleToggleStatus(selectedUser.id)}
+                      onPress={() => {
+                        const uid = selectedUser.id;
+                        setShowUserDetail(false);
+                        setTimeout(() => handleToggleStatus(uid), 350);
+                      }}
                     />
-                    <ActionButton icon={Trash2} label="Remove" color="#DC2626" bgColor="#FEF2F2" onPress={() => handleDeleteUser(selectedUser)} />
+                    <ActionButton icon={Trash2} label="Remove" color="#DC2626" bgColor="#FEF2F2" onPress={() => {
+                      const u = selectedUser;
+                      setShowUserDetail(false);
+                      setTimeout(() => handleDeleteUser(u), 350);
+                    }} />
                   </View>
                 </View>
               </ScrollView>
