@@ -43,7 +43,7 @@ const statusLabel = (status: string) => {
 const statusVariant = (status: string) => {
   if (status === 'completed') return 'success';
   if (status === 'arrived') return 'warning';
-  if (status === 'in_consultation') return 'error';
+  if (status === 'in_consultation') return 'danger';
   return 'primary';
 };
 
