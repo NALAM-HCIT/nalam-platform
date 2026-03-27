@@ -415,7 +415,7 @@ public static class AppointmentEndpoints
             TotalAmount = total,
             CouponCode = couponCode,
             PaymentMethod = request.PaymentMethod,
-            PaymentStatus = "paid",
+            PaymentStatus = request.PaymentMethod == "pay_on_visit" ? "pending" : "paid",
             BookingReference = bookingRef,
             Notes = request.Notes
         };

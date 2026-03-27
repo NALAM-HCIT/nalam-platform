@@ -424,6 +424,16 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * GET  /api/admin/integrations           — List integrations (auto-seeds 5 defaults on first access)
 * PATCH /api/admin/integrations/{id}     — Toggle integration connection status
 
+5.5. PAYMENT GATEWAY
+------------------------------------------------------
+* Provider: Razorpay (Test Mode)
+* KEY_ID: rzp_test_h8mR4F2lGwgFX4
+* SECRET KEY: hSzFNcgMB4AzDINXDy2V0zEp
+* Mobile Package: react-native-razorpay ^2.3.1
+* Flow: UPI / Card / Net Banking / Wallet → Razorpay checkout (client-side, amount in paise)
+*       Pay on Visit → skip payment, appointment confirmed with paymentStatus=pending
+* paymentStatus values: "paid" (online), "pending" (pay_on_visit)
+
 6. INSTALLED PACKAGES (NalamApi)
 ------------------------------------------------------
 * Npgsql.EntityFrameworkCore.PostgreSQL 9.0.4
