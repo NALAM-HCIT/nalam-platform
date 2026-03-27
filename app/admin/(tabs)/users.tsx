@@ -295,7 +295,8 @@ export default function UsersScreen() {
 
   const handleSaveRoles = useCallback(async () => {
     if (!roleModalUser || pendingRoles.length === 0) {
-      CustomAlert.alert('Error', 'At least one role is required.');
+      setShowRoleModal(false);
+      setTimeout(() => CustomAlert.alert('Error', 'At least one role is required.'), 400);
       return;
     }
     setSavingRole(true);
@@ -313,9 +314,10 @@ export default function UsersScreen() {
         prev?.id === roleModalUser.id ? { ...prev, role: newPrimaryRole, roles: newRoles } : prev
       );
       setShowRoleModal(false);
-      CustomAlert.alert('Roles Updated', `${roleModalUser.name} now has roles: ${newRoles.join(', ')}.`);
+      setTimeout(() => CustomAlert.alert('Roles Updated', `${roleModalUser.name} now has roles: ${newRoles.join(', ')}.`), 400);
     } catch (error: any) {
-      CustomAlert.alert('Error', error.response?.data?.error || 'Failed to change roles.');
+      setShowRoleModal(false);
+      setTimeout(() => CustomAlert.alert('Error', error.response?.data?.error || 'Failed to change roles.'), 400);
     } finally {
       setSavingRole(false);
     }
