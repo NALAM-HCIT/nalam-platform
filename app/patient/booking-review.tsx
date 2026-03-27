@@ -11,7 +11,17 @@ import {
 } from 'lucide-react-native';
 import { createAppointment } from '@/services/appointmentService';
 import { useAuthStore } from '@/stores/authStore';
-import RazorpayCheckout from 'react-native-razorpay';
+
+// Lazily required so Expo Go doesn't crash on module load.
+// Only resolves in a native development/production build.
+function getRazorpay(): any {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-razorpay').default;
+  } catch {
+    return null;
+  }
+}
 
 /* ───── Constants ───── */
 
@@ -218,6 +228,15 @@ export default function BookingReviewScreen() {
         await confirmBooking();
       } else {
         // Open Razorpay checkout
+        const RazorpayCheckout = getRazorpay();
+        if (!RazorpayCheckout) {
+          CustomAlert.alert(
+            'Payment Unavailable',
+            'Online payment requires a native build. Please select "Pay on Visit" or use the hospital app build.',
+          );
+          return;
+        }
+
         const amountInPaise = Math.round(pricing.total * 100);
         // order_id is omitted here (test mode). For production, generate via backend POST /api/payments/create-order
         const options = {
