@@ -25,6 +25,11 @@ public static class ReceptionistEndpoints
         group.MapPatch("/appointments/{id:guid}/in-consultation", SendToDoctor);
         group.MapGet("/patients", SearchPatients);
         group.MapPost("/patients", CreatePatient);
+        group.MapGet("/profile", GetProfile);
+        group.MapPatch("/profile", UpdateProfile);
+        group.MapGet("/stats", GetStats);
+        group.MapGet("/doctors", GetDoctors);
+        group.MapPost("/book-appointment", BookAppointment);
     }
 
     private static Guid GetHospitalId(HttpContext ctx) =>
@@ -333,6 +338,187 @@ public static class ReceptionistEndpoints
             initials = GetInitials(patient.FullName)
         });
     }
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/reception/profile
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetProfile(NalamDbContext db, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return Results.NotFound();
+
+        return Results.Ok(new
+        {
+            id = user.Id,
+            fullName = user.FullName,
+            mobileNumber = user.MobileNumber,
+            email = user.Email,
+            department = user.Department ?? "Front Office",
+            employeeId = user.EmployeeId ?? "N/A",
+            joinDate = user.CreatedAt.ToString("MMM dd, yyyy"),
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PATCH /api/reception/profile
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> UpdateProfile(
+        UpdateReceptionistProfileRequest request, NalamDbContext db, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return Results.NotFound();
+
+        if (request.Email != null) user.Email = request.Email.Trim();
+        if (request.Department != null) user.Department = request.Department.Trim();
+
+        await db.SaveChangesAsync();
+        return Results.Ok(new { message = "Profile updated." });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/reception/stats
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetStats(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var todayUtc = DateTime.UtcNow.Date;
+
+        var registeredToday = await db.Patients.AsNoTracking()
+            .Where(p => p.HospitalId == hospitalId && p.CreatedAt >= todayUtc)
+            .CountAsync();
+
+        var appointmentsToday = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.Status != "cancelled")
+            .CountAsync();
+
+        var pendingCheckIns = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today
+                        && (a.Status == "pending" || a.Status == "confirmed"))
+            .CountAsync();
+
+        return Results.Ok(new
+        {
+            registeredToday,
+            appointmentsToday,
+            walkInsToday = registeredToday,
+            pendingCheckIns,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/reception/doctors
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetDoctors(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+
+        var rawDoctors = await db.DoctorProfiles.AsNoTracking()
+            .Include(dp => dp.User)
+            .Where(dp => dp.HospitalId == hospitalId
+                        && dp.IsAcceptingAppointments
+                        && dp.User.Status == "active")
+            .Select(dp => new
+            {
+                id = dp.Id,
+                name = dp.User.FullName,
+                specialty = dp.Specialty,
+                consultationFee = dp.ConsultationFee,
+                availableForInPerson = dp.AvailableForInPerson,
+                availableForVideo = dp.AvailableForVideo,
+            })
+            .ToListAsync();
+
+        return Results.Ok(rawDoctors);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  POST /api/reception/book-appointment
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> BookAppointment(
+        BookAppointmentRequest request,
+        NalamDbContext db,
+        AuditService auditService,
+        HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+
+        if (!DateOnly.TryParse(request.ScheduleDate, out var scheduleDate))
+            return Results.BadRequest(new { error = "Invalid date format. Use yyyy-MM-dd." });
+
+        if (!TimeOnly.TryParse(request.StartTime, out var startTime))
+            return Results.BadRequest(new { error = "Invalid time format. Use HH:mm." });
+
+        var patient = await db.Patients.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == request.PatientId && p.HospitalId == hospitalId);
+        if (patient == null) return Results.BadRequest(new { error = "Patient not found." });
+
+        var doctor = await db.DoctorProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(dp => dp.Id == request.DoctorProfileId && dp.HospitalId == hospitalId);
+        if (doctor == null) return Results.BadRequest(new { error = "Doctor not found." });
+
+        // Check for double-booking
+        var conflict = await db.Appointments.AsNoTracking()
+            .AnyAsync(a => a.HospitalId == hospitalId
+                        && a.DoctorProfileId == request.DoctorProfileId
+                        && a.ScheduleDate == scheduleDate
+                        && a.StartTime == startTime
+                        && a.Status != "cancelled");
+        if (conflict)
+            return Results.Conflict(new { error = "This time slot is already booked. Please choose another." });
+
+        var endTime = startTime.AddMinutes(30);
+        var bookingRef = $"REC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
+
+        var appointment = new Appointment
+        {
+            HospitalId = hospitalId,
+            PatientId = request.PatientId,
+            DoctorProfileId = request.DoctorProfileId,
+            ScheduleDate = scheduleDate,
+            StartTime = startTime,
+            EndTime = endTime,
+            ConsultationType = request.ConsultationType ?? "in-person",
+            Status = "confirmed",
+            ConsultationFee = doctor.ConsultationFee,
+            PaymentStatus = "pending",
+            PaymentMethod = "counter",
+            BookingReference = bookingRef,
+            Notes = request.Notes,
+        };
+
+        db.Appointments.Add(appointment);
+        await db.SaveChangesAsync();
+
+        await auditService.LogAsync(hospitalId, GetUserId(ctx),
+            $"Appointment booked by receptionist: {bookingRef} for {patient.FullName}",
+            "appointment", "info");
+
+        return Results.Created($"/api/reception/appointments/{appointment.Id}", new
+        {
+            id = appointment.Id,
+            bookingReference = bookingRef,
+            patientName = patient.FullName,
+            scheduleDate = scheduleDate.ToString("yyyy-MM-dd"),
+            startTime = startTime.ToString("HH:mm"),
+            status = "confirmed",
+        });
+    }
 }
 
 public record ReceptionistCreatePatientRequest(string FullName, string MobileNumber);
+public record UpdateReceptionistProfileRequest(string? Email, string? Department);
+public record BookAppointmentRequest(
+    Guid PatientId,
+    Guid DoctorProfileId,
+    string ScheduleDate,
+    string StartTime,
+    string? ConsultationType,
+    string? Notes
+);

@@ -1,5 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,8 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
 import { RoleSwitcher } from '@/components/RoleSwitcher';
+import { receptionistService, ReceptionistProfile, ReceptionistStats } from '@/services/receptionistService';
+import { isAuthError } from '@/services/api';
 import {
   User, Shield, Bell, LogOut, ChevronRight, Camera, Phone, Mail,
   Calendar, HelpCircle, Globe, Moon, Fingerprint, Lock,
@@ -25,11 +27,11 @@ const RECEPTIONIST_INFO = {
   joinDate: 'Jan 15, 2024',
 };
 
-const QUICK_STATS = [
-  { label: 'Registered', value: '12', icon: UserCheck, color: '#22C55E' },
-  { label: 'Appointments', value: '28', icon: CalendarCheck, color: Colors.primary },
-  { label: 'Walk-ins', value: '5', icon: User, color: '#F59E0B' },
-  { label: 'Pending', value: '3', icon: Clock, color: '#EF4444' },
+const STAT_META = [
+  { label: 'Registered', key: 'registeredToday' as const, icon: UserCheck, color: '#22C55E' },
+  { label: 'Appointments', key: 'appointmentsToday' as const, icon: CalendarCheck, color: Colors.primary },
+  { label: 'Walk-ins', key: 'walkInsToday' as const, icon: User, color: '#F59E0B' },
+  { label: 'Pending', key: 'pendingCheckIns' as const, icon: Clock, color: '#EF4444' },
 ];
 
 interface MenuItem {
@@ -84,9 +86,11 @@ const MENU_SECTIONS: MenuSection[] = [
 
 const QuickStatCard = React.memo(function QuickStatCard({
   stat,
+  value,
   onPress,
 }: {
-  stat: typeof QUICK_STATS[0];
+  stat: typeof STAT_META[0];
+  value: number;
   onPress: () => void;
 }) {
   const Icon = stat.icon;
@@ -95,7 +99,7 @@ const QuickStatCard = React.memo(function QuickStatCard({
       <View className="w-9 h-9 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: stat.color + '15' }}>
         <Icon size={16} color={stat.color} />
       </View>
-      <Text className="text-lg font-extrabold text-midnight">{stat.value}</Text>
+      <Text className="text-lg font-extrabold text-midnight">{value}</Text>
       <Text className="text-[10px] text-slate-400 font-medium">{stat.label}</Text>
     </Pressable>
   );
@@ -141,8 +145,15 @@ export default function ReceptionistProfileScreen() {
   const { userName, phone, logout } = useAuthStore();
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ReceptionistProfile | null>(null);
+  const [stats, setStats] = useState<ReceptionistStats>({ registeredToday: 0, appointmentsToday: 0, walkInsToday: 0, pendingCheckIns: 0 });
 
-  const displayName = userName || 'Receptionist';
+  useEffect(() => {
+    receptionistService.getProfile().then(setProfile).catch((e) => { if (!isAuthError(e)) console.log('profile fetch error', e); });
+    receptionistService.getStats().then(setStats).catch((e) => { if (!isAuthError(e)) console.log('stats fetch error', e); });
+  }, []);
+
+  const displayName = userName || profile?.fullName || 'Receptionist';
   const initials = useMemo(() => {
     const parts = displayName.split(' ');
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -192,19 +203,19 @@ export default function ReceptionistProfileScreen() {
   const handleStatPress = useCallback((label: string) => {
     switch (label) {
       case 'Registered':
-        CustomAlert.alert('Patients Registered Today', 'Total: 12\n\nNew patients: 5\nReturning patients: 7\nPending registrations: 2');
+        CustomAlert.alert('Patients Registered Today', `Total walk-ins registered: ${stats.registeredToday}`);
         break;
       case 'Appointments':
-        CustomAlert.alert('Appointments Managed', 'Total today: 28\n\nChecked in: 15\nRescheduled: 4\nCancelled: 2\nPending: 7');
+        CustomAlert.alert('Appointments Today', `Total (excl. cancelled): ${stats.appointmentsToday}`);
         break;
       case 'Walk-ins':
-        CustomAlert.alert('Walk-in Patients', 'Today: 5\n\nRegistered: 3\nWaiting: 2\n\nAvg. wait time: 12 minutes');
+        CustomAlert.alert('Walk-in Patients', `Registered today: ${stats.walkInsToday}`);
         break;
       case 'Pending':
-        CustomAlert.alert('Pending Actions', '3 items need attention:\n\n1. Patient ID verification (Room 4)\n2. Insurance approval (Rajesh K.)\n3. Appointment confirmation (Dr. Aruna)');
+        CustomAlert.alert('Pending Check-ins', `${stats.pendingCheckIns} appointment(s) still waiting to be checked in.`);
         break;
     }
-  }, []);
+  }, [stats]);
 
   const handleMenuPress = useCallback((actionId: string) => {
     switch (actionId) {
@@ -382,15 +393,15 @@ export default function ReceptionistProfileScreen() {
               </View>
               <RoleSwitcher />
               <View className="bg-slate-100 px-3 py-1.5 rounded-full">
-                <Text className="text-slate-600 text-xs font-bold">{RECEPTIONIST_INFO.empId}</Text>
+                <Text className="text-slate-600 text-xs font-bold">{profile?.employeeId ?? RECEPTIONIST_INFO.empId}</Text>
               </View>
             </View>
 
             <View className="flex-row flex-wrap">
               {[
-                { label: 'Dept', value: RECEPTIONIST_INFO.department, icon: User },
+                { label: 'Dept', value: profile?.department ?? RECEPTIONIST_INFO.department, icon: User },
                 { label: 'Shift', value: 'Morning', icon: Clock },
-                { label: 'Joined', value: RECEPTIONIST_INFO.joinDate, icon: Calendar },
+                { label: 'Joined', value: profile?.joinDate ?? RECEPTIONIST_INFO.joinDate, icon: Calendar },
               ].map((info, idx) => {
                 const Icon = info.icon;
                 return (
@@ -404,14 +415,16 @@ export default function ReceptionistProfileScreen() {
             </View>
 
             <View className="mt-2 pt-3 border-t border-slate-100 gap-2">
-              <Pressable onPress={() => Linking.openURL(`mailto:${RECEPTIONIST_INFO.email}`)} className="flex-row items-center gap-2 active:opacity-60">
-                <Mail size={12} color="#94A3B8" />
-                <Text className="text-xs text-slate-500">{RECEPTIONIST_INFO.email}</Text>
-                <ExternalLink size={10} color="#CBD5E1" />
-              </Pressable>
-              <Pressable onPress={() => Linking.openURL(`tel:${RECEPTIONIST_INFO.phone.replace(/\s/g, '')}`)} className="flex-row items-center gap-2 active:opacity-60">
+              {(profile?.email || RECEPTIONIST_INFO.email) ? (
+                <Pressable onPress={() => Linking.openURL(`mailto:${profile?.email ?? RECEPTIONIST_INFO.email}`)} className="flex-row items-center gap-2 active:opacity-60">
+                  <Mail size={12} color="#94A3B8" />
+                  <Text className="text-xs text-slate-500">{profile?.email ?? RECEPTIONIST_INFO.email}</Text>
+                  <ExternalLink size={10} color="#CBD5E1" />
+                </Pressable>
+              ) : null}
+              <Pressable onPress={() => Linking.openURL(`tel:${(profile?.mobileNumber ?? RECEPTIONIST_INFO.phone).replace(/\s/g, '')}`)} className="flex-row items-center gap-2 active:opacity-60">
                 <Phone size={12} color="#94A3B8" />
-                <Text className="text-xs text-slate-500">{RECEPTIONIST_INFO.phone}</Text>
+                <Text className="text-xs text-slate-500">{profile?.mobileNumber ?? RECEPTIONIST_INFO.phone}</Text>
                 <ExternalLink size={10} color="#CBD5E1" />
               </Pressable>
             </View>
@@ -424,8 +437,8 @@ export default function ReceptionistProfileScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row mx-6 mt-4 gap-2.5">
-          {QUICK_STATS.map((stat, idx) => (
-            <QuickStatCard key={idx} stat={stat} onPress={() => handleStatPress(stat.label)} />
+          {STAT_META.map((stat, idx) => (
+            <QuickStatCard key={idx} stat={stat} value={stats[stat.key]} onPress={() => handleStatPress(stat.label)} />
           ))}
         </View>
 
