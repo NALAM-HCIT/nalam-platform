@@ -324,7 +324,7 @@ public static class AdminEndpoints
         return Results.Ok(ToUserResponse(user));
     }
 
-    /// <summary>PATCH /api/admin/users/{id}/role — Manage user roles (add/remove).</summary>
+    /// <summary>PATCH /api/admin/users/{id}/role — Manage user roles (add/remove). Auto-creates doctor profile when doctor role is added.</summary>
     private static async Task<IResult> ChangeUserRole(
         Guid id,
         ChangeRoleRequest request,
@@ -333,6 +333,8 @@ public static class AdminEndpoints
         HttpContext ctx)
     {
         var hospitalId = GetHospitalId(ctx);
+        var callerId = GetUserId(ctx);
+
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
         if (user is null) return Results.NotFound(new { error = "User not found." });
 
@@ -350,6 +352,18 @@ public static class AdminEndpoints
 
         // Load UserRoles directly (avoids navigation-property tracking conflicts)
         var userRoles = await db.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
+        var hadDoctorRole = userRoles.Any(ur => ur.Role == "doctor" && ur.IsActive);
+        var addingDoctorRole = normalizedRoles.Contains("doctor") && !hadDoctorRole;
+        var removingDoctorRole = hadDoctorRole && !normalizedRoles.Contains("doctor");
+
+        // Validate doctor profile fields before any DB changes
+        if (addingDoctorRole)
+        {
+            if (string.IsNullOrWhiteSpace(request.Specialty))
+                return Results.BadRequest(new { error = "Specialty is required when assigning the Doctor role." });
+            if (request.ConsultationFee is null or <= 0)
+                return Results.BadRequest(new { error = "Consultation fee is required when assigning the Doctor role." });
+        }
 
         var oldRoles = userRoles.Where(ur => ur.IsActive).Select(ur => ur.Role).ToList();
 
@@ -367,18 +381,87 @@ public static class AdminEndpoints
         // Update primary role to the first in the list
         user.Role = normalizedRoles[0];
 
+        // ── Doctor profile: auto-create or reactivate ─────────────────
+        bool doctorProfileCreated = false;
+        if (addingDoctorRole)
+        {
+            var existingProfile = await db.DoctorProfiles.FirstOrDefaultAsync(dp => dp.UserId == id);
+            if (existingProfile is null)
+            {
+                var profile = new DoctorProfile
+                {
+                    HospitalId = hospitalId,
+                    UserId = id,
+                    Specialty = request.Specialty!.Trim(),
+                    ExperienceYears = request.ExperienceYears ?? 0,
+                    ConsultationFee = request.ConsultationFee!.Value,
+                    AvailableForVideo = true,
+                    AvailableForInPerson = true,
+                    Languages = request.Languages?.Trim() ?? "English, Tamil",
+                    Bio = request.Bio?.Trim(),
+                    IsAcceptingAppointments = true
+                };
+                db.DoctorProfiles.Add(profile);
+                await db.SaveChangesAsync(); // flush to get profile.Id
+
+                var defaultSchedules = new (int Day, string Start, string End)[]
+                {
+                    (1,"09:00","12:00"),(1,"14:00","17:00"),
+                    (2,"09:00","12:00"),(2,"14:00","17:00"),
+                    (3,"09:00","12:00"),(3,"14:00","17:00"),
+                    (4,"09:00","12:00"),(4,"14:00","17:00"),
+                    (5,"09:00","12:00"),(5,"14:00","17:00"),
+                    (6,"10:00","13:00"),
+                };
+                foreach (var s in defaultSchedules)
+                    db.DoctorSchedules.Add(new DoctorSchedule
+                    {
+                        HospitalId = hospitalId,
+                        DoctorProfileId = profile.Id,
+                        DayOfWeek = s.Day,
+                        StartTime = TimeOnly.Parse(s.Start),
+                        EndTime = TimeOnly.Parse(s.End),
+                        SlotDurationMinutes = 30,
+                        ConsultationType = "both"
+                    });
+                doctorProfileCreated = true;
+            }
+            else
+            {
+                // Reactivate a previously deactivated profile
+                existingProfile.IsAcceptingAppointments = true;
+                existingProfile.Specialty = request.Specialty!.Trim();
+                existingProfile.ConsultationFee = request.ConsultationFee!.Value;
+                if (request.ExperienceYears.HasValue) existingProfile.ExperienceYears = request.ExperienceYears.Value;
+                if (!string.IsNullOrWhiteSpace(request.Languages)) existingProfile.Languages = request.Languages.Trim();
+                if (!string.IsNullOrWhiteSpace(request.Bio)) existingProfile.Bio = request.Bio.Trim();
+            }
+        }
+
+        // ── Doctor profile: deactivate when doctor role is removed ─────
+        if (removingDoctorRole)
+        {
+            var profile = await db.DoctorProfiles.FirstOrDefaultAsync(dp => dp.UserId == id);
+            if (profile != null) profile.IsAcceptingAppointments = false;
+        }
+
         await db.SaveChangesAsync();
 
-        // Reload with updated roles for the response
         var updatedUser = await db.Users.AsNoTracking().Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.Id == id);
 
+        var auditNote = doctorProfileCreated ? " (doctor profile auto-created)" : "";
         await auditService.LogAsync(
-            hospitalId, GetUserId(ctx),
-            $"User {user.FullName} roles changed: [{string.Join(", ", oldRoles)}] → [{string.Join(", ", normalizedRoles)}]",
+            hospitalId, callerId,
+            $"User {user.FullName} roles changed: [{string.Join(", ", oldRoles)}] → [{string.Join(", ", normalizedRoles)}]{auditNote}",
             "user", "warning");
 
-        return Results.Ok(ToUserResponse(updatedUser!));
+        return Results.Ok(new
+        {
+            user = ToUserResponse(updatedUser!),
+            requiresRelogin = (id == callerId),
+            doctorProfileCreated
+        });
     }
 
     /// <summary>DELETE /api/admin/users/{id} — Remove user.</summary>

@@ -11,6 +11,7 @@ import {
 import { Shadows, Colors } from '@/constants/theme';
 import { StatusChip } from '@/components';
 import { api, isAuthError } from '@/services/api';
+import { useAuthStore } from '@/stores/authStore';
 
 /* ───── Types ───── */
 
@@ -32,6 +33,20 @@ type UserItem = {
 const INITIAL_USERS: UserItem[] = [];
 
 const ROLE_FILTERS = ['All', 'Doctor', 'Receptionist', 'Pharmacist', 'Admin'];
+
+const SPECIALTIES = [
+  'Cardiology', 'Neurology', 'Orthopedics', 'General Medicine', 'Pediatrics',
+  'Dermatology', 'ENT', 'Ophthalmology', 'Gynecology', 'Urology',
+  'Psychiatry', 'Pulmonology', 'Gastroenterology', 'Nephrology', 'Oncology',
+];
+
+const EMPTY_DOCTOR_FORM = {
+  specialty: '',
+  experienceYears: '',
+  consultationFee: '',
+  languages: 'English, Tamil',
+  bio: '',
+};
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   Doctor: { bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
@@ -163,6 +178,7 @@ const ActionButton = React.memo(function ActionButton({ icon: Icon, label, color
 
 export default function UsersScreen() {
   const router = useRouter();
+  const { userId: currentUserId, logout } = useAuthStore();
   const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('All');
@@ -279,11 +295,18 @@ export default function UsersScreen() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleModalUser, setRoleModalUser] = useState<UserItem | null>(null);
   const [pendingRoles, setPendingRoles] = useState<string[]>([]);
+  const [doctorForm, setDoctorForm] = useState(EMPTY_DOCTOR_FORM);
   const [savingRole, setSavingRole] = useState(false);
+
+  const userAlreadyHasDoctorRole = useMemo(
+    () => roleModalUser?.roles.map((r) => r.toLowerCase()).includes('doctor') ?? false,
+    [roleModalUser]
+  );
 
   const handleEditRole = useCallback((user: UserItem) => {
     setRoleModalUser(user);
     setPendingRoles(user.roles.map((r) => r.toLowerCase()));
+    setDoctorForm(EMPTY_DOCTOR_FORM);
     setShowRoleModal(true);
   }, []);
 
@@ -299,12 +322,39 @@ export default function UsersScreen() {
       setTimeout(() => CustomAlert.alert('Error', 'At least one role is required.'), 400);
       return;
     }
+
+    const addingDoctorRole = pendingRoles.includes('doctor') && !userAlreadyHasDoctorRole;
+
+    // Validate doctor fields before hitting the API
+    if (addingDoctorRole) {
+      if (!doctorForm.specialty) {
+        CustomAlert.alert('Required', 'Please select a specialty for the Doctor role.');
+        return;
+      }
+      if (!doctorForm.consultationFee || isNaN(Number(doctorForm.consultationFee))) {
+        CustomAlert.alert('Required', 'Please enter a valid consultation fee.');
+        return;
+      }
+    }
+
     setSavingRole(true);
     try {
-      await api.patch(`/admin/users/${roleModalUser.id}/role`, { roles: pendingRoles });
+      const payload: Record<string, any> = { roles: pendingRoles };
+      if (addingDoctorRole) {
+        payload.specialty = doctorForm.specialty;
+        payload.experienceYears = doctorForm.experienceYears ? parseInt(doctorForm.experienceYears, 10) : 0;
+        payload.consultationFee = parseFloat(doctorForm.consultationFee);
+        payload.languages = doctorForm.languages || 'English, Tamil';
+        if (doctorForm.bio) payload.bio = doctorForm.bio;
+      }
+
+      const res = await api.patch(`/admin/users/${roleModalUser.id}/role`, payload);
+      const { user: updatedUser, requiresRelogin, doctorProfileCreated } = res.data;
+
       const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-      const newRoles = pendingRoles.map(capitalize);
+      const newRoles = (updatedUser?.roles ?? pendingRoles).map(capitalize);
       const newPrimaryRole = newRoles[0];
+
       setUsers((prev) =>
         prev.map((u) =>
           u.id === roleModalUser.id ? { ...u, role: newPrimaryRole, roles: newRoles } : u
@@ -314,14 +364,31 @@ export default function UsersScreen() {
         prev?.id === roleModalUser.id ? { ...prev, role: newPrimaryRole, roles: newRoles } : prev
       );
       setShowRoleModal(false);
-      setTimeout(() => CustomAlert.alert('Roles Updated', `${roleModalUser.name} now has roles: ${newRoles.join(', ')}.`), 400);
+
+      setTimeout(() => {
+        let msg = `${roleModalUser.name} now has roles: ${newRoles.join(', ')}.`;
+        if (doctorProfileCreated) msg += '\n\nDoctor profile and default schedule have been created automatically.';
+
+        if (requiresRelogin) {
+          CustomAlert.alert(
+            'Roles Updated',
+            msg + '\n\nYour role has been updated. Please log out and log in again for the changes to take effect.',
+            [
+              { text: 'Log Out Now', style: 'destructive', onPress: () => logout() },
+              { text: 'Later', style: 'cancel' },
+            ]
+          );
+        } else {
+          CustomAlert.alert('Roles Updated', msg);
+        }
+      }, 400);
     } catch (error: any) {
       setShowRoleModal(false);
       setTimeout(() => CustomAlert.alert('Error', error.response?.data?.error || 'Failed to change roles.'), 400);
     } finally {
       setSavingRole(false);
     }
-  }, [roleModalUser, pendingRoles]);
+  }, [roleModalUser, pendingRoles, doctorForm, userAlreadyHasDoctorRole, logout]);
 
 
   const handleUserActions = useCallback((user: UserItem) => {
@@ -530,54 +597,141 @@ export default function UsersScreen() {
       {/* Manage Roles Modal */}
       <Modal visible={showRoleModal} transparent animationType="fade" onRequestClose={() => setShowRoleModal(false)}>
         <Pressable className="flex-1 bg-black/40 justify-center items-center px-6" onPress={() => setShowRoleModal(false)}>
-          <Pressable onPress={() => {}} className="bg-white rounded-3xl w-full p-6" style={Shadows.card}>
-            <Text className="text-lg font-extrabold text-midnight text-center mb-1">Manage Roles</Text>
-            <Text className="text-xs text-slate-400 text-center mb-5">
-              Select one or more roles for {roleModalUser?.name}
-            </Text>
+          <Pressable onPress={() => {}} className="bg-white rounded-3xl w-full" style={[Shadows.card, { maxHeight: '88%' }]}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 24 }}>
+              <Text className="text-lg font-extrabold text-midnight text-center mb-1">Manage Roles</Text>
+              <Text className="text-xs text-slate-400 text-center mb-5">
+                Select one or more roles for {roleModalUser?.name}
+              </Text>
 
-            <View className="gap-3 mb-6">
-              {['doctor', 'receptionist', 'pharmacist', 'admin'].map((role) => {
-                const label = role.charAt(0).toUpperCase() + role.slice(1);
-                const rc = ROLE_COLORS[label] || ROLE_COLORS.Admin;
-                const isSelected = pendingRoles.includes(role);
-                return (
-                  <Pressable
-                    key={role}
-                    onPress={() => togglePendingRole(role)}
-                    className={`flex-row items-center gap-3 p-3.5 rounded-2xl border ${isSelected ? 'border-primary/30' : 'border-slate-100'}`}
-                    style={{ backgroundColor: isSelected ? rc.bg : '#FAFAFA' }}
-                  >
-                    <View className={`w-6 h-6 rounded-lg items-center justify-center border-2 ${isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'}`}>
-                      {isSelected && <Check size={14} color="#FFFFFF" />}
+              {/* Role checkboxes */}
+              <View className="gap-3 mb-4">
+                {['doctor', 'receptionist', 'pharmacist', 'admin'].map((role) => {
+                  const label = role.charAt(0).toUpperCase() + role.slice(1);
+                  const rc = ROLE_COLORS[label] || ROLE_COLORS.Admin;
+                  const isSelected = pendingRoles.includes(role);
+                  return (
+                    <Pressable
+                      key={role}
+                      onPress={() => togglePendingRole(role)}
+                      className={`flex-row items-center gap-3 p-3.5 rounded-2xl border ${isSelected ? 'border-primary/30' : 'border-slate-100'}`}
+                      style={{ backgroundColor: isSelected ? rc.bg : '#FAFAFA' }}
+                    >
+                      <View className={`w-6 h-6 rounded-lg items-center justify-center border-2 ${isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'}`}>
+                        {isSelected && <Check size={14} color="#FFFFFF" />}
+                      </View>
+                      <View className="w-2 h-2 rounded-full" style={{ backgroundColor: rc.dot }} />
+                      <Text className={`text-sm font-semibold ${isSelected ? 'text-midnight' : 'text-slate-500'}`}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Doctor profile fields — shown only when adding doctor role for the first time */}
+              {pendingRoles.includes('doctor') && !userAlreadyHasDoctorRole && (
+                <View style={{ borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 16, marginBottom: 8 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#0B1B3D', marginBottom: 12 }}>
+                    Doctor Profile
+                  </Text>
+
+                  {/* Specialty */}
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B', marginBottom: 6 }}>
+                    Specialty <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                    <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 2 }}>
+                      {SPECIALTIES.map((s) => (
+                        <Pressable
+                          key={s}
+                          onPress={() => setDoctorForm((f) => ({ ...f, specialty: s }))}
+                          style={{
+                            paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                            backgroundColor: doctorForm.specialty === s ? Colors.primary : '#F1F5F9',
+                          }}
+                        >
+                          <Text style={{
+                            color: doctorForm.specialty === s ? '#fff' : '#475569',
+                            fontSize: 12, fontWeight: '600',
+                          }}>{s}</Text>
+                        </Pressable>
+                      ))}
                     </View>
-                    <View className="w-2 h-2 rounded-full" style={{ backgroundColor: rc.dot }} />
-                    <Text className={`text-sm font-semibold ${isSelected ? 'text-midnight' : 'text-slate-500'}`}>{label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                  </ScrollView>
 
-            <View className="flex-row gap-3">
-              <Pressable
-                onPress={() => setShowRoleModal(false)}
-                className="flex-1 py-3.5 rounded-full bg-slate-100 items-center"
-              >
-                <Text className="font-semibold text-sm text-slate-500">Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleSaveRoles}
-                disabled={savingRole || pendingRoles.length === 0}
-                className={`flex-1 py-3.5 rounded-full items-center ${pendingRoles.length > 0 ? 'bg-primary' : 'bg-slate-200'}`}
-                style={pendingRoles.length > 0 ? Shadows.focus : undefined}
-              >
-                {savingRole ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className={`font-bold text-sm ${pendingRoles.length > 0 ? 'text-white' : 'text-slate-400'}`}>Save Roles</Text>
-                )}
-              </Pressable>
-            </View>
+                  {/* Experience + Fee */}
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 14 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B', marginBottom: 6 }}>Experience (yrs)</Text>
+                      <TextInput
+                        value={doctorForm.experienceYears}
+                        onChangeText={(v) => setDoctorForm((f) => ({ ...f, experienceYears: v }))}
+                        keyboardType="numeric"
+                        placeholder="e.g. 8"
+                        placeholderTextColor="#94A3B8"
+                        style={{ backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0B1B3D', borderWidth: 1, borderColor: '#E2E8F0' }}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B', marginBottom: 6 }}>
+                        Fee (INR) <Text style={{ color: '#EF4444' }}>*</Text>
+                      </Text>
+                      <TextInput
+                        value={doctorForm.consultationFee}
+                        onChangeText={(v) => setDoctorForm((f) => ({ ...f, consultationFee: v }))}
+                        keyboardType="numeric"
+                        placeholder="e.g. 500"
+                        placeholderTextColor="#94A3B8"
+                        style={{ backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0B1B3D', borderWidth: 1, borderColor: '#E2E8F0' }}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Languages */}
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B', marginBottom: 6 }}>Languages</Text>
+                  <TextInput
+                    value={doctorForm.languages}
+                    onChangeText={(v) => setDoctorForm((f) => ({ ...f, languages: v }))}
+                    placeholder="English, Tamil"
+                    placeholderTextColor="#94A3B8"
+                    style={{ backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0B1B3D', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 14 }}
+                  />
+
+                  {/* Bio */}
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#64748B', marginBottom: 6 }}>Bio (optional)</Text>
+                  <TextInput
+                    value={doctorForm.bio}
+                    onChangeText={(v) => setDoctorForm((f) => ({ ...f, bio: v }))}
+                    placeholder="Short professional bio"
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    numberOfLines={2}
+                    style={{ backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0B1B3D', borderWidth: 1, borderColor: '#E2E8F0', minHeight: 60, textAlignVertical: 'top' }}
+                  />
+                </View>
+              )}
+
+              {/* Action buttons */}
+              <View className="flex-row gap-3 mt-4">
+                <Pressable
+                  onPress={() => setShowRoleModal(false)}
+                  className="flex-1 py-3.5 rounded-full bg-slate-100 items-center"
+                >
+                  <Text className="font-semibold text-sm text-slate-500">Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSaveRoles}
+                  disabled={savingRole || pendingRoles.length === 0}
+                  className={`flex-1 py-3.5 rounded-full items-center ${pendingRoles.length > 0 ? 'bg-primary' : 'bg-slate-200'}`}
+                  style={pendingRoles.length > 0 ? Shadows.focus : undefined}
+                >
+                  {savingRole ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text className={`font-bold text-sm ${pendingRoles.length > 0 ? 'text-white' : 'text-slate-400'}`}>Save Roles</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>

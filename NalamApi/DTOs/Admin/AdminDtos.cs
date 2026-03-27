@@ -25,7 +25,14 @@ public record UpdateUserRequest(
     string? EmployeeId
 );
 
-public record ChangeRoleRequest(List<string> Roles);
+public record ChangeRoleRequest(
+    List<string> Roles,
+    string? Specialty,
+    int? ExperienceYears,
+    decimal? ConsultationFee,
+    string? Languages,
+    string? Bio
+);
 
 public record ChangeStatusRequest(string Status); // active, inactive
 
