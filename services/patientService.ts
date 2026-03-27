@@ -2,6 +2,45 @@ import { api } from './api';
 
 // ─── Types ──────────────────────────────────────────
 
+export interface PatientProfile {
+    id: string;
+    fullName: string;
+    mobileNumber: string;
+    email: string | null;
+    profilePhotoUrl: string | null;
+    bloodGroup: string | null;
+    dateOfBirth: string | null;   // "YYYY-MM-DD"
+    gender: string | null;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    pincode: string | null;
+    emergencyContactName: string | null;
+    emergencyContactPhone: string | null;
+    emergencyContactRelation: string | null;
+    insuranceProvider: string | null;
+    insurancePolicyNumber: string | null;
+    hospitalId: string;
+    hospitalName: string;
+}
+
+export interface UpdatePatientProfileRequest {
+    fullName?: string;
+    email?: string;
+    bloodGroup?: string;
+    dateOfBirth?: string;   // "YYYY-MM-DD"
+    gender?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    emergencyContactRelation?: string;
+    insuranceProvider?: string;
+    insurancePolicyNumber?: string;
+}
+
 export interface ConsultationItem {
     id: string;
     bookingReference: string;
@@ -100,6 +139,22 @@ export const patientService = {
      */
     getProfileStats: async (): Promise<ProfileStats> => {
         const res = await api.get('/patient/profile-stats');
+        return res.data;
+    },
+
+    /**
+     * GET /api/patient/profile — full patient profile
+     */
+    getProfile: async (): Promise<PatientProfile> => {
+        const res = await api.get('/patient/profile');
+        return res.data;
+    },
+
+    /**
+     * PUT /api/patient/profile — update patient profile (partial updates supported)
+     */
+    updateProfile: async (data: UpdatePatientProfileRequest): Promise<PatientProfile> => {
+        const res = await api.put('/patient/profile', data);
         return res.data;
     },
 };

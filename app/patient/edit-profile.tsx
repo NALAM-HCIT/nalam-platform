@@ -1,11 +1,12 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
+import { patientService } from '@/services/patientService';
 import {
   ArrowLeft, Camera, User, Heart, Calendar, Mail, MapPin, Phone,
   CheckCircle2, ChevronDown, Droplets, Users, AlertCircle,
@@ -29,14 +30,16 @@ interface FormField {
 
 const FORM_FIELDS: FormField[] = [
   { key: 'fullName', label: 'Full Name', icon: User, iconColor: Colors.primary, placeholder: 'Enter your full name', type: 'text', section: 'personal' },
-  { key: 'dob', label: 'Date of Birth', icon: Calendar, iconColor: '#F59E0B', placeholder: 'DD/MM/YYYY', type: 'date', section: 'personal' },
+  { key: 'dob', label: 'Date of Birth', icon: Calendar, iconColor: '#F59E0B', placeholder: 'YYYY-MM-DD', type: 'text', section: 'personal' },
   { key: 'gender', label: 'Gender', icon: Users, iconColor: '#8B5CF6', placeholder: 'Select gender', type: 'select', options: GENDERS, section: 'personal' },
   { key: 'bloodGroup', label: 'Blood Group', icon: Droplets, iconColor: '#EF4444', placeholder: 'Select blood group', type: 'select', options: BLOOD_GROUPS, section: 'medical' },
   { key: 'email', label: 'Email Address', icon: Mail, iconColor: '#0EA5E9', placeholder: 'your@email.com', type: 'email', section: 'contact' },
-  { key: 'phone', label: 'Phone Number', icon: Phone, iconColor: '#059669', placeholder: '+91 00000 00000', type: 'phone', section: 'contact' },
   { key: 'address', label: 'Address', icon: MapPin, iconColor: '#F97316', placeholder: 'Enter your full address', type: 'multiline', section: 'contact' },
-  { key: 'allergies', label: 'Known Allergies', icon: AlertCircle, iconColor: '#E11D48', placeholder: 'e.g., Penicillin, Dust, Peanuts', type: 'text', section: 'medical' },
-  { key: 'conditions', label: 'Medical Conditions', icon: Heart, iconColor: '#EF4444', placeholder: 'e.g., Hypertension, Diabetes', type: 'text', section: 'medical' },
+  { key: 'city', label: 'City', icon: MapPin, iconColor: '#F97316', placeholder: 'City', type: 'text', section: 'contact' },
+  { key: 'state', label: 'State', icon: MapPin, iconColor: '#F97316', placeholder: 'State', type: 'text', section: 'contact' },
+  { key: 'pincode', label: 'Pincode', icon: MapPin, iconColor: '#F97316', placeholder: '600001', type: 'text', section: 'contact' },
+  { key: 'insuranceProvider', label: 'Insurance Provider', icon: AlertCircle, iconColor: '#059669', placeholder: 'e.g., Star Health, HDFC Ergo', type: 'text', section: 'medical' },
+  { key: 'insurancePolicyNumber', label: 'Policy Number', icon: AlertCircle, iconColor: '#059669', placeholder: 'e.g., SHI-2024-78456', type: 'text', section: 'medical' },
   { key: 'emergencyName', label: 'Emergency Contact Name', icon: Users, iconColor: '#E11D48', placeholder: 'Contact person name', type: 'text', section: 'emergency' },
   { key: 'emergencyPhone', label: 'Emergency Contact Phone', icon: Phone, iconColor: '#E11D48', placeholder: '+91 00000 00000', type: 'phone', section: 'emergency' },
   { key: 'emergencyRelation', label: 'Relationship', icon: Heart, iconColor: '#EC4899', placeholder: 'e.g., Spouse, Parent, Sibling', type: 'text', section: 'emergency' },
@@ -45,7 +48,7 @@ const FORM_FIELDS: FormField[] = [
 const SECTIONS = [
   { key: 'personal', title: 'Personal Information' },
   { key: 'contact', title: 'Contact Details' },
-  { key: 'medical', title: 'Medical Information' },
+  { key: 'medical', title: 'Medical & Insurance' },
   { key: 'emergency', title: 'Emergency Contact' },
 ];
 
@@ -63,7 +66,7 @@ const FormInput = React.memo(function FormInput({
   onSelectPress: (field: FormField) => void;
 }) {
   const Icon = field.icon;
-  const isSelect = field.type === 'select' || field.type === 'date';
+  const isSelect = field.type === 'select';
 
   return (
     <View className="mb-4">
@@ -104,7 +107,6 @@ const FormInput = React.memo(function FormInput({
               : 'default'
             }
             autoCapitalize={field.type === 'email' ? 'none' : 'words'}
-            maxLength={field.type === 'phone' ? 10 : undefined}
             multiline={field.type === 'multiline'}
             numberOfLines={field.type === 'multiline' ? 3 : 1}
             style={field.type === 'multiline' ? { minHeight: 70, textAlignVertical: 'top' } : undefined}
@@ -119,25 +121,59 @@ const FormInput = React.memo(function FormInput({
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { userName, phone: storePhone } = useAuthStore();
+  const { userName, setRole } = useAuthStore();
 
-  const [formData, setFormData] = useState<Record<string, string>>({
-    fullName: userName || 'John Doe',
-    dob: '15/06/1993',
-    gender: 'Male',
-    bloodGroup: 'B+',
-    email: 'john.doe@email.com',
-    phone: storePhone || '+91 98765 12345',
-    address: '12, Anna Nagar Main Road, Chennai, TN 600040',
-    allergies: 'Penicillin',
-    conditions: 'Hypertension',
-    emergencyName: 'Jane Doe',
-    emergencyPhone: '+91 98765 43210',
-    emergencyRelation: 'Spouse',
-  });
-
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uhid, setUhid] = useState('');
+
+  const [formData, setFormData] = useState<Record<string, string>>({
+    fullName: '',
+    dob: '',
+    gender: '',
+    bloodGroup: '',
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    insuranceProvider: '',
+    insurancePolicyNumber: '',
+    emergencyName: '',
+    emergencyPhone: '',
+    emergencyRelation: '',
+  });
+
+  // Load profile from API on mount
+  useEffect(() => {
+    patientService.getProfile()
+      .then((profile) => {
+        setUhid(`NLM-${profile.id.split('-')[0].toUpperCase()}`);
+        setFormData({
+          fullName: profile.fullName ?? '',
+          dob: profile.dateOfBirth ?? '',
+          gender: profile.gender ?? '',
+          bloodGroup: profile.bloodGroup ?? '',
+          email: profile.email ?? '',
+          address: profile.address ?? '',
+          city: profile.city ?? '',
+          state: profile.state ?? '',
+          pincode: profile.pincode ?? '',
+          insuranceProvider: profile.insuranceProvider ?? '',
+          insurancePolicyNumber: profile.insurancePolicyNumber ?? '',
+          emergencyName: profile.emergencyContactName ?? '',
+          emergencyPhone: profile.emergencyContactPhone ?? '',
+          emergencyRelation: profile.emergencyContactRelation ?? '',
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to load profile:', err);
+        CustomAlert.alert('Error', 'Failed to load your profile. Please try again.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const updateField = useCallback((key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -145,16 +181,6 @@ export default function EditProfileScreen() {
   }, []);
 
   const handleSelectPress = useCallback((field: FormField) => {
-    if (field.type === 'date') {
-      CustomAlert.alert('Select Date of Birth', 'Choose your date of birth:', [
-        { text: 'Cancel', style: 'cancel' },
-        ...['15/06/1993', '20/03/1990', '01/01/1985', '10/12/1995'].map((d) => ({
-          text: d,
-          onPress: () => updateField(field.key, d),
-        })),
-      ]);
-      return;
-    }
     if (field.options) {
       CustomAlert.alert(`Select ${field.label}`, '', [
         { text: 'Cancel', style: 'cancel' },
@@ -166,47 +192,47 @@ export default function EditProfileScreen() {
     }
   }, [updateField]);
 
-  const handleSave = useCallback(() => {
-    // Validate required fields
+  const handleSave = useCallback(async () => {
     if (!formData.fullName.trim()) {
       CustomAlert.alert('Required', 'Full name is required.');
-      return;
-    }
-    if (!formData.phone.trim()) {
-      CustomAlert.alert('Required', 'Phone number is required.');
-      return;
-    }
-    if (!formData.email.trim()) {
-      CustomAlert.alert('Required', 'Email address is required.');
       return;
     }
     if (formData.email && !formData.email.includes('@')) {
       CustomAlert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
-    if (!formData.emergencyPhone.trim()) {
-      CustomAlert.alert('Required', 'Emergency contact phone is required.');
-      return;
-    }
 
-    CustomAlert.alert(
-      'Save Changes',
-      'Are you sure you want to update your profile?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Save',
-          onPress: () => {
-            // In production, this would call an API
-            CustomAlert.alert(
-              'Profile Updated',
-              'Your profile has been updated successfully.',
-              [{ text: 'OK', onPress: () => router.back() }],
-            );
-          },
-        },
-      ],
-    );
+    setSaving(true);
+    try {
+      await patientService.updateProfile({
+        fullName: formData.fullName.trim() || undefined,
+        email: formData.email.trim() || undefined,
+        bloodGroup: formData.bloodGroup || undefined,
+        dateOfBirth: formData.dob || undefined,
+        gender: formData.gender || undefined,
+        address: formData.address.trim() || undefined,
+        city: formData.city.trim() || undefined,
+        state: formData.state.trim() || undefined,
+        pincode: formData.pincode.trim() || undefined,
+        insuranceProvider: formData.insuranceProvider.trim() || undefined,
+        insurancePolicyNumber: formData.insurancePolicyNumber.trim() || undefined,
+        emergencyContactName: formData.emergencyName.trim() || undefined,
+        emergencyContactPhone: formData.emergencyPhone.trim() || undefined,
+        emergencyContactRelation: formData.emergencyRelation.trim() || undefined,
+      });
+
+      setHasChanges(false);
+      CustomAlert.alert(
+        'Profile Updated',
+        'Your profile has been updated successfully.',
+        [{ text: 'OK', onPress: () => router.back() }],
+      );
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Failed to save profile.';
+      CustomAlert.alert('Error', msg);
+    } finally {
+      setSaving(false);
+    }
   }, [formData, router]);
 
   const handleDiscard = useCallback(() => {
@@ -235,18 +261,8 @@ export default function EditProfileScreen() {
     }
 
     const result = useCamera
-      ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.8,
-        });
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
 
     if (!result.canceled && result.assets[0]) {
       setProfileImage(result.assets[0].uri);
@@ -261,26 +277,31 @@ export default function EditProfileScreen() {
       { text: 'Choose from Gallery', onPress: () => pickImage(false) },
     ];
     if (profileImage) {
-      buttons.push({
-        text: 'Remove Photo',
-        style: 'destructive' as const,
-        onPress: () => { setProfileImage(null); setHasChanges(true); },
-      });
+      buttons.push({ text: 'Remove Photo', style: 'destructive' as const, onPress: () => { setProfileImage(null); setHasChanges(true); } });
     }
     CustomAlert.alert('Update Profile Photo', 'Choose a source:', buttons);
   }, [pickImage, profileImage]);
 
   const initials = useMemo(() => {
-    const name = formData.fullName || 'P';
+    const name = formData.fullName || userName || 'P';
     const parts = name.split(' ');
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return name[0].toUpperCase();
-  }, [formData.fullName]);
+    return (name[0] ?? 'P').toUpperCase();
+  }, [formData.fullName, userName]);
 
   const completionPercent = useMemo(() => {
     const filled = Object.values(formData).filter((v) => v.trim().length > 0).length;
     return Math.round((filled / Object.keys(formData).length) * 100);
   }, [formData]);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F8FAFC] items-center justify-center" edges={['top']}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text className="text-slate-400 text-sm mt-3">Loading profile...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -294,10 +315,13 @@ export default function EditProfileScreen() {
         </Text>
         <Pressable
           onPress={handleSave}
-          disabled={!hasChanges}
-          className={`px-4 py-2 rounded-full ${hasChanges ? 'bg-primary' : 'bg-slate-200'}`}
+          disabled={!hasChanges || saving}
+          className={`px-4 py-2 rounded-full ${hasChanges && !saving ? 'bg-primary' : 'bg-slate-200'}`}
         >
-          <Text className={`text-xs font-bold ${hasChanges ? 'text-white' : 'text-slate-400'}`}>Save</Text>
+          {saving
+            ? <ActivityIndicator size="small" color="#FFFFFF" />
+            : <Text className={`text-xs font-bold ${hasChanges ? 'text-white' : 'text-slate-400'}`}>Save</Text>
+          }
         </Pressable>
       </View>
 
@@ -331,8 +355,8 @@ export default function EditProfileScreen() {
                 <Camera size={14} color="#FFFFFF" />
               </View>
             </Pressable>
-            <Text className="text-midnight font-bold text-lg mt-3">{formData.fullName}</Text>
-            <Text className="text-slate-400 text-xs mt-0.5">UHID: NLM-8923</Text>
+            <Text className="text-midnight font-bold text-lg mt-3">{formData.fullName || 'Patient'}</Text>
+            {uhid ? <Text className="text-slate-400 text-xs mt-0.5">UHID: {uhid}</Text> : null}
           </View>
 
           {/* Completion Bar */}
@@ -394,7 +418,7 @@ export default function EditProfileScreen() {
               onPress={() =>
                 CustomAlert.alert(
                   'Delete Account',
-                  'This action is permanent and cannot be undone.\n\nAll your data including medical records, appointments, prescriptions, and order history will be permanently deleted.\n\nAre you absolutely sure?',
+                  'This action is permanent and cannot be undone.\n\nAll your data including medical records, appointments, prescriptions, and order history will be permanently deleted.',
                   [
                     { text: 'Cancel', style: 'cancel' },
                     {
@@ -427,11 +451,17 @@ export default function EditProfileScreen() {
           <SafeAreaView edges={['bottom']}>
             <Pressable
               onPress={handleSave}
+              disabled={saving}
               className="w-full bg-primary py-4 rounded-full items-center flex-row justify-center gap-2"
               style={Shadows.focus}
             >
-              <CheckCircle2 size={16} color="#FFFFFF" />
-              <Text className="text-white font-bold text-base">Save Changes</Text>
+              {saving
+                ? <ActivityIndicator size="small" color="#FFFFFF" />
+                : <>
+                    <CheckCircle2 size={16} color="#FFFFFF" />
+                    <Text className="text-white font-bold text-base">Save Changes</Text>
+                  </>
+              }
             </Pressable>
           </SafeAreaView>
         </View>
