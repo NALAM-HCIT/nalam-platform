@@ -31,7 +31,9 @@ public record AvailableDateResponse(
 public record AvailableSlotResponse(
     string StartTime,
     string EndTime,
-    bool IsAvailable
+    bool IsAvailable,
+    int BookedCount,
+    int MaxCapacity
 );
 
 public record SlotGroupResponse(

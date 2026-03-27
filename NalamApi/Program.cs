@@ -276,6 +276,17 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"⚠️  Schema safety check warning: {ex.Message}");
     }
+
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE doctor_schedules ADD COLUMN IF NOT EXISTS max_patients_per_slot integer NOT NULL DEFAULT 3;");
+        Console.WriteLine("✅ Schema safety check passed (max_patients_per_slot column ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning: {ex.Message}");
+    }
 }
 
 // ═══════════════════════════════════════════════════════════

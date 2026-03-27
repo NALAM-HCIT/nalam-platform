@@ -221,8 +221,6 @@ public static class AppointmentEndpoints
                 while (current.AddMinutes(schedule.SlotDurationMinutes) <= schedule.EndTime)
                 {
                     var slotEnd = current.AddMinutes(schedule.SlotDurationMinutes);
-                    var isBooked = existingAppointments.Any(a =>
-                        a.ScheduleDate == date && a.StartTime == current);
 
                     // Skip past slots for today
                     if (date == DateOnly.FromDateTime(DateTime.UtcNow)
@@ -232,7 +230,10 @@ public static class AppointmentEndpoints
                         continue;
                     }
 
-                    if (!isBooked) availableSlots++;
+                    var bookedCount = existingAppointments.Count(a =>
+                        a.ScheduleDate == date && a.StartTime == current);
+
+                    if (bookedCount < schedule.MaxPatientsPerSlot) availableSlots++;
                     current = slotEnd;
                 }
             }
@@ -259,8 +260,6 @@ public static class AppointmentEndpoints
             while (current.AddMinutes(schedule.SlotDurationMinutes) <= schedule.EndTime)
             {
                 var slotEnd = current.AddMinutes(schedule.SlotDurationMinutes);
-                var isBooked = existingAppointments.Any(a =>
-                    a.ScheduleDate == targetDate && a.StartTime == current);
 
                 if (targetDate == DateOnly.FromDateTime(DateTime.UtcNow)
                     && current < TimeOnly.FromDateTime(DateTime.UtcNow))
@@ -269,6 +268,10 @@ public static class AppointmentEndpoints
                     continue;
                 }
 
+                var bookedCount = existingAppointments.Count(a =>
+                    a.ScheduleDate == targetDate && a.StartTime == current);
+                var maxCapacity = schedule.MaxPatientsPerSlot;
+
                 var period = current.Hour < 12 ? "Morning"
                     : current.Hour < 17 ? "Afternoon"
                     : "Evening";
@@ -276,7 +279,9 @@ public static class AppointmentEndpoints
                 allSlotGroups[period].Add(new AvailableSlotResponse(
                     current.ToString("hh:mm tt"),
                     slotEnd.ToString("hh:mm tt"),
-                    !isBooked
+                    bookedCount < maxCapacity,
+                    bookedCount,
+                    maxCapacity
                 ));
 
                 current = slotEnd;
@@ -358,16 +363,6 @@ public static class AppointmentEndpoints
 
         var endTime = startTime.AddMinutes(schedule.SlotDurationMinutes);
 
-        // Check for double booking
-        var isBooked = await db.Appointments.AnyAsync(a =>
-            a.DoctorProfileId == request.DoctorProfileId
-            && a.ScheduleDate == scheduleDate
-            && a.StartTime == startTime
-            && a.Status != "cancelled");
-
-        if (isBooked)
-            return Results.Conflict(new { error = "This time slot is already booked." });
-
         // Calculate pricing
         var fee = doctorProfile.ConsultationFee;
         var tax = Math.Round(fee * 0.05m, 2);
@@ -413,8 +408,25 @@ public static class AppointmentEndpoints
             Notes = request.Notes
         };
 
+        // Wrap capacity check + insert in a transaction to prevent race conditions
+        // where two concurrent requests both pass the count check.
+        await using var tx = await db.Database.BeginTransactionAsync();
+
+        var bookedCount = await db.Appointments.CountAsync(a =>
+            a.DoctorProfileId == request.DoctorProfileId
+            && a.ScheduleDate == scheduleDate
+            && a.StartTime == startTime
+            && a.Status != "cancelled");
+
+        if (bookedCount >= schedule.MaxPatientsPerSlot)
+        {
+            await tx.RollbackAsync();
+            return Results.Conflict(new { error = "This time slot is fully booked. Please choose another slot." });
+        }
+
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
 
         // Reload with navigation for response
         appointment.DoctorProfile = doctorProfile;
@@ -563,17 +575,6 @@ public static class AppointmentEndpoints
             if (!TimeOnly.TryParse(request.StartTime, out var newTime))
                 return Results.BadRequest(new { error = "Invalid time format." });
 
-            // Check new slot availability
-            var isBooked = await db.Appointments.AnyAsync(a =>
-                a.Id != id
-                && a.DoctorProfileId == appointment.DoctorProfileId
-                && a.ScheduleDate == newDate
-                && a.StartTime == newTime
-                && a.Status != "cancelled");
-
-            if (isBooked)
-                return Results.Conflict(new { error = "The new time slot is already booked." });
-
             // Verify schedule exists for new slot
             var dayOfWeek = (int)newDate.DayOfWeek;
             var schedule = await db.DoctorSchedules
@@ -586,6 +587,17 @@ public static class AppointmentEndpoints
 
             if (schedule is null)
                 return Results.BadRequest(new { error = "The new time slot is not within the doctor's schedule." });
+
+            // Check capacity for new slot
+            var newSlotBookedCount = await db.Appointments.CountAsync(a =>
+                a.Id != id
+                && a.DoctorProfileId == appointment.DoctorProfileId
+                && a.ScheduleDate == newDate
+                && a.StartTime == newTime
+                && a.Status != "cancelled");
+
+            if (newSlotBookedCount >= schedule.MaxPatientsPerSlot)
+                return Results.Conflict(new { error = "The new time slot is fully booked." });
 
             appointment.ScheduleDate = newDate;
             appointment.StartTime = newTime;

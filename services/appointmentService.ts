@@ -37,6 +37,8 @@ export interface AvailableSlot {
   startTime: string;
   endTime: string;
   isAvailable: boolean;
+  bookedCount: number;
+  maxCapacity: number;
 }
 
 export interface SlotGroup {

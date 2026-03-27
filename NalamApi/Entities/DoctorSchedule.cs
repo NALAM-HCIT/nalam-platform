@@ -34,6 +34,13 @@ public class DoctorSchedule
     [Column("consultation_type")]
     public string ConsultationType { get; set; } = "both"; // video, in-person, both
 
+    /// <summary>
+    /// Maximum number of patients that can book this slot concurrently.
+    /// Defaults to 3 — slots remain bookable until this count is reached.
+    /// </summary>
+    [Column("max_patients_per_slot")]
+    public int MaxPatientsPerSlot { get; set; } = 3;
+
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 

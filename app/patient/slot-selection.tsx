@@ -100,18 +100,23 @@ const TimeSlot = React.memo(function TimeSlot({
   slot,
   isSelected,
   isAvailable,
+  bookedCount,
+  maxCapacity,
   onPress,
 }: {
   slot: string;
   isSelected: boolean;
   isAvailable: boolean;
+  bookedCount: number;
+  maxCapacity: number;
   onPress: () => void;
 }) {
+  const showOccupancy = maxCapacity > 1;
   return (
     <Pressable
       onPress={onPress}
       disabled={!isAvailable}
-      className={`px-4 py-2.5 rounded-xl ${
+      className={`px-4 py-2.5 rounded-xl items-center ${
         !isAvailable
           ? 'bg-slate-100 opacity-40'
           : isSelected
@@ -131,6 +136,19 @@ const TimeSlot = React.memo(function TimeSlot({
       >
         {slot}
       </Text>
+      {showOccupancy && (
+        <Text
+          className={`text-[9px] font-bold mt-0.5 ${
+            isSelected
+              ? 'text-white/70'
+              : bookedCount === 0
+              ? 'text-emerald-500'
+              : 'text-amber-500'
+          }`}
+        >
+          {bookedCount}/{maxCapacity} booked
+        </Text>
+      )}
     </Pressable>
   );
 });
@@ -388,6 +406,8 @@ export default function SlotSelectionScreen() {
                         slot={slot.startTime}
                         isSelected={selectedSlot === slot.startTime}
                         isAvailable={slot.isAvailable}
+                        bookedCount={slot.bookedCount}
+                        maxCapacity={slot.maxCapacity}
                         onPress={() => setSelectedSlot(slot.startTime)}
                       />
                     ))}
