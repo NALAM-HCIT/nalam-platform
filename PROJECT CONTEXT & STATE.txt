@@ -204,6 +204,51 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * [x] 4-layer tenant isolation intact: JWT Claims → TenantMiddleware → EF Core Filters → PostgreSQL RLS
   * [x] Backend build: 0 errors | TypeScript build: 0 new errors
 
+* [x] Phase 19: Admin Dashboard Enhancements (2026-03-26) - COMPLETED
+  * [x] Backend: DashboardResponse DTO extended — TodayConfirmedAppointments, TodayCompletedAppointments, TodayCancelledAppointments, TodayPendingPrescriptions, TodayDispensedPrescriptions (revenue field removed)
+  * [x] Backend: GetDashboard endpoint updated with per-status breakdown queries using shared IQueryable
+  * [x] Mobile: admin/(tabs)/index.tsx — Removed "Doctors" quick action card (Stethoscope icon)
+  * [x] Mobile: admin/(tabs)/index.tsx — Removed "Today Revenue" overview card
+  * [x] Mobile: admin/(tabs)/index.tsx — Today's Appointments card shows breakdown (Confirmed / Completed / Cancelled) on press
+  * [x] Mobile: admin/(tabs)/index.tsx — Today's Prescriptions card shows breakdown (Pending / Dispensed) on press
+  * [x] Commit: 43c592f
+
+* [x] Phase 19.5: Admin User Management Bug Fixes (2026-03-26) - COMPLETED
+  * [x] Rename "Change Role" → "Manage Roles" (reflects add + remove capability, not just swap)
+  * [x] Fix nested modal conflict — close user detail modal before showing action alerts
+  * [x] Fix close role modal before showing nested alerts to prevent modal conflict
+  * [x] Fix EF Core optimistic concurrency exception on user role save — load UserRoles directly instead of relying on tracked navigation property
+  * [x] Auto-create DoctorProfile when "doctor" role is assigned to a user
+  * [x] Prompt admin to log out and re-login if they change their own role
+  * [x] Remove "Reset Auth" action from user detail modal
+  * [x] Commits: 7492e17 → 93605ce → 5d49128 → 70ff4a8 → 81ef150 → 46df606
+
+* [x] Phase 20: Receptionist Phase 1 — Real API Wiring (2026-03-27) - COMPLETED
+  * [x] Backend: GET /api/reception/appointments/{id} — appointment detail for patient arrival screen
+  * [x] Backend: PATCH /api/reception/appointments/{id}/checkin — sets status to "arrived" (replaces broken patient-facing endpoint call)
+  * [x] Backend: PATCH /api/reception/appointments/{id}/in-consultation — sets status to "in_consultation"
+  * [x] Mobile: receptionistService.ts — added getAppointmentDetail(), checkIn(), sendToDoctor(); removed broken checkInPatient()
+  * [x] Mobile: receptionist/(tabs)/appointments.tsx — Check In button calls checkIn() API before navigating, shows API error on failure
+  * [x] Mobile: receptionist/patient-arrival.tsx — full rewrite: loads real data via getAppointmentDetail(), all hardcoded arrivalData replaced, "Send to Doctor" calls sendToDoctor() and updates status in DB
+  * [x] Mobile: patient-arrival.tsx — canSend = tokenAssigned only (no rooms table); room assignment stays as optional local UX
+  * [x] Commit: b46e218
+
+* [x] Phase 21: Receptionist Phase 2 — Book Appointment, Real Profile & Stats (2026-03-27) - COMPLETED
+  * [x] Backend: GET /api/reception/profile — returns logged-in receptionist's fullName, mobileNumber, email, department, employeeId, joinDate
+  * [x] Backend: PATCH /api/reception/profile — updates email/department fields
+  * [x] Backend: GET /api/reception/stats — real DB counts: registeredToday, appointmentsToday, walkInsToday, pendingCheckIns
+  * [x] Backend: GET /api/reception/doctors — lists active DoctorProfiles where IsAcceptingAppointments && User.Status == "active"
+  * [x] Backend: POST /api/reception/book-appointment — creates Appointment (status=confirmed, paymentStatus=pending, paymentMethod=counter), validates double-booking, generates REC-{date}-{guid6} reference
+  * [x] Mobile: receptionistService.ts — added interfaces (AppointmentDetail, ReceptionistProfile, ReceptionistStats, DoctorItem) and methods (getProfile, updateProfile, getStats, getDoctors, bookAppointment)
+  * [x] Mobile: receptionist/(tabs)/profile.tsx — replaced static QUICK_STATS with STAT_META + real API data from getProfile() and getStats()
+  * [x] Mobile: receptionist/(tabs)/patients.tsx — full 2-step booking modal: Step 1 = Doctor selection (cards with specialty/fee), Step 2 = Date chips + Time slot grid; calls bookAppointment() on confirm; shows booking reference on success
+  * [x] Commit: 75f798d
+
+* [x] Phase 22: Receptionist Appointments Grouped by Category (2026-03-27) - COMPLETED
+  * [x] Mobile: receptionist/(tabs)/appointments.tsx — "All" tab now renders colour-coded section groups (Waiting / In Consultation / Upcoming / Completed) with per-section count badges
+  * [x] Mobile: appointments.tsx — individual filter tabs retain existing flat filtered list behaviour
+  * [x] Mobile: appointments.tsx — header subtitle shows total count + active (non-completed) count
+
 * [x] Phase 18: Admin Settings Module (Full Stack — 6 Panels) - COMPLETED
   * ── Phase 18.1: Database Design & Schema ──
   * [x] hospitals table already contains all needed columns (name, address, city, state, phone, email, logo_url, license_no, status) — no migration needed
@@ -310,8 +355,16 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * PATCH /api/appointments/{id}/status — Staff-only status change (now supports: arrived, in_consultation)
 * GET  /api/reception/dashboard    — Receptionist daily stats (total, waiting, in-consult, completed, upcoming)
 * GET  /api/reception/queue        — Today's appointments queue (filterable by status, searchable)
+* GET  /api/reception/appointments/{id} — Appointment detail (patient info, doctor, status, payment)
+* PATCH /api/reception/appointments/{id}/checkin — Check in patient (pending/confirmed → arrived)
+* PATCH /api/reception/appointments/{id}/in-consultation — Send to doctor (arrived → in_consultation)
 * GET  /api/reception/patients     — Search patients by name or mobile within hospital
 * POST /api/reception/patients     — Register walk-in patient (creates user record)
+* GET  /api/reception/profile      — Logged-in receptionist's profile (name, mobile, email, department, employeeId, joinDate)
+* PATCH /api/reception/profile     — Update receptionist profile (email, department)
+* GET  /api/reception/stats        — Real stats: registeredToday, appointmentsToday, walkInsToday, pendingCheckIns
+* GET  /api/reception/doctors      — List active accepting doctors (name, specialty, fee, availability)
+* POST /api/reception/book-appointment — Book appointment for patient (double-booking validation, REC-{date}-{guid6} reference)
 * GET  /api/pharmacy/dashboard     — Pharmacist daily stats (pending, dispensed, rejected, total)
 * GET  /api/pharmacy/prescriptions  — Today's prescription queue (filterable by status, searchable)
 * PATCH /api/pharmacy/prescriptions/{id}/dispense — Mark prescription as dispensed
