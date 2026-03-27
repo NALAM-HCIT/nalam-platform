@@ -10,13 +10,10 @@ namespace NalamApi.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "priority",
-                table: "appointments",
-                type: "character varying(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "normal");
+            // Use IF NOT EXISTS so the migration is safe to apply even if the
+            // column already exists (e.g. after a partial previous deployment).
+            migrationBuilder.Sql(
+                "ALTER TABLE appointments ADD COLUMN IF NOT EXISTS priority character varying(20) NOT NULL DEFAULT 'normal';");
         }
 
         /// <inheritdoc />

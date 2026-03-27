@@ -13,9 +13,10 @@ namespace NalamApi.Migrations
             // Drop the partial unique index that prevented multiple patients
             // from sharing the same doctor/date/time slot (overbooking).
             // Overbooking is now allowed and managed at the application layer.
-            migrationBuilder.DropIndex(
-                name: "ix_appointments_no_double_booking",
-                table: "appointments");
+            // Use IF EXISTS so the migration is safe to apply even if the index
+            // was never created or was already dropped manually.
+            migrationBuilder.Sql(
+                "DROP INDEX IF EXISTS ix_appointments_no_double_booking;");
         }
 
         /// <inheritdoc />
