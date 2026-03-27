@@ -213,7 +213,7 @@ export default function BookingReviewScreen() {
         },
       });
     } catch (err: any) {
-      const message = err.response?.data?.error || err.message || 'Booking failed. Please try again.';
+      const message = err.response?.data?.innerError || err.response?.data?.error || err.response?.data?.detail || err.message || 'Booking failed. Please try again.';
       CustomAlert.alert('Booking Failed', message);
     }
   }, [doctorProfileId, fullDate, timeStr, consultationType, selectedPayment, couponApplied, doctorName, specialty, dateStr]);

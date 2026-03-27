@@ -452,8 +452,10 @@ public static class AppointmentEndpoints
         appointment.DoctorProfile = doctorProfile;
         appointment.Patient = (await db.Patients.FindAsync(patientId))!;
 
+        // Pass null for userId: patientId is from the patients table,
+        // not the users table, so it cannot be stored as AuditLog.UserId FK.
         await auditService.LogAsync(
-            hospitalId, patientId,
+            hospitalId, null,
             $"Appointment booked: {bookingRef} with {doctorProfile.User.FullName}",
             "appointment", "info",
             $"Date: {scheduleDate}, Time: {startTime}, Type: {request.ConsultationType}");
@@ -635,8 +637,11 @@ public static class AppointmentEndpoints
         appointment.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
+        // If caller is a patient, their userId is from the patients table (not users).
+        // Pass null to avoid FK violation on audit_logs.user_id.
+        var auditUserId = role == "patient" ? (Guid?)null : userId;
         await auditService.LogAsync(
-            GetHospitalId(ctx), userId,
+            GetHospitalId(ctx), auditUserId,
             $"Appointment rescheduled: {appointment.BookingReference}",
             "appointment", "info");
 
@@ -683,8 +688,9 @@ public static class AppointmentEndpoints
 
         await db.SaveChangesAsync();
 
+        var cancelAuditUserId = role == "patient" ? (Guid?)null : userId;
         await auditService.LogAsync(
-            GetHospitalId(ctx), userId,
+            GetHospitalId(ctx), cancelAuditUserId,
             $"Appointment cancelled: {appointment.BookingReference}",
             "appointment", "warning",
             $"Reason: {request.Reason ?? "Not specified"}");
