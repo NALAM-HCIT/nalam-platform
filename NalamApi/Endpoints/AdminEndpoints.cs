@@ -333,8 +333,7 @@ public static class AdminEndpoints
         HttpContext ctx)
     {
         var hospitalId = GetHospitalId(ctx);
-        var user = await db.Users.Include(u => u.UserRoles)
-            .FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id && u.HospitalId == hospitalId);
         if (user is null) return Results.NotFound(new { error = "User not found." });
 
         if (request.Roles == null || request.Roles.Count == 0)
@@ -349,26 +348,20 @@ public static class AdminEndpoints
                 return Results.BadRequest(new { error = $"Invalid role '{role}'. Valid: {string.Join(", ", validRoles)}" });
         }
 
-        var oldRoles = user.UserRoles.Where(ur => ur.IsActive).Select(ur => ur.Role).ToList();
+        // Load UserRoles directly (avoids navigation-property tracking conflicts)
+        var userRoles = await db.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
+
+        var oldRoles = userRoles.Where(ur => ur.IsActive).Select(ur => ur.Role).ToList();
 
         // Deactivate roles that are no longer in the list
-        foreach (var ur in user.UserRoles)
-        {
+        foreach (var ur in userRoles)
             ur.IsActive = normalizedRoles.Contains(ur.Role);
-        }
 
         // Add new roles that don't exist yet
         foreach (var role in normalizedRoles)
         {
-            if (!user.UserRoles.Any(ur => ur.Role == role))
-            {
-                user.UserRoles.Add(new UserRole
-                {
-                    UserId = user.Id,
-                    Role = role,
-                    IsActive = true
-                });
-            }
+            if (!userRoles.Any(ur => ur.Role == role))
+                db.UserRoles.Add(new UserRole { UserId = id, Role = role, IsActive = true });
         }
 
         // Update primary role to the first in the list
@@ -376,12 +369,16 @@ public static class AdminEndpoints
 
         await db.SaveChangesAsync();
 
+        // Reload with updated roles for the response
+        var updatedUser = await db.Users.AsNoTracking().Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
         await auditService.LogAsync(
-            GetHospitalId(ctx), GetUserId(ctx),
+            hospitalId, GetUserId(ctx),
             $"User {user.FullName} roles changed: [{string.Join(", ", oldRoles)}] → [{string.Join(", ", normalizedRoles)}]",
             "user", "warning");
 
-        return Results.Ok(ToUserResponse(user));
+        return Results.Ok(ToUserResponse(updatedUser!));
     }
 
     /// <summary>DELETE /api/admin/users/{id} — Remove user.</summary>
