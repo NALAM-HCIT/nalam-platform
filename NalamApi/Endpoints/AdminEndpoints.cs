@@ -491,7 +491,8 @@ public static class AdminEndpoints
             .CountAsync();
 
         var recentAuditLogs = await db.AuditLogs.AsNoTracking()
-            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc)
+            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc
+                         && (a.Category == "appointment" || a.Category == "system"))
             .OrderByDescending(a => a.CreatedAt)
             .Take(5)
             .Select(a => new ActivityResponse(
@@ -574,7 +575,8 @@ public static class AdminEndpoints
 
         // Audit log events (settings changes, hospital info, working hours, etc.)
         var auditNotifs = await db.AuditLogs.AsNoTracking()
-            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc)
+            .Where(a => a.HospitalId == hospitalId && a.CreatedAt >= todayUtc
+                         && (a.Category == "appointment" || a.Category == "system"))
             .OrderByDescending(a => a.CreatedAt)
             .Take(20)
             .Select(a => new NotificationItem(

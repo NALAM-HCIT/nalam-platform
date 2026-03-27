@@ -1,6 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, RefreshControl, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,7 +8,7 @@ import { Shadows, Colors } from '@/constants/theme';
 import {
   Bell, Users, Shield, UserPlus, Settings,
   Building2, ClipboardList, ChevronRight, X, Check, AlertTriangle,
-  Server, Calendar,
+  Server, Calendar, Database, Wifi,
   FileText, Stethoscope, Clock,
 } from 'lucide-react-native';
 import { api, isAuthError } from '@/services/api';
@@ -115,6 +115,9 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSystemHealth, setShowSystemHealth] = useState(false);
+  const [systemHealthChecking, setSystemHealthChecking] = useState(false);
+  const [systemHealthStatus, setSystemHealthStatus] = useState<{ api: boolean; db: boolean; network: boolean } | null>(null);
 
   // Dashboard data
   const [totalUsers, setTotalUsers] = useState(0);
@@ -166,10 +169,27 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const checkSystemHealth = useCallback(async () => {
+    setSystemHealthChecking(true);
+    setSystemHealthStatus(null);
+    let apiOk = false, dbOk = false, networkOk = false;
+    try {
+      const res = await api.get('/admin/dashboard');
+      apiOk = res.status === 200;
+      dbOk = res.status === 200; // If dashboard loads, DB is reachable
+      networkOk = true;
+    } catch {
+      networkOk = false;
+    }
+    setSystemHealthStatus({ api: apiOk, db: dbOk, network: networkOk });
+    setSystemHealthChecking(false);
+  }, []);
+
   React.useEffect(() => {
     fetchDashboardData();
     fetchNotifications();
-  }, [fetchDashboardData, fetchNotifications]);
+    checkSystemHealth();
+  }, [fetchDashboardData, fetchNotifications, checkSystemHealth]);
 
   const unreadNotifCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 
@@ -315,11 +335,11 @@ export default function AdminDashboard() {
               onPress={() => router.push('/admin/(tabs)/users' as any)}
             />
             <StatCard
-              label="Departments"
-              value={totalDepartments.toString()}
+              label="System Health"
+              value={systemHealthStatus ? `${[systemHealthStatus.api, systemHealthStatus.db, systemHealthStatus.network].filter(Boolean).length}/3` : '--'}
               icon={Server}
               color="#8B5CF6"
-              onPress={() => router.push('/admin/(tabs)/settings' as any)}
+              onPress={() => { setShowSystemHealth(true); checkSystemHealth(); }}
             />
           </View>
         </View>
@@ -445,6 +465,52 @@ export default function AdminDashboard() {
                 </>
               )}
             </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      {/* System Health Modal */}
+      <Modal visible={showSystemHealth} transparent animationType="slide" onRequestClose={() => setShowSystemHealth(false)}>
+        <Pressable className="flex-1 bg-black/40 justify-end" onPress={() => setShowSystemHealth(false)}>
+          <Pressable onPress={() => {}} className="bg-white rounded-t-3xl">
+            <View className="w-12 h-1.5 bg-slate-300/60 rounded-full self-center mt-3 mb-2" />
+            <View className="flex-row items-center justify-between px-6 py-3">
+              <Text className="text-midnight text-lg font-bold">System Health</Text>
+              <Pressable onPress={() => setShowSystemHealth(false)} className="w-8 h-8 rounded-full bg-slate-100 items-center justify-center active:opacity-70">
+                <X size={16} color="#64748B" />
+              </Pressable>
+            </View>
+            <View className="px-6 pb-10">
+              {systemHealthChecking ? (
+                <View className="items-center py-8">
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <Text className="text-slate-400 mt-3 text-sm">Checking system status...</Text>
+                </View>
+              ) : systemHealthStatus ? (
+                <View className="gap-3">
+                  {[
+                    { label: 'API Server', icon: Server, ok: systemHealthStatus.api },
+                    { label: 'Database', icon: Database, ok: systemHealthStatus.db },
+                    { label: 'Network', icon: Wifi, ok: systemHealthStatus.network },
+                  ].map((item) => (
+                    <View key={item.label} className="flex-row items-center gap-3 p-4 rounded-2xl bg-slate-50">
+                      <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: item.ok ? '#ECFDF5' : '#FEF2F2' }}>
+                        <item.icon size={18} color={item.ok ? '#059669' : '#DC2626'} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="font-semibold text-midnight text-sm">{item.label}</Text>
+                        <Text className="text-xs mt-0.5" style={{ color: item.ok ? '#059669' : '#DC2626' }}>
+                          {item.ok ? 'Operational' : 'Unreachable'}
+                        </Text>
+                      </View>
+                      <View className="w-3 h-3 rounded-full" style={{ backgroundColor: item.ok ? '#22C55E' : '#EF4444' }} />
+                    </View>
+                  ))}
+                  <Pressable onPress={checkSystemHealth} className="items-center py-3 active:opacity-70">
+                    <Text className="text-primary text-sm font-semibold">Re-check</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
