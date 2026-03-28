@@ -592,7 +592,12 @@ public record UpdateDoctorProfileRequest(
     string? Bio,
     string? Languages,
     string? Qualification,
-    string? MciRegistration
+    string? MciRegistration,
+    // Admin-only fields (used by AdminEndpoints.UpdateDoctorProfile)
+    decimal? ConsultationFee,
+    bool? AvailableForVideo,
+    bool? AvailableForInPerson,
+    bool? IsAcceptingAppointments
 );
 
 public record AddPrescriptionItemRequest(
