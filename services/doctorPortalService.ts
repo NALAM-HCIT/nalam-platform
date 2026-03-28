@@ -37,6 +37,8 @@ export interface DoctorMyProfile {
         reviewCount: number;
         bio: string | null;
         languages: string | null;
+        qualification: string | null;
+        mciRegistration: string | null;
         availableForVideo: boolean;
         availableForInPerson: boolean;
     } | null;
@@ -47,6 +49,7 @@ export interface DoctorMyProfile {
         rating: number;
         reviewCount: number;
     };
+    hospitalName: string | null;
 }
 
 export interface PatientAppointment {
@@ -159,5 +162,122 @@ export const doctorPortalService = {
      */
     deleteSchedule: async (id: string): Promise<void> => {
         await api.delete(`/doctor-portal/my-schedule/${id}`);
+    },
+
+    /**
+     * PUT /api/doctor-portal/my-profile — update doctor's own profile
+     */
+    updateMyProfile: async (payload: UpdateDoctorProfilePayload): Promise<void> => {
+        await api.put('/doctor-portal/my-profile', payload);
+    },
+};
+
+export interface UpdateDoctorProfilePayload {
+    fullName?: string;
+    email?: string;
+    department?: string;
+    specialty?: string;
+    experienceYears?: number;
+    bio?: string;
+    languages?: string;
+    qualification?: string;
+    mciRegistration?: string;
+}
+
+// ─── Medicine Catalog ────────────────────────────────────────
+
+export interface MedicineCatalogItem {
+    id: string;
+    name: string;
+    genericName: string | null;
+    category: string;
+    dosageForm: string;
+    strength: string | null;
+    manufacturer: string | null;
+    price: number;
+    packSize: string | null;
+    stockQuantity: number;
+    requiresPrescription: boolean;
+}
+
+// ─── Prescription Items ────────────────────────────────────────
+
+export interface PrescriptionItem {
+    id: string;
+    medicineId: string | null;
+    medicineName: string;
+    dosageInstructions: string | null;
+    quantity: number;
+    createdAt: string;
+}
+
+export interface AddPrescriptionItemPayload {
+    medicineId?: string | null;
+    medicineName: string;
+    dosageInstructions?: string;
+    quantity: number;
+}
+
+export interface FinalizeConsultationPayload {
+    chiefComplaint?: string;
+    observations?: string;
+    diagnosis?: string;
+    items?: AddPrescriptionItemPayload[];
+}
+
+// ─── Additional service methods ─────────────────────────────
+
+export const medicineService = {
+    /**
+     * GET /api/medicines?search=&category=&page=&pageSize=
+     * Accessible to all authenticated users (patients, doctors, pharmacists).
+     */
+    search: async (params?: {
+        search?: string;
+        category?: string;
+        page?: number;
+        pageSize?: number;
+    }): Promise<{ total: number; page: number; pageSize: number; medicines: MedicineCatalogItem[] }> => {
+        const res = await api.get('/medicines', { params });
+        return res.data;
+    },
+};
+
+export const prescriptionItemService = {
+    /**
+     * GET /api/doctor-portal/prescriptions/{appointmentId}/items
+     */
+    getItems: async (appointmentId: string): Promise<PrescriptionItem[]> => {
+        const res = await api.get(`/doctor-portal/prescriptions/${appointmentId}/items`);
+        return res.data;
+    },
+
+    /**
+     * POST /api/doctor-portal/prescriptions/{appointmentId}/items
+     */
+    addItem: async (appointmentId: string, payload: AddPrescriptionItemPayload): Promise<PrescriptionItem> => {
+        const res = await api.post(`/doctor-portal/prescriptions/${appointmentId}/items`, payload);
+        return res.data;
+    },
+
+    /**
+     * DELETE /api/doctor-portal/prescriptions/{appointmentId}/items/{itemId}
+     */
+    deleteItem: async (appointmentId: string, itemId: string): Promise<void> => {
+        await api.delete(`/doctor-portal/prescriptions/${appointmentId}/items/${itemId}`);
+    },
+
+    /**
+     * POST /api/appointments/{id}/finalize
+     * Finalize consultation: saves notes + creates prescription items in one shot.
+     */
+    finalize: async (appointmentId: string, payload: FinalizeConsultationPayload): Promise<{
+        id: string;
+        status: string;
+        prescriptionStatus: string | null;
+        notes: string | null;
+    }> => {
+        const res = await api.post(`/appointments/${appointmentId}/finalize`, payload);
+        return res.data;
     },
 };

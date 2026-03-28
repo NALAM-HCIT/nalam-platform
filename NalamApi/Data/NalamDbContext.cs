@@ -33,6 +33,9 @@ public class NalamDbContext : DbContext
     public DbSet<HospitalWorkingHour> HospitalWorkingHours => Set<HospitalWorkingHour>();
     public DbSet<HospitalIntegration> HospitalIntegrations => Set<HospitalIntegration>();
     public DbSet<AuditLogHistory> AuditLogHistory => Set<AuditLogHistory>();
+    public DbSet<Medicine> Medicines => Set<Medicine>();
+    public DbSet<HospitalMessage> Messages => Set<HospitalMessage>();
+    public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +100,12 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<AuditLogHistory>()
             .HasQueryFilter(a => !_currentHospitalId.HasValue || a.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<Medicine>()
+            .HasQueryFilter(m => !_currentHospitalId.HasValue || m.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<HospitalMessage>()
+            .HasQueryFilter(msg => !_currentHospitalId.HasValue || msg.HospitalId == _currentHospitalId.Value);
 
         modelBuilder.Entity<AuditLogHistory>()
             .HasIndex(a => new { a.HospitalId, a.CreatedAt })
@@ -250,5 +259,52 @@ public class NalamDbContext : DbContext
             .WithMany(h => h.Integrations)
             .HasForeignKey(hi => hi.HospitalId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // ── Medicine ──────────────────────────────────────────
+        modelBuilder.Entity<Medicine>()
+            .HasOne(m => m.Hospital)
+            .WithMany(h => h.Medicines)
+            .HasForeignKey(m => m.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ── HospitalMessage ───────────────────────────────────
+        modelBuilder.Entity<HospitalMessage>()
+            .HasOne(msg => msg.Hospital)
+            .WithMany(h => h.Messages)
+            .HasForeignKey(msg => msg.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<HospitalMessage>()
+            .HasOne(msg => msg.Sender)
+            .WithMany()
+            .HasForeignKey(msg => msg.SenderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<HospitalMessage>()
+            .HasOne(msg => msg.Recipient)
+            .WithMany()
+            .HasForeignKey(msg => msg.RecipientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<HospitalMessage>()
+            .HasIndex(msg => new { msg.HospitalId, msg.SenderId, msg.RecipientId, msg.CreatedAt })
+            .HasDatabaseName("ix_messages_hospital_thread_time");
+
+        // ── PrescriptionItem ──────────────────────────────────
+        modelBuilder.Entity<PrescriptionItem>()
+            .HasOne(pi => pi.Appointment)
+            .WithMany(a => a.PrescriptionItems)
+            .HasForeignKey(pi => pi.AppointmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PrescriptionItem>()
+            .HasOne(pi => pi.Medicine)
+            .WithMany()
+            .HasForeignKey(pi => pi.MedicineId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<PrescriptionItem>()
+            .HasIndex(pi => pi.AppointmentId)
+            .HasDatabaseName("ix_prescription_items_appointment");
     }
 }

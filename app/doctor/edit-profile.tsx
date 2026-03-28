@@ -1,19 +1,21 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import {
+  View, Text, ScrollView, Pressable, TextInput,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
 import { Shadows, Colors } from '@/constants/theme';
 import {
-  ArrowLeft, Camera, User, Mail, Phone, Briefcase, Award,
+  ArrowLeft, User, Mail, Phone, Briefcase, Award,
   CheckCircle2, ChevronDown, Shield, Clock, Stethoscope,
 } from 'lucide-react-native';
+import { doctorPortalService, UpdateDoctorProfilePayload } from '@/services/doctorPortalService';
 
 /* ───── Data ───── */
 
-const DEPARTMENTS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine'];
+const DEPARTMENTS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine', 'ENT', 'Ophthalmology', 'Psychiatry', 'Radiology'];
 
 interface FormField {
   key: string;
@@ -29,13 +31,12 @@ interface FormField {
 const FORM_FIELDS: FormField[] = [
   { key: 'fullName', label: 'Full Name', icon: User, iconColor: Colors.primary, placeholder: 'Dr. Full Name', type: 'text', section: 'personal' },
   { key: 'email', label: 'Email Address', icon: Mail, iconColor: '#0EA5E9', placeholder: 'doctor@hospital.com', type: 'email', section: 'contact' },
-  { key: 'phone', label: 'Phone Number', icon: Phone, iconColor: '#059669', placeholder: '+91 00000 00000', type: 'phone', section: 'contact' },
+  { key: 'phone', label: 'Phone Number (read-only)', icon: Phone, iconColor: '#059669', placeholder: '+91 00000 00000', type: 'phone', section: 'contact' },
   { key: 'department', label: 'Department', icon: Briefcase, iconColor: '#8B5CF6', placeholder: 'Select department', type: 'select', options: DEPARTMENTS, section: 'professional' },
   { key: 'specialty', label: 'Specialization', icon: Stethoscope, iconColor: Colors.primary, placeholder: 'e.g., Interventional Cardiology', type: 'text', section: 'professional' },
   { key: 'qualification', label: 'Qualification', icon: Award, iconColor: '#F59E0B', placeholder: 'e.g., MD, DM (Cardio)', type: 'text', section: 'professional' },
-  { key: 'registration', label: 'MCI Registration No.', icon: Shield, iconColor: '#059669', placeholder: 'e.g., MCI-45892', type: 'text', section: 'professional' },
-  { key: 'experience', label: 'Years of Experience', icon: Clock, iconColor: '#EA580C', placeholder: 'e.g., 12', type: 'text', section: 'professional' },
-  { key: 'address', label: 'Address', icon: User, iconColor: '#F97316', placeholder: 'Clinic/Hospital address', type: 'multiline', section: 'contact' },
+  { key: 'mciRegistration', label: 'MCI Registration No.', icon: Shield, iconColor: '#059669', placeholder: 'e.g., MCI-45892', type: 'text', section: 'professional' },
+  { key: 'experienceYears', label: 'Years of Experience', icon: Clock, iconColor: '#EA580C', placeholder: 'e.g., 12', type: 'text', section: 'professional' },
   { key: 'bio', label: 'Professional Bio', icon: User, iconColor: '#64748B', placeholder: 'Brief professional summary...', type: 'multiline', section: 'professional' },
 ];
 
@@ -52,11 +53,13 @@ const FormInput = React.memo(function FormInput({
   value,
   onChange,
   onSelectPress,
+  readOnly,
 }: {
   field: FormField;
   value: string;
   onChange: (val: string) => void;
   onSelectPress: (field: FormField) => void;
+  readOnly?: boolean;
 }) {
   const Icon = field.icon;
   const isSelect = field.type === 'select';
@@ -68,7 +71,7 @@ const FormInput = React.memo(function FormInput({
       </Text>
       {isSelect ? (
         <Pressable
-          onPress={() => onSelectPress(field)}
+          onPress={() => !readOnly && onSelectPress(field)}
           className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 border border-slate-100 active:border-primary/30"
           style={Shadows.card}
         >
@@ -82,7 +85,7 @@ const FormInput = React.memo(function FormInput({
         </Pressable>
       ) : (
         <View
-          className="flex-row items-start bg-white rounded-2xl px-4 py-1 border border-slate-100"
+          className={`flex-row items-start bg-white rounded-2xl px-4 py-1 border border-slate-100 ${readOnly ? 'opacity-60' : ''}`}
           style={Shadows.card}
         >
           <View className="w-9 h-9 rounded-xl items-center justify-center mr-3 mt-2" style={{ backgroundColor: field.iconColor + '12' }}>
@@ -94,9 +97,9 @@ const FormInput = React.memo(function FormInput({
             placeholderTextColor="#94A3B8"
             value={value}
             onChangeText={onChange}
-            keyboardType={field.type === 'email' ? 'email-address' : field.type === 'phone' ? 'phone-pad' : 'default'}
+            editable={!readOnly}
+            keyboardType={field.type === 'email' ? 'email-address' : field.type === 'phone' ? 'phone-pad' : 'numeric' === field.key ? 'numeric' : 'default'}
             autoCapitalize={field.type === 'email' ? 'none' : 'words'}
-            maxLength={field.type === 'phone' ? 10 : undefined}
             multiline={field.type === 'multiline'}
             numberOfLines={field.type === 'multiline' ? 3 : 1}
             style={field.type === 'multiline' ? { minHeight: 70, textAlignVertical: 'top' } : undefined}
@@ -111,23 +114,46 @@ const FormInput = React.memo(function FormInput({
 
 export default function DoctorEditProfileScreen() {
   const router = useRouter();
-  const { userName, phone: storePhone } = useAuthStore();
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({
-    fullName: userName || 'Dr. Sarah Johnson',
-    email: 'dr.sarah@arunpriya.com',
-    phone: storePhone || '+91 98765 11111',
-    department: 'Cardiology',
-    specialty: 'Interventional Cardiology',
-    qualification: 'MD, DM (Cardio)',
-    registration: 'MCI-45892',
-    experience: '12',
-    address: '42, Anna Nagar, Chennai - 600040',
-    bio: 'Senior Cardiologist with 12 years of experience in interventional cardiology and echocardiography.',
+    fullName: '',
+    email: '',
+    phone: '',
+    department: '',
+    specialty: '',
+    qualification: '',
+    mciRegistration: '',
+    experienceYears: '',
+    bio: '',
   });
-
   const [hasChanges, setHasChanges] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Load profile on mount
+  useEffect(() => {
+    doctorPortalService.getMyProfile()
+      .then((data) => {
+        const dp = data.doctorProfile;
+        setFormData({
+          fullName: data.user.name ?? '',
+          email: data.user.email ?? '',
+          phone: data.user.phone ?? '',
+          department: data.user.department ?? '',
+          specialty: dp?.specialty ?? '',
+          qualification: dp?.qualification ?? '',
+          mciRegistration: dp?.mciRegistration ?? '',
+          experienceYears: dp?.experienceYears != null ? String(dp.experienceYears) : '',
+          bio: dp?.bio ?? '',
+        });
+        setEmployeeId(data.user.employeeId);
+      })
+      .catch(() => {
+        CustomAlert.alert('Error', 'Failed to load profile. Please try again.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const updateField = useCallback((key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -146,13 +172,9 @@ export default function DoctorEditProfileScreen() {
     }
   }, [updateField]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!formData.fullName.trim()) {
       CustomAlert.alert('Required', 'Full name is required.');
-      return;
-    }
-    if (!formData.phone.trim()) {
-      CustomAlert.alert('Required', 'Phone number is required.');
       return;
     }
     if (formData.email && !formData.email.includes('@')) {
@@ -160,17 +182,27 @@ export default function DoctorEditProfileScreen() {
       return;
     }
 
-    CustomAlert.alert('Save Changes', 'Are you sure you want to update your profile?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Save',
-        onPress: () => {
-          CustomAlert.alert('Profile Updated', 'Your profile has been updated successfully.', [
-            { text: 'OK', onPress: () => router.back() },
-          ]);
-        },
-      },
-    ]);
+    setSaving(true);
+    try {
+      const payload: UpdateDoctorProfilePayload = {
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim() || undefined,
+        department: formData.department.trim() || undefined,
+        specialty: formData.specialty.trim() || undefined,
+        experienceYears: formData.experienceYears ? parseInt(formData.experienceYears, 10) : undefined,
+        bio: formData.bio.trim() || undefined,
+        qualification: formData.qualification.trim() || undefined,
+        mciRegistration: formData.mciRegistration.trim() || undefined,
+      };
+      await doctorPortalService.updateMyProfile(payload);
+      CustomAlert.alert('Profile Updated', 'Your profile has been updated successfully.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch {
+      CustomAlert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }, [formData, router]);
 
   const handleDiscard = useCallback(() => {
@@ -181,46 +213,27 @@ export default function DoctorEditProfileScreen() {
     ]);
   }, [hasChanges, router]);
 
-  const pickImage = useCallback(async (useCamera: boolean) => {
-    const permissionResult = useCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      CustomAlert.alert('Permission Required', `Please allow ${useCamera ? 'camera' : 'photo library'} access in your device settings.`);
-      return;
-    }
-    const result = useCamera
-      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 })
-      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
-      setHasChanges(true);
-    }
-  }, []);
-
-  const handlePhotoUpdate = useCallback(() => {
-    const buttons: any[] = [
-      { text: 'Cancel', style: 'cancel' as const },
-      { text: 'Take Photo', onPress: () => pickImage(true) },
-      { text: 'Choose from Gallery', onPress: () => pickImage(false) },
-    ];
-    if (profileImage) {
-      buttons.push({ text: 'Remove Photo', style: 'destructive' as const, onPress: () => { setProfileImage(null); setHasChanges(true); } });
-    }
-    CustomAlert.alert('Update Profile Photo', 'Choose a source:', buttons);
-  }, [pickImage, profileImage]);
-
   const initials = useMemo(() => {
     const name = (formData.fullName || 'D').replace(/^Dr\.?\s*/i, '');
     const parts = name.split(' ');
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return name[0].toUpperCase();
+    return name[0]?.toUpperCase() ?? 'D';
   }, [formData.fullName]);
 
   const completionPercent = useMemo(() => {
-    const filled = Object.values(formData).filter((v) => v.trim().length > 0).length;
-    return Math.round((filled / Object.keys(formData).length) * 100);
+    const keys = ['fullName', 'email', 'department', 'specialty', 'qualification', 'mciRegistration', 'experienceYears', 'bio'];
+    const filled = keys.filter((k) => formData[k]?.trim().length > 0).length;
+    return Math.round((filled / keys.length) * 100);
   }, [formData]);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F8FAFC] items-center justify-center">
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text className="text-slate-400 text-sm mt-3">Loading profile…</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -234,10 +247,13 @@ export default function DoctorEditProfileScreen() {
         </Text>
         <Pressable
           onPress={handleSave}
-          disabled={!hasChanges}
-          className={`px-4 py-2 rounded-full ${hasChanges ? 'bg-primary' : 'bg-slate-200'}`}
+          disabled={!hasChanges || saving}
+          className={`px-4 py-2 rounded-full ${hasChanges && !saving ? 'bg-primary' : 'bg-slate-200'}`}
         >
-          <Text className={`text-xs font-bold ${hasChanges ? 'text-white' : 'text-slate-400'}`}>Save</Text>
+          {saving
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text className={`text-xs font-bold ${hasChanges ? 'text-white' : 'text-slate-400'}`}>Save</Text>
+          }
         </Pressable>
       </View>
 
@@ -250,26 +266,16 @@ export default function DoctorEditProfileScreen() {
         >
           {/* Avatar Section */}
           <View className="items-center pt-6 pb-4">
-            <Pressable onPress={handlePhotoUpdate} className="relative">
-              <View
-                className="rounded-full bg-primary/10 items-center justify-center border-[3px] border-primary/20 overflow-hidden"
-                style={{ width: 96, height: 96 }}
-              >
-                {profileImage ? (
-                  <Image source={{ uri: profileImage }} style={{ width: 96, height: 96 }} />
-                ) : (
-                  <Text className="text-primary text-3xl font-extrabold">{initials}</Text>
-                )}
-              </View>
-              <View
-                className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary items-center justify-center border-[3px] border-white"
-                style={Shadows.focus}
-              >
-                <Camera size={14} color="#FFFFFF" />
-              </View>
-            </Pressable>
-            <Text className="text-midnight font-bold text-lg mt-3">{formData.fullName}</Text>
-            <Text className="text-slate-400 text-xs mt-0.5">EMP: NLM-9921</Text>
+            <View
+              className="rounded-full bg-primary/10 items-center justify-center border-[3px] border-primary/20"
+              style={{ width: 96, height: 96 }}
+            >
+              <Text className="text-primary text-3xl font-extrabold">{initials}</Text>
+            </View>
+            <Text className="text-midnight font-bold text-lg mt-3">{formData.fullName || 'Doctor'}</Text>
+            {employeeId && (
+              <Text className="text-slate-400 text-xs mt-0.5">EMP: {employeeId}</Text>
+            )}
           </View>
 
           {/* Completion Bar */}
@@ -310,6 +316,7 @@ export default function DoctorEditProfileScreen() {
                     value={formData[field.key] || ''}
                     onChange={(val) => updateField(field.key, val)}
                     onSelectPress={handleSelectPress}
+                    readOnly={field.key === 'phone'}
                   />
                 ))}
               </View>
@@ -324,10 +331,14 @@ export default function DoctorEditProfileScreen() {
           <SafeAreaView edges={['bottom']}>
             <Pressable
               onPress={handleSave}
+              disabled={saving}
               className="w-full py-4 rounded-full items-center bg-primary"
               style={Shadows.focus}
             >
-              <Text className="font-bold text-base text-white">Save Changes</Text>
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text className="font-bold text-base text-white">Save Changes</Text>
+              }
             </Pressable>
           </SafeAreaView>
         </View>

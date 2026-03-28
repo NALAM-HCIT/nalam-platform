@@ -60,4 +60,6 @@ public class Hospital
     public ICollection<Patient> Patients { get; set; } = [];
     public ICollection<HospitalWorkingHour> WorkingHours { get; set; } = [];
     public ICollection<HospitalIntegration> Integrations { get; set; } = [];
+    public ICollection<Medicine> Medicines { get; set; } = [];
+    public ICollection<HospitalMessage> Messages { get; set; } = [];
 }

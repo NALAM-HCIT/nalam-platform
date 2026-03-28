@@ -371,7 +371,7 @@ export default function VideoConsultationScreen() {
               <Pressable
                 onPress={() => {
                   setEndCallModal(false);
-                  router.replace('/patient/post-consultation');
+                  router.replace({ pathname: '/patient/post-consultation', params: { appointmentId: id } });
                 }}
                 className="w-full bg-[#DC2626] py-4 rounded-full items-center flex-row justify-center gap-2"
                 style={{

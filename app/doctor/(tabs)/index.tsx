@@ -13,6 +13,7 @@ import {
   getTodayAppointments, getUpcomingAppointments,
   changeAppointmentStatus, DoctorAppointment,
 } from '@/services/doctorService';
+import { doctorPortalService } from '@/services/doctorPortalService';
 import { isAuthError } from '@/services/api';
 
 /* ───── Helpers ───── */
@@ -149,15 +150,18 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [todayAppointments, setTodayAppointments] = useState<DoctorAppointment[]>([]);
   const [upcomingTotal, setUpcomingTotal] = useState(0);
+  const [hospitalName, setHospitalName] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [todayRes, upcomingRes] = await Promise.all([
+      const [todayRes, upcomingRes, profileRes] = await Promise.all([
         getTodayAppointments(),
         getUpcomingAppointments(),
+        doctorPortalService.getMyProfile().catch(() => null),
       ]);
       setTodayAppointments(todayRes.appointments);
       setUpcomingTotal(upcomingRes.total);
+      if (profileRes?.hospitalName) setHospitalName(profileRes.hospitalName);
     } catch (err) {
       if (!isAuthError(err)) {
         console.error('Failed to load dashboard:', err);
@@ -265,7 +269,7 @@ export default function DoctorDashboard() {
                   <Building2 size={20} color="#FFFFFF" />
                 </View>
                 <View>
-                  <Text className="text-lg font-bold tracking-tight text-midnight">Arun Priya Hospital</Text>
+                  <Text className="text-lg font-bold tracking-tight text-midnight">{hospitalName || 'Nalam Hospital'}</Text>
                   <Text className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Doctor Portal</Text>
                 </View>
               </View>

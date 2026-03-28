@@ -18,6 +18,7 @@ public static class DoctorPortalEndpoints
 
         group.MapGet("/directory", GetDirectory);
         group.MapGet("/my-profile", GetMyProfile);
+        group.MapPut("/my-profile", UpdateMyProfile).RequireAuthorization("DoctorOnly");
         group.MapGet("/patient-summary/{patientId:guid}", GetPatientSummary);
 
         // Doctor's own availability schedule management
@@ -25,6 +26,11 @@ public static class DoctorPortalEndpoints
         group.MapPost("/my-schedule", AddSchedule).RequireAuthorization("DoctorOnly");
         group.MapPut("/my-schedule/{id:guid}", UpdateSchedule).RequireAuthorization("DoctorOnly");
         group.MapDelete("/my-schedule/{id:guid}", DeleteSchedule).RequireAuthorization("DoctorOnly");
+
+        // Prescription items — read by any staff, write by doctors only
+        group.MapGet("/prescriptions/{appointmentId:guid}/items", GetPrescriptionItems).RequireAuthorization("StaffAccess");
+        group.MapPost("/prescriptions/{appointmentId:guid}/items", AddPrescriptionItem).RequireAuthorization("DoctorOnly");
+        group.MapDelete("/prescriptions/{appointmentId:guid}/items/{itemId:guid}", DeletePrescriptionItem).RequireAuthorization("DoctorOnly");
     }
 
     private static Guid GetUserId(HttpContext ctx) =>
@@ -114,7 +120,9 @@ public static class DoctorPortalEndpoints
     {
         var userId = GetUserId(ctx);
 
-        var user = await db.Users.FindAsync(userId);
+        var user = await db.Users
+            .Include(u => u.Hospital)
+            .FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Results.NotFound(new { error = "User not found." });
 
         // Try to find doctor profile
@@ -149,6 +157,7 @@ public static class DoctorPortalEndpoints
                 department = user.Department,
                 employeeId = user.EmployeeId
             },
+            hospitalName = user.Hospital?.Name,
             doctorProfile = doctorProfile != null ? new
             {
                 specialty = doctorProfile.Specialty,
@@ -158,6 +167,8 @@ public static class DoctorPortalEndpoints
                 reviewCount = doctorProfile.ReviewCount,
                 bio = doctorProfile.Bio,
                 languages = doctorProfile.Languages,
+                qualification = doctorProfile.Qualification,
+                mciRegistration = doctorProfile.MciRegistration,
                 availableForVideo = doctorProfile.AvailableForVideo,
                 availableForInPerson = doctorProfile.AvailableForInPerson
             } : null,
@@ -170,6 +181,43 @@ public static class DoctorPortalEndpoints
                 reviewCount = doctorProfile?.ReviewCount ?? 0
             }
         });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PUT /api/doctor-portal/my-profile
+    //  Update doctor's own profile fields
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> UpdateMyProfile(
+        UpdateDoctorProfileRequest req,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+
+        var user = await db.Users.FindAsync(userId);
+        if (user == null) return Results.NotFound(new { error = "User not found." });
+
+        // Update user fields
+        if (!string.IsNullOrWhiteSpace(req.FullName)) user.FullName = req.FullName.Trim();
+        if (req.Email != null) user.Email = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim();
+        if (req.Department != null) user.Department = string.IsNullOrWhiteSpace(req.Department) ? null : req.Department.Trim();
+
+        // Update doctor profile fields
+        var dp = await db.DoctorProfiles.FirstOrDefaultAsync(d => d.UserId == userId);
+        if (dp != null)
+        {
+            if (!string.IsNullOrWhiteSpace(req.Specialty)) dp.Specialty = req.Specialty.Trim();
+            if (req.ExperienceYears.HasValue) dp.ExperienceYears = req.ExperienceYears.Value;
+            if (req.Bio != null) dp.Bio = string.IsNullOrWhiteSpace(req.Bio) ? null : req.Bio.Trim();
+            if (req.Languages != null) dp.Languages = string.IsNullOrWhiteSpace(req.Languages) ? null : req.Languages.Trim();
+            if (req.Qualification != null) dp.Qualification = string.IsNullOrWhiteSpace(req.Qualification) ? null : req.Qualification.Trim();
+            if (req.MciRegistration != null) dp.MciRegistration = string.IsNullOrWhiteSpace(req.MciRegistration) ? null : req.MciRegistration.Trim();
+        }
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new { success = true, name = user.FullName });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -418,6 +466,102 @@ public static class DoctorPortalEndpoints
 
         return Results.Ok(new { success = true });
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/doctor-portal/prescriptions/{appointmentId}/items
+    //  List structured prescription items for an appointment.
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetPrescriptionItems(
+        Guid appointmentId,
+        NalamDbContext db)
+    {
+        var items = await db.PrescriptionItems.AsNoTracking()
+            .Where(pi => pi.AppointmentId == appointmentId)
+            .OrderBy(pi => pi.CreatedAt)
+            .Select(pi => new
+            {
+                id                 = pi.Id,
+                medicineId         = pi.MedicineId,
+                medicineName       = pi.MedicineName,
+                dosageInstructions = pi.DosageInstructions,
+                quantity           = pi.Quantity,
+                createdAt          = pi.CreatedAt.ToString("o"),
+            })
+            .ToListAsync();
+
+        return Results.Ok(items);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  POST /api/doctor-portal/prescriptions/{appointmentId}/items
+    //  Add a single prescription item to an appointment.
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> AddPrescriptionItem(
+        Guid appointmentId,
+        AddPrescriptionItemRequest req,
+        NalamDbContext db)
+    {
+        if (string.IsNullOrWhiteSpace(req.MedicineName))
+            return Results.BadRequest(new { error = "medicineName is required." });
+
+        var appointment = await db.Appointments.FindAsync(appointmentId);
+        if (appointment is null)
+            return Results.NotFound(new { error = "Appointment not found." });
+
+        var item = new PrescriptionItem
+        {
+            AppointmentId      = appointmentId,
+            MedicineId         = req.MedicineId,
+            MedicineName       = req.MedicineName.Trim(),
+            DosageInstructions = req.DosageInstructions?.Trim(),
+            Quantity           = req.Quantity > 0 ? req.Quantity : 1,
+        };
+
+        db.PrescriptionItems.Add(item);
+
+        // Ensure prescription queue entry exists
+        if (appointment.PrescriptionStatus == null)
+        {
+            appointment.PrescriptionStatus = "pending";
+            appointment.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            id                 = item.Id,
+            medicineId         = item.MedicineId,
+            medicineName       = item.MedicineName,
+            dosageInstructions = item.DosageInstructions,
+            quantity           = item.Quantity,
+            createdAt          = item.CreatedAt.ToString("o"),
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  DELETE /api/doctor-portal/prescriptions/{appointmentId}/items/{itemId}
+    //  Remove a prescription item.
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> DeletePrescriptionItem(
+        Guid appointmentId,
+        Guid itemId,
+        NalamDbContext db)
+    {
+        var item = await db.PrescriptionItems
+            .FirstOrDefaultAsync(pi => pi.Id == itemId && pi.AppointmentId == appointmentId);
+
+        if (item is null)
+            return Results.NotFound(new { error = "Prescription item not found." });
+
+        db.PrescriptionItems.Remove(item);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new { success = true });
+    }
 }
 
 // ── Request records for schedule management ─────────────────────────────────
@@ -437,4 +581,23 @@ public record UpdateScheduleRequest(
     int? SlotDurationMinutes,
     string? ConsultationType,
     int? MaxPatientsPerSlot
+);
+
+public record UpdateDoctorProfileRequest(
+    string? FullName,
+    string? Email,
+    string? Department,
+    string? Specialty,
+    int? ExperienceYears,
+    string? Bio,
+    string? Languages,
+    string? Qualification,
+    string? MciRegistration
+);
+
+public record AddPrescriptionItemRequest(
+    Guid? MedicineId,
+    string MedicineName,
+    string? DosageInstructions,
+    int Quantity
 );

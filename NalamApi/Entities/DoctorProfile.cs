@@ -48,6 +48,14 @@ public class DoctorProfile
     [Column("bio")]
     public string? Bio { get; set; }
 
+    [MaxLength(200)]
+    [Column("qualification")]
+    public string? Qualification { get; set; }  // e.g. "MD, DM (Cardio)"
+
+    [MaxLength(100)]
+    [Column("mci_registration")]
+    public string? MciRegistration { get; set; }  // e.g. "MCI-45892"
+
     [Column("is_accepting_appointments")]
     public bool IsAcceptingAppointments { get; set; } = true;
 

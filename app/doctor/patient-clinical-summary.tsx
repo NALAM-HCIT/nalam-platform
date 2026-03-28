@@ -13,7 +13,7 @@ import {
 
 export default function PatientClinicalSummaryScreen() {
   const router = useRouter();
-  const { patientId } = useLocalSearchParams<{ patientId?: string }>();
+  const { patientId, appointmentId } = useLocalSearchParams<{ patientId?: string; appointmentId?: string }>();
   const [summary, setSummary] = useState<PatientSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -164,7 +164,9 @@ export default function PatientClinicalSummaryScreen() {
 
         {/* Start Consultation Button */}
         <Pressable
-          onPress={() => router.push('/doctor/active-consultation')}
+          onPress={() => appointmentId
+            ? router.push({ pathname: '/doctor/active-consultation', params: { id: appointmentId } })
+            : router.push('/doctor/(tabs)/appointments')}
           className="w-full py-4 bg-primary rounded-2xl flex-row items-center justify-center gap-2"
           style={Shadows.focus}
         >

@@ -115,4 +115,6 @@ public class Appointment
 
     [ForeignKey("DoctorProfileId")]
     public DoctorProfile DoctorProfile { get; set; } = null!;
+
+    public ICollection<PrescriptionItem> PrescriptionItems { get; set; } = [];
 }

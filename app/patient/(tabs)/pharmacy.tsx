@@ -1,42 +1,18 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Animated, Image } from 'react-native';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, TextInput, Animated, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows } from '@/constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ShoppingCart, Pill, FileText, Camera, Search, X,
-  Package, Check, Clock, Truck, ChevronRight, XCircle,
+  Package, ChevronRight,
   Syringe, Wind, BriefcaseMedical, Heart, Droplets, Brain,
   Plus, CheckCircle, Trash2,
 } from 'lucide-react-native';
-
-const lastOrder = {
-  id: 'NLM-12345',
-  date: 'Mar 20, 2026',
-  items: ['Amlodipine 5mg', 'Neurobion Forte'],
-  totalItems: 2,
-  amount: 300,
-  status: 'processing' as 'placed' | 'processing' | 'out_for_delivery' | 'delivered',
-  estimatedDelivery: '45 mins',
-};
-
-const orderSteps = [
-  { key: 'placed', label: 'Placed', icon: Check },
-  { key: 'processing', label: 'Processing', icon: Clock },
-  { key: 'out_for_delivery', label: 'On the way', icon: Truck },
-  { key: 'delivered', label: 'Delivered', icon: Package },
-];
-
-const getStepStatus = (stepKey: string, currentStatus: string) => {
-  const order = ['placed', 'processing', 'out_for_delivery', 'delivered'];
-  const stepIndex = order.indexOf(stepKey);
-  const currentIndex = order.indexOf(currentStatus);
-  if (stepIndex < currentIndex) return 'completed';
-  if (stepIndex === currentIndex) return 'current';
-  return 'pending';
-};
+import { pharmacyService, Medicine } from '@/services/pharmacyService';
+import { patientService, PatientPrescription } from '@/services/patientService';
 
 const categories = [
   { id: '1', name: 'Tablets', icon: Pill, color: '#1A73E8' },
@@ -48,28 +24,10 @@ const categories = [
   { id: '7', name: 'General', icon: BriefcaseMedical, color: '#059669' },
 ];
 
-const allMedicines = [
-  { id: '1', name: 'Paracetamol 500mg', category: 'Tablets', price: 35, strip: '10 tablets' },
-  { id: '2', name: 'Amoxicillin 500mg', category: 'Tablets', price: 85, strip: '10 capsules' },
-  { id: '3', name: 'Cetirizine 10mg', category: 'Tablets', price: 45, strip: '10 tablets' },
-  { id: '4', name: 'Omeprazole 20mg', category: 'Tablets', price: 65, strip: '15 capsules' },
-  { id: '5', name: 'Cough Relief Syrup', category: 'Syrups', price: 90, strip: '100ml bottle' },
-  { id: '6', name: 'Benadryl Syrup', category: 'Syrups', price: 75, strip: '150ml bottle' },
-  { id: '7', name: 'Salbutamol Inhaler', category: 'Inhalers', price: 220, strip: '200 doses' },
-  { id: '8', name: 'Amlodipine 5mg', category: 'Cardiac', price: 120, strip: '14 tablets' },
-  { id: '9', name: 'Atorvastatin 10mg', category: 'Cardiac', price: 95, strip: '10 tablets' },
-  { id: '10', name: 'Metformin 500mg', category: 'Diabetes', price: 95, strip: '20 tablets' },
-  { id: '11', name: 'Glimepiride 1mg', category: 'Diabetes', price: 68, strip: '10 tablets' },
-  { id: '12', name: 'Neurobion Forte', category: 'Neuro', price: 180, strip: '30 tablets' },
-  { id: '13', name: 'Pregabalin 75mg', category: 'Neuro', price: 145, strip: '10 capsules' },
-  { id: '14', name: 'Vitamin D3 60k', category: 'General', price: 120, strip: '4 sachets' },
-  { id: '15', name: 'Azithromycin 500mg', category: 'General', price: 110, strip: '3 tablets' },
-  { id: '16', name: 'Pantoprazole 40mg', category: 'General', price: 78, strip: '15 tablets' },
-];
 
 export default function PharmacyScreen() {
   const router = useRouter();
-  const [orderCancelled, setOrderCancelled] = useState(false);
+  const [lastPrescription, setLastPrescription] = useState<PatientPrescription | null>(null);
   const [searchText, setSearchText] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [rxImages, setRxImages] = useState<string[]>([]);
@@ -78,27 +36,34 @@ export default function PharmacyScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [cartItems, setCartItems] = useState<{ id: string; name: string; price: number; qty: number }[]>([]);
 
-  const filteredMedicines = useMemo(() => {
-    const q = searchText.toLowerCase();
-    return allMedicines.filter((med) => {
-      const matchesCategory = !activeCategory || med.category === activeCategory;
-      const matchesSearch = !q || med.name.toLowerCase().includes(q) || med.category.toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
-    });
+  // Live medicine catalog
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [medicinesLoading, setMedicinesLoading] = useState(true);
+
+  // Load most recent prescription on mount
+  useEffect(() => {
+    patientService.getPrescriptions()
+      .then((list) => setLastPrescription(list[0] ?? null))
+      .catch(() => {});
+  }, []);
+
+  // Fetch medicines whenever search or category changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMedicinesLoading(true);
+      pharmacyService.getMedicines({
+        search: searchText.trim() || undefined,
+        category: activeCategory || undefined,
+        pageSize: 50,
+      })
+        .then((res) => setMedicines(res.medicines))
+        .catch(() => {/* silently keep old list */})
+        .finally(() => setMedicinesLoading(false));
+    }, 400);
+    return () => clearTimeout(timer);
   }, [searchText, activeCategory]);
 
-  const canCancel = !orderCancelled && (lastOrder.status === 'placed' || lastOrder.status === 'processing');
 
-  const handleCancelOrder = useCallback(() => {
-    CustomAlert.alert(
-      'Cancel Order',
-      `Are you sure you want to cancel Order #${lastOrder.id}?`,
-      [
-        { text: 'No, Keep it', style: 'cancel' },
-        { text: 'Yes, Cancel', style: 'destructive', onPress: () => setOrderCancelled(true) },
-      ],
-    );
-  }, []);
 
   const handleCategoryPress = useCallback((name: string) => {
     setActiveCategory((prev) => prev === name ? null : name);
@@ -278,106 +243,51 @@ export default function PharmacyScreen() {
           </Pressable>
         </View>
 
-        {/* Last Order Status */}
-        <Pressable
-          onPress={() => router.push('/patient/order-confirmation')}
-          className="mx-6 mt-4 bg-white rounded-[24px] p-5 border border-slate-100"
-          style={Shadows.card}
-        >
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-2.5">
-              <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center">
-                <Package size={18} color="#1A73E8" />
-              </View>
-              <View>
-                <Text className="font-bold text-sm text-midnight">Order #{lastOrder.id}</Text>
-                <Text className="text-slate-400 text-xs mt-0.5">{lastOrder.date} • {lastOrder.totalItems} items</Text>
-              </View>
-            </View>
-            <View className={`px-3 py-1 rounded-full border ${
-              orderCancelled ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200'
-            }`}>
-              <Text className={`text-[10px] font-bold uppercase tracking-wider ${
-                orderCancelled ? 'text-rose-600' : 'text-amber-600'
-              }`}>
-                {orderCancelled ? 'Cancelled' : 'Processing'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Progress Steps */}
-          <View className="flex-row items-center justify-between mb-1">
-            {orderSteps.map((step, index) => {
-              const status = getStepStatus(step.key, lastOrder.status);
-              const StepIcon = step.icon;
-              return (
-                <React.Fragment key={step.key}>
-                  {index > 0 && (
-                    <View className={`flex-1 h-[2px] mx-1 rounded-full ${
-                      status === 'pending' ? 'bg-slate-200' : 'bg-primary/30'
-                    }`} />
-                  )}
-                  <View className="items-center">
-                    <View className={`w-7 h-7 rounded-full items-center justify-center ${
-                      status === 'completed' ? 'bg-primary'
-                        : status === 'current' ? 'bg-primary/10 border border-primary'
-                        : 'bg-slate-100 border border-slate-200'
-                    }`}>
-                      <StepIcon
-                        size={13}
-                        color={status === 'completed' ? '#FFFFFF' : status === 'current' ? '#1A73E8' : '#CBD5E1'}
-                        strokeWidth={2.5}
-                      />
-                    </View>
-                  </View>
-                </React.Fragment>
-              );
-            })}
-          </View>
-          <View className="flex-row items-center justify-between mt-1.5">
-            {orderSteps.map((step) => (
-              <Text key={step.key} className="text-[9px] text-slate-400 font-medium text-center" style={{ width: 52 }}>
-                {step.label}
-              </Text>
-            ))}
-          </View>
-
-          {/* Footer */}
-          <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-slate-100">
-            <Text className="text-midnight font-extrabold text-base">Rs. {lastOrder.amount}</Text>
-            {orderCancelled ? (
-              <View className="flex-row items-center gap-1">
-                <XCircle size={14} color="#E11D48" />
-                <Text className="text-rose-600 text-xs font-bold">Cancelled</Text>
-              </View>
-            ) : (
-              <View className="flex-row items-center gap-3">
-                {canCancel && (
-                  <Pressable
-                    onPress={(e) => { e.stopPropagation(); handleCancelOrder(); }}
-                    className="flex-row items-center gap-1 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-200"
-                  >
-                    <XCircle size={12} color="#E11D48" />
-                    <Text className="text-rose-600 text-xs font-bold">Cancel</Text>
-                  </Pressable>
-                )}
-                <View className="flex-row items-center gap-1">
-                  <Text className="text-primary text-xs font-bold">Track Order</Text>
-                  <ChevronRight size={14} color="#1A73E8" />
+        {/* Latest Prescription */}
+        {lastPrescription ? (
+          <Pressable
+            onPress={() => router.push('/patient/(tabs)/bookings' as any)}
+            className="mx-6 mt-4 bg-white rounded-[24px] p-5 border border-slate-100"
+            style={Shadows.card}
+          >
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2.5">
+                <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center">
+                  <FileText size={18} color="#1A73E8" />
+                </View>
+                <View>
+                  <Text className="font-bold text-sm text-midnight">Latest Prescription</Text>
+                  <Text className="text-slate-400 text-xs mt-0.5">
+                    {lastPrescription.doctorName} • {lastPrescription.scheduleDate}
+                  </Text>
                 </View>
               </View>
-            )}
-          </View>
-        </Pressable>
-
-        {/* View All Orders */}
-        <Pressable
-          onPress={() => router.push('/patient/order-history')}
-          className="mx-6 mt-2 flex-row items-center justify-center gap-1 py-2"
-        >
-          <Text className="text-primary text-sm font-semibold">View All Orders</Text>
-          <ChevronRight size={16} color="#1A73E8" />
-        </Pressable>
+              <View className={`px-3 py-1 rounded-full border ${
+                lastPrescription.prescriptionStatus === 'dispensed'
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : 'bg-amber-50 border-amber-200'
+              }`}>
+                <Text className={`text-[10px] font-bold uppercase tracking-wider ${
+                  lastPrescription.prescriptionStatus === 'dispensed' ? 'text-emerald-600' : 'text-amber-600'
+                }`}>
+                  {lastPrescription.prescriptionStatus === 'dispensed' ? 'Dispensed' : 'Pending'}
+                </Text>
+              </View>
+            </View>
+            {lastPrescription.prescriptionNotes ? (
+              <Text className="text-[11px] text-slate-500 leading-[16px] mb-3" numberOfLines={2}>
+                {lastPrescription.prescriptionNotes}
+              </Text>
+            ) : null}
+            <View className="flex-row items-center justify-between pt-3 border-t border-slate-100">
+              <Text className="text-slate-400 text-xs">{lastPrescription.specialty}</Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-primary text-xs font-bold">View Prescription</Text>
+                <ChevronRight size={14} color="#1A73E8" />
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
 
         {/* Order Builder */}
         <View className="mx-6 mt-4 bg-white rounded-[24px] border border-slate-100 overflow-hidden" style={Shadows.card}>
@@ -620,15 +530,21 @@ export default function PharmacyScreen() {
         <View className="px-6 mt-5">
           <Text className="text-base font-bold text-midnight mb-3">
             {activeCategory || 'All Medicines'}
-            <Text className="text-slate-400 text-xs font-normal"> ({filteredMedicines.length})</Text>
+            {!medicinesLoading && (
+              <Text className="text-slate-400 text-xs font-normal"> ({medicines.length})</Text>
+            )}
           </Text>
-          {filteredMedicines.length === 0 ? (
+          {medicinesLoading ? (
+            <View className="items-center py-10">
+              <ActivityIndicator size="large" color="#1A73E8" />
+            </View>
+          ) : medicines.length === 0 ? (
             <View className="items-center py-10">
               <Pill size={36} color="#CBD5E1" />
               <Text className="text-slate-400 text-sm font-medium mt-3">No medicines found</Text>
             </View>
           ) : (
-            filteredMedicines.map((med) => (
+            medicines.map((med) => (
               <View
                 key={med.id}
                 className="bg-white rounded-2xl p-4 mb-2.5 flex-row items-center border border-slate-50"
@@ -639,7 +555,7 @@ export default function PharmacyScreen() {
                 </View>
                 <View className="flex-1">
                   <Text className="font-bold text-sm text-midnight">{med.name}</Text>
-                  <Text className="text-slate-400 text-[11px] mt-0.5">{med.category} • {med.strip}</Text>
+                  <Text className="text-slate-400 text-[11px] mt-0.5">{med.category}{med.packSize ? ` • ${med.packSize}` : ''}</Text>
                 </View>
                 <View className="items-end gap-1">
                   <Text className="font-extrabold text-midnight text-sm">Rs. {med.price}</Text>

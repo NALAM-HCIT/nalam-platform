@@ -1,39 +1,46 @@
-import React from 'react';
-import { View, Text, ScrollView, Pressable, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Shadows } from '@/constants/theme';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Shadows, Colors } from '@/constants/theme';
+import { patientService, PrescriptionDetail } from '@/services/patientService';
 import {
   ArrowLeft, Stethoscope, FileText, Lightbulb, Download,
-  ShoppingCart, Calendar, ChevronRight,
+  ShoppingCart, Calendar, ChevronRight, AlertCircle,
 } from 'lucide-react-native';
 
-// Mock data
-const doctorData = {
-  name: 'Dr. Aruna Devi',
-  specialty: 'Cardiologist',
-  hospital: 'Apollo Hospitals',
-  avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCRndRGLNK7KTIJF1LcF-MOeifw7UhN4FwS6vcbMPPu0JStpJcTErV1uExaF5kVe_u257wQtibeTjrLuhEsoAf9lbr2sbYXMzAAoboYTTn0dHQGN7w30JjYyScUtoi2L6hRHBCw46xlVyG6Rrx0Q_G1b9JCajLIM7D2dm_5_AIA8IifvSViEP9BnARoyt6PMOlC2ZQXnUuVmOtbVSTqeEzfCGiiULOxaY88WN52JMn-KdV4s4oYsspUfcHk-9z-C1caO9Kmhp829zRP',
-};
-
-const diagnosis = {
-  title: 'Mild Hypertension & Fatigue',
-  description: 'Based on recent BP readings and stress markers.',
-};
-
-const prescriptions = [
-  { name: 'Amlodipine 5mg', dosage: '1 tablet daily (Morning)', duration: '14 Days' },
-  { name: 'Neurobion Forte', dosage: '1 tablet daily (After food)', duration: '30 Days' },
-];
-
-const advice = [
-  'Reduce daily sodium intake to less than 2300mg.',
-  'Practice 15 minutes of guided meditation daily.',
-  'Monitor blood pressure every morning for 7 days.',
-];
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function PostConsultationScreen() {
   const router = useRouter();
+  const { appointmentId } = useLocalSearchParams<{ appointmentId?: string }>();
+
+  const [detail, setDetail] = useState<PrescriptionDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!appointmentId) { setLoading(false); return; }
+    patientService.getPrescriptionDetail(appointmentId)
+      .then(setDetail)
+      .catch(() => setError('Failed to load consultation summary.'))
+      .finally(() => setLoading(false));
+  }, [appointmentId]);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F8FAFC] items-center justify-center" edges={['top']}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text className="text-slate-400 text-sm mt-3">Loading summary...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -56,134 +63,108 @@ export default function PostConsultationScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Doctor Info Card */}
-        <View
-          className="bg-white rounded-[20px] p-5 flex-row items-center gap-4 mb-6"
-          style={Shadows.card}
-        >
-          <View className="relative">
-            <View className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#1A73E8]/20">
-              <Image
-                source={{ uri: doctorData.avatar }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </View>
-            <View className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+        {error ? (
+          <View className="bg-red-50 rounded-2xl p-6 items-center mt-4 border border-red-100">
+            <AlertCircle size={28} color="#EF4444" />
+            <Text className="text-red-700 font-semibold mt-2 text-center">{error}</Text>
           </View>
-          <View className="flex-1">
-            <View className="bg-green-500/10 px-2 py-1 rounded-full self-start mb-1">
-              <Text className="text-green-600 text-[10px] font-bold uppercase tracking-[2px]">
-                Session Completed
-              </Text>
+        ) : detail ? (
+          <>
+            {/* Doctor Info Card */}
+            <View className="bg-white rounded-[20px] p-5 flex-row items-center gap-4 mb-6" style={Shadows.card}>
+              <View className="w-16 h-16 rounded-full bg-primary/10 items-center justify-center border-2 border-primary/20">
+                <Text className="text-xl font-bold text-primary">
+                  {detail.doctor.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
+              <View className="flex-1">
+                <View className="bg-green-500/10 px-2 py-1 rounded-full self-start mb-1">
+                  <Text className="text-green-600 text-[10px] font-bold uppercase tracking-[2px]">
+                    Session Completed
+                  </Text>
+                </View>
+                <Text className="text-xl font-bold leading-tight text-[#0B1B3D]">
+                  {detail.doctor.name}
+                </Text>
+                <Text className="text-slate-500 text-sm">
+                  {detail.doctor.specialty} {'\u2022'} {detail.hospital.name}
+                </Text>
+                <Text className="text-[10px] text-slate-400 mt-1">
+                  {formatDate(detail.scheduleDate)} • Ref: {detail.bookingReference}
+                </Text>
+              </View>
             </View>
-            <Text className="text-xl font-bold leading-tight text-[#0B1B3D]">
-              {doctorData.name}
-            </Text>
-            <Text className="text-slate-500 text-sm">
-              {doctorData.specialty} {'\u2022'} {doctorData.hospital}
-            </Text>
-            <Pressable className="flex-row items-center gap-1 mt-2">
-              <Text className="text-[#1A73E8] text-xs font-semibold">View Profile</Text>
-              <ChevronRight size={14} color="#1A73E8" />
-            </Pressable>
-          </View>
-        </View>
 
-        {/* Summary Card */}
-        <View
-          className="bg-white rounded-[20px] p-6 border border-slate-100 mb-6"
-          style={Shadows.card}
-        >
-          {/* Diagnosis */}
-          <View>
-            <View className="flex-row items-center gap-2 mb-2">
-              <Stethoscope size={18} color="#1A73E8" />
-              <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
-                Diagnosis
-              </Text>
-            </View>
-            <Text className="text-lg font-medium text-[#0B1B3D]">{diagnosis.title}</Text>
-            <Text className="text-slate-500 text-sm mt-1">{diagnosis.description}</Text>
-          </View>
+            {/* Summary Card */}
+            <View className="bg-white rounded-[20px] p-6 border border-slate-100 mb-6" style={Shadows.card}>
+              {/* Prescription Notes */}
+              <View>
+                <View className="flex-row items-center gap-2 mb-3">
+                  <FileText size={18} color="#1A73E8" />
+                  <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
+                    Prescription
+                  </Text>
+                </View>
+                {detail.prescriptionNotes ? (
+                  <Text className="text-sm text-slate-700 leading-6">{detail.prescriptionNotes}</Text>
+                ) : (
+                  <Text className="text-sm text-slate-400 italic">
+                    No prescription notes recorded for this consultation.
+                  </Text>
+                )}
+              </View>
 
-          <View className="h-px bg-slate-100 my-6" />
-
-          {/* Prescription */}
-          <View>
-            <View className="flex-row items-center gap-2 mb-3">
-              <FileText size={18} color="#1A73E8" />
-              <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
-                Prescription
-              </Text>
-            </View>
-            <View className="gap-3">
-              {prescriptions.map((med, i) => (
-                <View
-                  key={i}
-                  className="flex-row items-start justify-between p-3 rounded-xl bg-slate-50"
-                >
+              {detail.doctor.bio && (
+                <>
+                  <View className="h-px bg-slate-100 my-6" />
                   <View>
-                    <Text className="font-semibold text-sm text-[#0B1B3D]">{med.name}</Text>
-                    <Text className="text-xs text-slate-500 mt-0.5">{med.dosage}</Text>
+                    <View className="flex-row items-center gap-2 mb-2">
+                      <Stethoscope size={18} color="#1A73E8" />
+                      <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
+                        About Doctor
+                      </Text>
+                    </View>
+                    <Text className="text-sm text-slate-600 leading-5">{detail.doctor.bio}</Text>
                   </View>
-                  <View className="bg-[#1A73E8]/10 px-2 py-1 rounded">
-                    <Text className="text-[#1A73E8] text-[10px] font-bold">{med.duration}</Text>
-                  </View>
-                </View>
-              ))}
+                </>
+              )}
             </View>
+          </>
+        ) : (
+          /* No appointment ID — generic success state */
+          <View className="bg-white rounded-[20px] p-6 items-center mt-4" style={Shadows.card}>
+            <View className="bg-green-500/10 px-3 py-1.5 rounded-full mb-3">
+              <Text className="text-green-600 text-xs font-bold uppercase tracking-wider">Session Completed</Text>
+            </View>
+            <Text className="text-lg font-bold text-midnight text-center">
+              Your consultation has ended.
+            </Text>
+            <Text className="text-slate-400 text-sm mt-1 text-center">
+              Your prescription will be available shortly in your health records.
+            </Text>
           </View>
-
-          <View className="h-px bg-slate-100 my-6" />
-
-          {/* Doctor's Advice */}
-          <View>
-            <View className="flex-row items-center gap-2 mb-3">
-              <Lightbulb size={18} color="#1A73E8" />
-              <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
-                Doctor's Advice
-              </Text>
-            </View>
-            <View className="gap-2.5">
-              {advice.map((item, i) => (
-                <View key={i} className="flex-row gap-2.5">
-                  <Text className="text-[#1A73E8] text-sm">{'\u2022'}</Text>
-                  <Text className="text-sm text-slate-600 flex-1 leading-5">{item}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
+        )}
 
         {/* Action Buttons */}
         <View className="gap-3 py-2">
-          <Pressable
-            onPress={() => router.push('/patient/digital-prescription')}
-            className="w-full bg-[#1A73E8] py-4 rounded-[16px] flex-row items-center justify-center gap-2"
-            style={{
-              shadowColor: '#1A73E8',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.2,
-              shadowRadius: 16,
-              elevation: 8,
-            }}
-          >
-            <Download size={20} color="#FFFFFF" />
-            <Text className="text-white font-bold text-[15px]">
-              View Digital Prescription
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/patient/pharmacy-cart')}
-            className="w-full border-2 border-[#1A73E8] py-4 rounded-[16px] flex-row items-center justify-center gap-2 bg-transparent"
-          >
-            <ShoppingCart size={20} color="#1A73E8" />
-            <Text className="text-[#1A73E8] font-bold text-[15px]">
-              Order Prescribed Medicines  {'\u2022'}  {'\u20B9'}205
-            </Text>
-          </Pressable>
+          {detail && (
+            <Pressable
+              onPress={() => router.push('/patient/digital-prescription')}
+              className="w-full bg-[#1A73E8] py-4 rounded-[16px] flex-row items-center justify-center gap-2"
+              style={{
+                shadowColor: '#1A73E8',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.2,
+                shadowRadius: 16,
+                elevation: 8,
+              }}
+            >
+              <Download size={20} color="#FFFFFF" />
+              <Text className="text-white font-bold text-[15px]">
+                View Digital Prescription
+              </Text>
+            </Pressable>
+          )}
 
           <Pressable
             onPress={() => router.push('/patient/consultation-type')}

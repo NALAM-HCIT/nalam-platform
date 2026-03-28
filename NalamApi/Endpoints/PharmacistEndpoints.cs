@@ -84,6 +84,7 @@ public static class PharmacistEndpoints
             .Include(a => a.Patient)
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
+            .Include(a => a.PrescriptionItems)
             .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.PrescriptionStatus != null)
             .AsQueryable();
 
@@ -103,39 +104,35 @@ public static class PharmacistEndpoints
 
         var rawPrescriptions = await query
             .OrderByDescending(a => a.UpdatedAt)
-            .Select(a => new
-            {
-                id = a.Id,
-                bookingReference = a.BookingReference,
-                patientName = a.Patient.FullName,
-                patientMobile = a.Patient.MobileNumber,
-                doctorName = a.DoctorProfile.User.FullName,
-                doctorSpecialty = a.DoctorProfile.Specialty,
-                time = a.StartTime.ToString("hh:mm tt"),
-                consultationType = a.ConsultationType,
-                prescriptionNotes = a.Notes,
-                prescriptionStatus = a.PrescriptionStatus,
-                appointmentStatus = a.Status,
-                updatedAt = a.UpdatedAt
-            })
             .ToListAsync();
 
-        // Compute initials in memory (string.Split/Substring can't be translated to SQL)
+        // Project in memory (string.Split cannot be translated to SQL; PrescriptionItems also loaded)
         var prescriptions = rawPrescriptions.Select(a => new
         {
-            a.id,
-            a.bookingReference,
-            a.patientName,
-            patientInitials = GetInitials(a.patientName),
-            a.patientMobile,
-            a.doctorName,
-            a.doctorSpecialty,
-            a.time,
-            a.consultationType,
-            a.prescriptionNotes,
-            a.prescriptionStatus,
-            a.appointmentStatus,
-            a.updatedAt
+            id = a.Id,
+            bookingReference = a.BookingReference,
+            patientName = a.Patient.FullName,
+            patientInitials = GetInitials(a.Patient.FullName),
+            patientMobile = a.Patient.MobileNumber,
+            doctorName = a.DoctorProfile.User.FullName,
+            doctorSpecialty = a.DoctorProfile.Specialty,
+            time = a.StartTime.ToString("hh:mm tt"),
+            consultationType = a.ConsultationType,
+            prescriptionNotes = a.Notes,
+            prescriptionStatus = a.PrescriptionStatus,
+            appointmentStatus = a.Status,
+            updatedAt = a.UpdatedAt,
+            prescriptionItems = a.PrescriptionItems
+                .OrderBy(pi => pi.CreatedAt)
+                .Select(pi => new
+                {
+                    id                 = pi.Id,
+                    medicineId         = pi.MedicineId,
+                    medicineName       = pi.MedicineName,
+                    dosageInstructions = pi.DosageInstructions,
+                    quantity           = pi.Quantity,
+                })
+                .ToList(),
         }).ToList();
 
         return Results.Ok(prescriptions);

@@ -4,13 +4,9 @@ import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
-import {
-  ArrowLeft, Clock, Pill, Send, User, Video,
-} from 'lucide-react-native';
-import {
-  getAppointmentDetail, changeAppointmentStatus,
-  DoctorAppointment,
-} from '@/services/doctorService';
+import { ArrowLeft, Clock, Pill, Send, User, Video } from 'lucide-react-native';
+import { getAppointmentDetail, DoctorAppointment } from '@/services/doctorService';
+import { prescriptionItemService, AddPrescriptionItemPayload } from '@/services/doctorPortalService';
 
 function formatTime(t: string): string {
   const [hh, mm] = t.split(':');
@@ -26,10 +22,7 @@ export default function ConsultationSummaryScreen() {
     id: string;
     chiefComplaint: string;
     observations: string;
-    medicineName: string;
-    dosage: string;
-    frequency: string;
-    duration: string;
+    rxItems: string;        // JSON-encoded AddPrescriptionItemPayload[]
     sessionDuration: string;
   }>();
 
@@ -37,6 +30,15 @@ export default function ConsultationSummaryScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [diagnosis, setDiagnosis] = useState('');
+
+  // Parse structured prescription items
+  const rxItems: AddPrescriptionItemPayload[] = (() => {
+    try {
+      return params.rxItems ? JSON.parse(params.rxItems) : [];
+    } catch {
+      return [];
+    }
+  })();
 
   useEffect(() => {
     if (!params.id) return;
@@ -67,7 +69,12 @@ export default function ConsultationSummaryScreen() {
           onPress: async () => {
             setSubmitting(true);
             try {
-              await changeAppointmentStatus(params.id!, 'completed');
+              await prescriptionItemService.finalize(params.id!, {
+                chiefComplaint: params.chiefComplaint,
+                observations: params.observations,
+                diagnosis: diagnosis.trim(),
+                items: rxItems.length > 0 ? rxItems : undefined,
+              });
               router.push({
                 pathname: '/doctor/consultation-success',
                 params: {
@@ -95,7 +102,6 @@ export default function ConsultationSummaryScreen() {
   }
 
   const isVideo = appointment?.consultationType === 'video';
-  const hasMedicine = !!(params.medicineName && params.medicineName.trim());
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['top']}>
@@ -172,22 +178,34 @@ export default function ConsultationSummaryScreen() {
         </View>
 
         {/* Prescribed Medications */}
-        {hasMedicine && (
+        {rxItems.length > 0 && (
           <View className="gap-3">
-            <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Prescribed Medications</Text>
-            <Pressable className="flex-row items-center justify-between bg-white p-4 rounded-2xl border border-slate-100" style={Shadows.card}>
-              <View className="flex-row items-center gap-4">
-                <View className="w-11 h-11 rounded-full bg-primary/10 items-center justify-center">
-                  <Pill size={20} color="#1A73E8" />
+            <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
+              Prescribed Medications ({rxItems.length})
+            </Text>
+            <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden" style={Shadows.card}>
+              {rxItems.map((item, i) => (
+                <View
+                  key={i}
+                  className={`flex-row items-center gap-4 p-4 ${
+                    i < rxItems.length - 1 ? 'border-b border-slate-50' : ''
+                  }`}
+                >
+                  <View className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center">
+                    <Pill size={18} color="#1A73E8" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-bold text-midnight text-sm">{item.medicineName}</Text>
+                    {item.dosageInstructions ? (
+                      <Text className="text-xs text-slate-500 font-medium">{item.dosageInstructions}</Text>
+                    ) : null}
+                  </View>
+                  <View className="px-2 py-0.5 bg-slate-100 rounded-full">
+                    <Text className="text-[10px] font-bold text-slate-500">×{item.quantity}</Text>
+                  </View>
                 </View>
-                <View>
-                  <Text className="font-bold text-midnight">{params.medicineName}</Text>
-                  <Text className="text-xs text-slate-500 font-medium">
-                    {[params.dosage, params.frequency, params.duration].filter(Boolean).join(' • ')}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
+              ))}
+            </View>
           </View>
         )}
 

@@ -105,6 +105,34 @@ export interface ProfileStats {
     totalAppointments: number;
 }
 
+export interface PatientNotification {
+    id: string;
+    type: 'appointment' | 'prescription_ready' | 'prescription_pending' | 'consultation_summary';
+    title: string;
+    body: string;
+    timestamp: string;  // ISO 8601
+    read: boolean;
+}
+
+export interface CarePlan {
+    upcomingAppointment: {
+        id: string;
+        doctorName: string;
+        specialty: string;
+        scheduleDate: string;   // "YYYY-MM-DD"
+        startTime: string;      // "HH:mm"
+        consultationType: string;
+    } | null;
+    prescriptionNotes: {
+        appointmentId: string;
+        date: string;
+        doctorName: string;
+        specialty: string;
+        notes: string;
+    }[];
+    activePrescriptionCount: number;
+}
+
 // ─── Service ────────────────────────────────────────
 
 export const patientService = {
@@ -155,6 +183,22 @@ export const patientService = {
      */
     updateProfile: async (data: UpdatePatientProfileRequest): Promise<PatientProfile> => {
         const res = await api.put('/patient/profile', data);
+        return res.data;
+    },
+
+    /**
+     * GET /api/patient/care-plan — today's care plan (upcoming appt + recent Rx notes)
+     */
+    getCarePlan: async (): Promise<CarePlan> => {
+        const res = await api.get('/patient/care-plan');
+        return res.data;
+    },
+
+    /**
+     * GET /api/patient/notifications — derived notifications from appointments/prescriptions
+     */
+    getNotifications: async (): Promise<PatientNotification[]> => {
+        const res = await api.get('/patient/notifications');
         return res.data;
     },
 };

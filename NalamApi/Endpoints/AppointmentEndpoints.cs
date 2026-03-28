@@ -32,6 +32,10 @@ public static class AppointmentEndpoints
         // ── Staff: status change ──────────────────────────────
         group.MapPatch("/{id:guid}/status", ChangeAppointmentStatus)
             .RequireAuthorization("StaffAccess");
+
+        // ── Doctor: finalize consultation (notes + prescription items) ──
+        group.MapPost("/{id:guid}/finalize", FinalizeConsultation)
+            .RequireAuthorization("StaffAccess");
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -741,7 +745,99 @@ public static class AppointmentEndpoints
 
         return Results.Ok(ToResponse(appointment));
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  POST /api/appointments/{id}/finalize
+    //  Doctor finalizes consultation: saves clinical notes,
+    //  creates structured prescription items, and marks as completed.
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> FinalizeConsultation(
+        Guid id,
+        FinalizeConsultationRequest req,
+        NalamDbContext db,
+        AuditService auditService,
+        HttpContext ctx)
+    {
+        var appointment = await db.Appointments
+            .Include(a => a.Patient)
+            .Include(a => a.DoctorProfile)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (appointment is null)
+            return Results.NotFound(new { error = "Appointment not found." });
+
+        if (appointment.Status == "cancelled")
+            return Results.BadRequest(new { error = "Cannot finalize a cancelled appointment." });
+
+        // Compose clinical notes from all fields provided
+        var noteParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(req.ChiefComplaint))
+            noteParts.Add($"Chief Complaint: {req.ChiefComplaint.Trim()}");
+        if (!string.IsNullOrWhiteSpace(req.Observations))
+            noteParts.Add($"Observations: {req.Observations.Trim()}");
+        if (!string.IsNullOrWhiteSpace(req.Diagnosis))
+            noteParts.Add($"Diagnosis: {req.Diagnosis.Trim()}");
+
+        appointment.Notes = noteParts.Count > 0 ? string.Join("\n\n", noteParts) : appointment.Notes;
+        appointment.Status = "completed";
+        appointment.UpdatedAt = DateTime.UtcNow;
+
+        // Add prescription items if provided
+        if (req.Items is { Count: > 0 })
+        {
+            foreach (var item in req.Items)
+            {
+                if (string.IsNullOrWhiteSpace(item.MedicineName)) continue;
+                db.PrescriptionItems.Add(new NalamApi.Entities.PrescriptionItem
+                {
+                    AppointmentId = id,
+                    MedicineId    = item.MedicineId,
+                    MedicineName  = item.MedicineName.Trim(),
+                    DosageInstructions = item.DosageInstructions?.Trim(),
+                    Quantity      = item.Quantity > 0 ? item.Quantity : 1,
+                });
+            }
+            // Mark prescription as pending for pharmacist queue
+            appointment.PrescriptionStatus = "pending";
+        }
+        else if (!string.IsNullOrWhiteSpace(appointment.Notes) && appointment.PrescriptionStatus == null)
+        {
+            // Legacy: notes-only prescription still enters pharmacist queue
+            appointment.PrescriptionStatus = "pending";
+        }
+
+        await db.SaveChangesAsync();
+
+        await auditService.LogAsync(
+            GetHospitalId(ctx), GetUserId(ctx),
+            $"Finalized consultation for {appointment.Patient?.FullName ?? "patient"}",
+            "appointment", "info",
+            $"Appointment: {appointment.BookingReference}, Items: {req.Items?.Count ?? 0}");
+
+        return Results.Ok(new
+        {
+            id = appointment.Id,
+            status = appointment.Status,
+            prescriptionStatus = appointment.PrescriptionStatus,
+            notes = appointment.Notes,
+        });
+    }
 }
 
 // Extra DTO for staff status change (kept here for simplicity)
 public record ChangeAppointmentStatusRequest(string Status);
+
+public record FinalizeConsultationRequest(
+    string? ChiefComplaint,
+    string? Observations,
+    string? Diagnosis,
+    List<PrescriptionItemRequest>? Items
+);
+
+public record PrescriptionItemRequest(
+    Guid? MedicineId,
+    string MedicineName,
+    string? DosageInstructions,
+    int Quantity
+);

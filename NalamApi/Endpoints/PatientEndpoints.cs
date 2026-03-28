@@ -20,6 +20,8 @@ public static class PatientEndpoints
         group.MapGet("/prescriptions", GetPrescriptions);
         group.MapGet("/prescriptions/{appointmentId:guid}", GetPrescriptionDetail);
         group.MapGet("/profile-stats", GetProfileStats);
+        group.MapGet("/care-plan", GetCarePlan);
+        group.MapGet("/notifications", GetNotifications);
     }
 
     private static Guid GetUserId(HttpContext ctx) =>
@@ -216,5 +218,185 @@ public static class PatientEndpoints
             activeRx,
             totalAppointments
         });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/patient/care-plan
+    //  Returns today's care plan: upcoming appointment + recent
+    //  prescription notes + active Rx count.
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetCarePlan(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var sixtyDaysAgo = today.AddDays(-60);
+
+        // Next upcoming confirmed/pending appointment
+        var upcoming = await db.Appointments.AsNoTracking()
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .Where(a => a.PatientId == userId &&
+                        (a.Status == "confirmed" || a.Status == "pending") &&
+                        a.ScheduleDate >= today)
+            .OrderBy(a => a.ScheduleDate).ThenBy(a => a.StartTime)
+            .FirstOrDefaultAsync();
+
+        // Last 3 completed appointments with prescription notes
+        var rxNotes = await db.Appointments.AsNoTracking()
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .Where(a => a.PatientId == userId &&
+                        a.Status == "completed" &&
+                        a.Notes != null && a.Notes.Length > 0)
+            .OrderByDescending(a => a.ScheduleDate)
+            .Take(3)
+            .Select(a => new
+            {
+                appointmentId = a.Id,
+                date = a.ScheduleDate.ToString("yyyy-MM-dd"),
+                doctorName = a.DoctorProfile.User.FullName,
+                specialty = a.DoctorProfile.Specialty,
+                notes = a.Notes,
+            })
+            .ToListAsync();
+
+        // Count dispensed prescriptions in last 60 days
+        var activePrescriptionCount = await db.Appointments.AsNoTracking()
+            .Where(a => a.PatientId == userId &&
+                        a.Status == "completed" &&
+                        a.PrescriptionStatus == "dispensed" &&
+                        a.ScheduleDate >= sixtyDaysAgo)
+            .CountAsync();
+
+        return Results.Ok(new
+        {
+            upcomingAppointment = upcoming != null ? new
+            {
+                id = upcoming.Id,
+                doctorName = upcoming.DoctorProfile.User.FullName,
+                specialty = upcoming.DoctorProfile.Specialty,
+                scheduleDate = upcoming.ScheduleDate.ToString("yyyy-MM-dd"),
+                startTime = upcoming.StartTime.ToString("HH:mm"),
+                consultationType = upcoming.ConsultationType,
+            } : null,
+            prescriptionNotes = rxNotes,
+            activePrescriptionCount,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/patient/notifications
+    //  Derives notifications from existing appointment/prescription
+    //  data — no separate notifications table needed.
+    // ═══════════════════════════════════════════════════════════
+
+    private record NotificationDto(string Id, string Type, string Title, string Body, string Timestamp, bool Read);
+
+    private static async Task<IResult> GetNotifications(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        var in48h = today.AddDays(2);
+        var sevenDaysAgo = today.AddDays(-7);
+        var threeDaysAgo = today.AddDays(-3);
+
+        var notifications = new List<NotificationDto>();
+
+        // 1. Upcoming appointments within 48 hours → "Appointment Reminder"
+        var upcoming = await db.Appointments.AsNoTracking()
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .Where(a => a.PatientId == userId &&
+                        (a.Status == "confirmed" || a.Status == "pending") &&
+                        a.ScheduleDate >= today && a.ScheduleDate <= in48h)
+            .OrderBy(a => a.ScheduleDate).ThenBy(a => a.StartTime)
+            .ToListAsync();
+
+        foreach (var appt in upcoming)
+        {
+            var dateLabel = appt.ScheduleDate == today ? "today" : "tomorrow";
+            notifications.Add(new NotificationDto(
+                Id: $"appt-{appt.Id}",
+                Type: "appointment",
+                Title: "Appointment Reminder",
+                Body: $"Dr. {appt.DoctorProfile.User.FullName} — {dateLabel} at {appt.StartTime:hh:mm tt}",
+                Timestamp: now.ToString("o"),
+                Read: false
+            ));
+        }
+
+        // 2. Prescriptions dispensed in last 7 days → "Prescription Ready"
+        var dispensed = await db.Appointments.AsNoTracking()
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .Where(a => a.PatientId == userId &&
+                        a.PrescriptionStatus == "dispensed" &&
+                        a.ScheduleDate >= sevenDaysAgo)
+            .OrderByDescending(a => a.ScheduleDate)
+            .ToListAsync();
+
+        foreach (var appt in dispensed)
+        {
+            notifications.Add(new NotificationDto(
+                Id: $"rx-ready-{appt.Id}",
+                Type: "prescription_ready",
+                Title: "Prescription Ready",
+                Body: $"Your prescription from Dr. {appt.DoctorProfile.User.FullName} has been dispensed.",
+                Timestamp: appt.ScheduleDate.ToDateTime(TimeOnly.MinValue).ToString("o"),
+                Read: true
+            ));
+        }
+
+        // 3. Pending prescriptions → "Prescription Waiting"
+        var pending = await db.Appointments.AsNoTracking()
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .Where(a => a.PatientId == userId && a.PrescriptionStatus == "pending")
+            .OrderByDescending(a => a.ScheduleDate)
+            .ToListAsync();
+
+        foreach (var appt in pending)
+        {
+            notifications.Add(new NotificationDto(
+                Id: $"rx-pending-{appt.Id}",
+                Type: "prescription_pending",
+                Title: "Prescription Waiting",
+                Body: $"Your prescription from Dr. {appt.DoctorProfile.User.FullName} is at the pharmacy.",
+                Timestamp: appt.ScheduleDate.ToDateTime(TimeOnly.MinValue).ToString("o"),
+                Read: false
+            ));
+        }
+
+        // 4. Completed appointments within 3 days with notes → "Consultation Summary"
+        var recent = await db.Appointments.AsNoTracking()
+            .Include(a => a.DoctorProfile).ThenInclude(dp => dp.User)
+            .Where(a => a.PatientId == userId &&
+                        a.Status == "completed" &&
+                        a.Notes != null && a.Notes.Length > 0 &&
+                        a.ScheduleDate >= threeDaysAgo)
+            .OrderByDescending(a => a.ScheduleDate)
+            .ToListAsync();
+
+        foreach (var appt in recent)
+        {
+            notifications.Add(new NotificationDto(
+                Id: $"summary-{appt.Id}",
+                Type: "consultation_summary",
+                Title: "Consultation Summary Available",
+                Body: $"Notes from Dr. {appt.DoctorProfile.User.FullName} on {appt.ScheduleDate:MMM d} are ready.",
+                Timestamp: appt.ScheduleDate.ToDateTime(TimeOnly.MinValue).ToString("o"),
+                Read: true
+            ));
+        }
+
+        // Sort: unread first, then by timestamp descending
+        var sorted = notifications
+            .OrderBy(n => n.Read)
+            .ThenByDescending(n => n.Timestamp)
+            .Select(n => new { id = n.Id, type = n.Type, title = n.Title, body = n.Body, timestamp = n.Timestamp, read = n.Read })
+            .ToList();
+
+        return Results.Ok(sorted);
     }
 }

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 
 // Doctor info and stats are loaded from the API — see liveProfile state below
+// Menu sections with dynamic subtitles are computed via useMemo inside the component.
 
 interface MenuItem {
   icon: React.ElementType;
@@ -32,47 +33,7 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-const MENU_SECTIONS: MenuSection[] = [
-  {
-    title: 'Professional',
-    items: [
-      { icon: Briefcase, label: 'Professional Details', subtitle: 'Qualifications, specializations', color: '#8B5CF6', actionId: 'professional' },
-      { icon: Award, label: 'Certificates & Awards', subtitle: '5 verified certificates', color: '#F59E0B', actionId: 'certificates' },
-      { icon: ClipboardList, label: 'Consultation Settings', subtitle: 'Fees, duration, mode', color: Colors.primary, actionId: 'consultation_settings' },
-    ],
-  },
-  {
-    title: 'Schedule',
-    items: [
-      { icon: Clock, label: 'Availability Settings', subtitle: 'OPD, surgery, teleconsult', color: '#EA580C', actionId: 'availability' },
-      { icon: Calendar, label: 'Leave Management', subtitle: '8 CL remaining', color: '#0EA5E9', badge: '8', actionId: 'leave' },
-      { icon: Stethoscope, label: 'My Patients', subtitle: '320 active patients', color: '#059669', actionId: 'my_patients' },
-    ],
-  },
-  {
-    title: 'Preferences',
-    items: [
-      { icon: Bell, label: 'Notifications', subtitle: 'Patient alerts, system updates', color: '#F59E0B', badge: '5', actionId: 'notifications' },
-      { icon: Globe, label: 'Language', subtitle: 'English', color: '#0EA5E9', actionId: 'language' },
-      { icon: Moon, label: 'Appearance', subtitle: 'System default', color: '#64748B', actionId: 'appearance' },
-    ],
-  },
-  {
-    title: 'Security',
-    items: [
-      { icon: Fingerprint, label: 'Biometric Login', subtitle: 'Face ID enabled', color: '#8B5CF6', actionId: 'biometric' },
-      { icon: Lock, label: 'Change Password', subtitle: 'Last changed 10 days ago', color: '#64748B', actionId: 'change_password' },
-      { icon: Shield, label: 'Active Sessions', subtitle: '3 devices connected', color: '#059669', actionId: 'sessions' },
-    ],
-  },
-  {
-    title: 'Support',
-    items: [
-      { icon: HelpCircle, label: 'Help & Support', subtitle: 'IT support, user guide', color: Colors.primary, actionId: 'help' },
-      { icon: AlertCircle, label: 'About Nalam', subtitle: 'Version 1.0.0', color: '#64748B', actionId: 'about' },
-    ],
-  },
-];
+// MENU_SECTIONS is computed inside the component via useMemo (needs live stats)
 
 /* ───── Sub-components ───── */
 
@@ -162,6 +123,59 @@ export default function DoctorProfileScreen() {
       .catch((err) => console.error('Failed to load profile:', err));
   }, []);
 
+  // Menu sections with dynamic subtitles from real API stats
+  const menuSections: MenuSection[] = useMemo(() => {
+    const activePatients = liveProfile?.stats?.activePatients ?? null;
+    const totalConsults = liveProfile?.stats?.totalConsults ?? null;
+    return [
+      {
+        title: 'Professional',
+        items: [
+          { icon: Briefcase, label: 'Professional Details', subtitle: 'Qualifications, specializations', color: '#8B5CF6', actionId: 'professional' },
+          { icon: Award, label: 'Certificates & Awards', subtitle: 'Qualifications & certifications', color: '#F59E0B', actionId: 'certificates' },
+          { icon: ClipboardList, label: 'Consultation Settings', subtitle: 'Fees, duration, mode', color: Colors.primary, actionId: 'consultation_settings' },
+        ],
+      },
+      {
+        title: 'Schedule',
+        items: [
+          { icon: Clock, label: 'Availability Settings', subtitle: 'OPD, surgery, teleconsult', color: '#EA580C', actionId: 'availability' },
+          { icon: Calendar, label: 'Leave Management', subtitle: 'Apply & manage leave', color: '#0EA5E9', actionId: 'leave' },
+          {
+            icon: Stethoscope,
+            label: 'My Patients',
+            subtitle: activePatients !== null ? `${activePatients} active patients` : 'Loading…',
+            color: '#059669',
+            actionId: 'my_patients',
+          },
+        ],
+      },
+      {
+        title: 'Preferences',
+        items: [
+          { icon: Bell, label: 'Notifications', subtitle: 'Patient alerts, system updates', color: '#F59E0B', actionId: 'notifications' },
+          { icon: Globe, label: 'Language', subtitle: 'English', color: '#0EA5E9', actionId: 'language' },
+          { icon: Moon, label: 'Appearance', subtitle: 'System default', color: '#64748B', actionId: 'appearance' },
+        ],
+      },
+      {
+        title: 'Security',
+        items: [
+          { icon: Fingerprint, label: 'Biometric Login', subtitle: 'Quick secure login', color: '#8B5CF6', actionId: 'biometric' },
+          { icon: Lock, label: 'Change PIN / Password', subtitle: 'Update login credentials', color: '#64748B', actionId: 'change_password' },
+          { icon: Shield, label: 'Active Sessions', subtitle: 'Manage logged-in devices', color: '#059669', actionId: 'sessions' },
+        ],
+      },
+      {
+        title: 'Support',
+        items: [
+          { icon: HelpCircle, label: 'Help & Support', subtitle: 'IT support, user guide', color: Colors.primary, actionId: 'help' },
+          { icon: AlertCircle, label: 'About Nalam', subtitle: 'Version 1.0.0', color: '#64748B', actionId: 'about' },
+        ],
+      },
+    ];
+  }, [liveProfile]);
+
   const displayName = userName || 'Dr. Sarah Johnson';
   const initials = useMemo(() => {
     const name = displayName.replace(/^Dr\.?\s*/i, '');
@@ -190,21 +204,38 @@ export default function DoctorProfileScreen() {
   }, [logout, router]);
 
   const handleStatPress = useCallback((label: string) => {
+    const s = liveProfile?.stats;
     switch (label) {
       case 'Consults':
-        CustomAlert.alert('Consultation Stats', 'Total Consultations: 1,240\n\nThis Month: 86\nLast Month: 72\nGrowth: +12%\n\nBreakdown:\n- OPD Consults: 920\n- Emergency: 180\n- Tele-consult: 140\n\nAvg. per day: 8.2 patients');
+        CustomAlert.alert(
+          'Consultation Stats',
+          `Total Consultations: ${s?.totalConsults ?? '—'}\nTotal Appointments: ${s?.totalAppointments ?? '—'}\n\nCompleted sessions are counted as consultations.`,
+        );
         break;
       case 'Rating':
-        CustomAlert.alert('Patient Ratings', 'Overall Rating: 4.9/5\nBased on 850 reviews\n\nBreakdown:\n5 stars: 720 (84.7%)\n4 stars: 102 (12.0%)\n3 stars: 20 (2.4%)\n2 stars: 5 (0.6%)\n1 star: 3 (0.4%)\n\nRecent Feedback:\n"Excellent doctor, very patient and thorough."\n"Best cardiologist in Chennai!"');
+        CustomAlert.alert(
+          'Patient Ratings',
+          s && s.rating > 0
+            ? `Overall Rating: ${s.rating.toFixed(1)}/5\nBased on ${s.reviewCount} reviews`
+            : 'No ratings yet. Ratings are submitted by patients after consultations.',
+        );
         break;
-      case 'Surgeries':
-        CustomAlert.alert('Surgery Stats', 'Total Surgeries: 86\n\nThis Month: 6\nSuccess Rate: 99.2%\n\nTypes:\n- Angioplasty: 42\n- Bypass Surgery: 18\n- Pacemaker: 14\n- Others: 12');
+      case 'Patients':
+        CustomAlert.alert(
+          'Active Patients',
+          `Active patients (unique patients with at least one completed consultation): ${s?.activePatients ?? '—'}`,
+        );
         break;
       case 'Reviews':
-        CustomAlert.alert('Patient Reviews', '850 verified reviews\n\nMost Praised:\n- Communication: 4.9/5\n- Expertise: 5.0/5\n- Punctuality: 4.7/5\n- Empathy: 4.9/5');
+        CustomAlert.alert(
+          'Patient Reviews',
+          s && s.reviewCount > 0
+            ? `${s.reviewCount} verified reviews\n\nRatings are submitted by patients after completed consultations.`
+            : 'No reviews yet.',
+        );
         break;
     }
-  }, []);
+  }, [liveProfile]);
 
   const handleMenuPress = useCallback((actionId: string) => {
     switch (actionId) {
@@ -265,10 +296,10 @@ export default function DoctorProfileScreen() {
       case 'my_patients':
         CustomAlert.alert(
           'My Patients',
-          'Active Patients: 320\n\nRecent Consultations:\n1. Rajesh Kumar — Mar 20, Follow-up\n2. Priya Sharma — Mar 19, New\n3. Arun Patel — Mar 18, Emergency\n\nUpcoming Follow-ups: 8 this week',
+          `Active Patients: ${liveProfile?.stats?.activePatients ?? '—'}\nTotal Consultations: ${liveProfile?.stats?.totalConsults ?? '—'}\n\nView your appointments list for recent patient activity.`,
           [
             { text: 'OK' },
-            { text: 'View All', onPress: () => CustomAlert.alert('Patient List', 'Full patient directory would open with search, filter by condition, and sort by last visit.') },
+            { text: 'View Appointments', onPress: () => router.push('/doctor/(tabs)/patients') },
           ],
         );
         break;
@@ -513,7 +544,7 @@ export default function DoctorProfileScreen() {
         </View>
 
         {/* Menu Sections */}
-        {MENU_SECTIONS.map((section, si) => (
+        {menuSections.map((section, si) => (
           <View key={si} className="mt-5">
             <Text className="px-6 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
               {section.title}

@@ -1,11 +1,12 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Image, Switch, Modal, Animated, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
+import { patientService, CarePlan, PatientNotification } from '@/services/patientService';
 import {
   Bell, Check, Droplets, Pill, CalendarPlus, Package, FileText,
   BriefcaseMedical, Sun, Moon, Sunrise, Sunset, Heart, Activity,
@@ -54,102 +55,84 @@ const timeIcons: Record<TimeOfDay, { icon: any; label: string; color: string }> 
   evening:   { icon: Moon,    label: 'Evening',    color: '#6366F1' },
 };
 
-// ─── Initial Care Plan Tasks ───
-const initialTasks: CareTask[] = [
-  {
-    id: 'med-1',
-    title: 'Amlodipine 5mg',
-    subtitle: '1 tablet',
-    category: 'medicine',
-    scheduledTime: '8:00 AM',
-    timeOfDay: 'morning',
-    status: 'completed',
-    dosage: { morning: 1, afternoon: 0, evening: 1 },
-    color: '#1A73E8',
-    bgColor: '#EEF4FF',
-  },
-  {
-    id: 'med-2',
-    title: 'Metformin 500mg',
-    subtitle: '1 tablet after food',
-    category: 'medicine',
-    scheduledTime: '8:30 AM',
-    timeOfDay: 'morning',
-    status: 'completed',
-    dosage: { morning: 1, afternoon: 1, evening: 0 },
-    color: '#1A73E8',
-    bgColor: '#EEF4FF',
-  },
-  {
-    id: 'vitals-1',
-    title: 'Log Blood Pressure',
-    subtitle: 'Use cuff & record reading',
-    category: 'vitals',
-    scheduledTime: '9:00 AM',
-    timeOfDay: 'morning',
-    status: 'completed',
-    color: '#EF4444',
-    bgColor: '#FEF2F2',
-  },
-  {
-    id: 'physio-1',
-    title: 'Shoulder Stretches',
-    subtitle: '15 min gentle ROM exercises',
-    category: 'physio',
-    scheduledTime: '10:00 AM',
-    timeOfDay: 'morning',
-    status: 'completed',
-    color: '#8B5CF6',
-    bgColor: '#F3EEFF',
-  },
-  {
-    id: 'diet-1',
-    title: 'Low-Sodium Lunch',
-    subtitle: 'Avoid pickles & processed food',
-    category: 'diet',
-    scheduledTime: '12:30 PM',
-    timeOfDay: 'afternoon',
-    status: 'completed',
-    color: '#22C55E',
-    bgColor: '#EEFBF4',
-  },
-  {
-    id: 'med-3',
-    title: 'Metformin 500mg',
-    subtitle: '1 tablet after food',
-    category: 'medicine',
-    scheduledTime: '1:00 PM',
-    timeOfDay: 'afternoon',
-    status: 'overdue',
-    dosage: { morning: 1, afternoon: 1, evening: 0 },
-    color: '#1A73E8',
-    bgColor: '#EEF4FF',
-  },
-  {
-    id: 'hydra-1',
-    title: 'Water Intake Goal',
-    subtitle: '5 of 8 glasses done',
+// ─── Care Plan Builder ───
+
+function format24to12(time: string): string {
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr ?? '00';
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m} ${suffix}`;
+}
+
+function getTimeOfDay(time: string): TimeOfDay {
+  const h = parseInt(time.split(':')[0], 10);
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  return 'evening';
+}
+
+function formatApptDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  if (d.getTime() === today.getTime()) return 'Today';
+  if (d.getTime() === tomorrow.getTime()) return 'Tomorrow';
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function buildTasksFromCarePlan(data: CarePlan): CareTask[] {
+  const tasks: CareTask[] = [];
+
+  // Upcoming appointment → vitals task
+  if (data.upcomingAppointment) {
+    const appt = data.upcomingAppointment;
+    const time12 = format24to12(appt.startTime);
+    tasks.push({
+      id: `appt-${appt.id}`,
+      title: `Appointment: ${appt.doctorName.replace(/^Dr\.?\s*/i, 'Dr. ')}`,
+      subtitle: `${formatApptDate(appt.scheduleDate)} at ${time12} • ${appt.specialty}`,
+      category: 'vitals',
+      scheduledTime: time12,
+      timeOfDay: getTimeOfDay(appt.startTime),
+      status: 'pending',
+      color: '#EF4444',
+      bgColor: '#FEF2F2',
+    });
+  }
+
+  // Prescription notes → medicine tasks
+  data.prescriptionNotes.forEach((rx) => {
+    const shortNote = rx.notes.length > 65 ? rx.notes.substring(0, 65) + '…' : rx.notes;
+    tasks.push({
+      id: `rx-${rx.appointmentId}`,
+      title: `Dr. ${rx.doctorName.replace(/^Dr\.?\s*/i, '')} — Instructions`,
+      subtitle: shortNote,
+      category: 'medicine',
+      scheduledTime: '8:00 AM',
+      timeOfDay: 'morning',
+      status: 'pending',
+      color: '#1A73E8',
+      bgColor: '#EEF4FF',
+    });
+  });
+
+  // Default wellbeing tasks always included
+  tasks.push({
+    id: 'hydra-default',
+    title: 'Daily Water Intake',
+    subtitle: 'Drink 8 glasses of water',
     category: 'hydration',
     scheduledTime: 'All Day',
     timeOfDay: 'afternoon',
     status: 'pending',
     color: '#0EA5E9',
     bgColor: '#F0F9FF',
-  },
-  {
-    id: 'med-4',
-    title: 'Amlodipine 5mg',
-    subtitle: '1 tablet',
-    category: 'medicine',
-    scheduledTime: '8:00 PM',
-    timeOfDay: 'evening',
-    status: 'pending',
-    dosage: { morning: 1, afternoon: 0, evening: 1 },
-    color: '#1A73E8',
-    bgColor: '#EEF4FF',
-  },
-  {
-    id: 'physio-2',
+  });
+  tasks.push({
+    id: 'walk-default',
     title: 'Evening Walk',
     subtitle: '20 min brisk walk',
     category: 'physio',
@@ -158,19 +141,10 @@ const initialTasks: CareTask[] = [
     status: 'pending',
     color: '#8B5CF6',
     bgColor: '#F3EEFF',
-  },
-  {
-    id: 'vitals-2',
-    title: 'Log Blood Sugar',
-    subtitle: 'Before dinner reading',
-    category: 'vitals',
-    scheduledTime: '7:00 PM',
-    timeOfDay: 'evening',
-    status: 'pending',
-    color: '#EF4444',
-    bgColor: '#FEF2F2',
-  },
-];
+  });
+
+  return tasks;
+}
 
 // ─── Health Tips ───
 const healthTips = [
@@ -181,13 +155,24 @@ const healthTips = [
   { tip: 'Taking medications at the same time daily improves their effectiveness.', icon: Clock, color: '#1A73E8' },
 ];
 
-// ─── Notifications ───
-const initialNotifications = [
-  { id: '1', title: 'Medication Reminder', body: 'Amlodipine 5mg is due at 8:00 PM tonight.', time: '30 min ago', read: false, icon: Pill, color: '#1A73E8' },
-  { id: '2', title: 'Lab Results Ready', body: 'Your Lipid Profile results are now available.', time: '2 hrs ago', read: false, icon: FileText, color: '#22C55E' },
-  { id: '3', title: 'Appointment Confirmed', body: 'Dr. Aruna Devi - March 22 at 10:00 AM.', time: '5 hrs ago', read: true, icon: CalendarPlus, color: '#8B5CF6' },
-  { id: '4', title: 'Step Goal Reminder', body: 'You\'re 1,600 steps away from your daily goal!', time: 'Today', read: false, icon: Footprints, color: '#F59E0B' },
-];
+// ─── Notification Config ───
+const notificationConfig: Record<string, { icon: any; color: string }> = {
+  appointment:           { icon: CalendarPlus, color: '#8B5CF6' },
+  prescription_ready:    { icon: Package,      color: '#059669' },
+  prescription_pending:  { icon: Pill,         color: '#1A73E8' },
+  consultation_summary:  { icon: FileText,     color: '#0EA5E9' },
+};
+
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1)  return 'Just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `${hrs} hr${hrs > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
 
 // ─── Motivational Messages ───
 const motivationalMessages = [
@@ -362,10 +347,24 @@ export default function PatientDashboard() {
   const userName = useAuthStore((s) => s.userName);
   const [shareLive, setShareLive] = useState(true);
   const [watchConnected, setWatchConnected] = useState(false);
-  const [tasks, setTasks] = useState<CareTask[]>(initialTasks);
+  const [tasks, setTasks] = useState<CareTask[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState<PatientNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  const loadCarePlan = useCallback(() => {
+    patientService.getCarePlan()
+      .then((data) => setTasks(buildTasksFromCarePlan(data)))
+      .catch(() => { /* silently fall back to empty; defaults already in builder */ });
+  }, []);
+
+  const loadNotifications = useCallback(() => {
+    patientService.getNotifications()
+      .then((data) => setNotifications(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { loadCarePlan(); loadNotifications(); }, [loadCarePlan, loadNotifications]);
   const [showNudge, setShowNudge] = useState(true);
   const [activeCategory, setActiveCategory] = useState<TaskCategory | null>(null);
   const taskScrollRef = useRef<ScrollView>(null);
@@ -574,13 +573,13 @@ export default function PatientDashboard() {
     );
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      CustomAlert.alert('Synced', 'Your care plan and vitals have been refreshed.');
-    }, 1500);
-  };
+    Promise.all([
+      patientService.getCarePlan().then((data) => setTasks(buildTasksFromCarePlan(data))),
+      patientService.getNotifications().then((data) => setNotifications(data)),
+    ]).catch(() => {}).finally(() => setRefreshing(false));
+  }, []);
 
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
@@ -1203,8 +1202,15 @@ export default function PatientDashboard() {
               </View>
             </View>
             <ScrollView className="px-6 py-4">
+              {notifications.length === 0 && (
+                <View className="items-center py-10">
+                  <Bell size={32} color="#CBD5E1" />
+                  <Text className="text-slate-400 text-sm mt-3">No notifications yet</Text>
+                </View>
+              )}
               {notifications.map((n) => {
-                const NIcon = n.icon;
+                const cfg = notificationConfig[n.type] ?? { icon: Bell, color: '#64748B' };
+                const NIcon = cfg.icon;
                 return (
                   <Pressable
                     key={n.id}
@@ -1216,13 +1222,13 @@ export default function PatientDashboard() {
                     style={{ borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}
                   >
                     {!n.read && <View className="w-2 h-2 rounded-full bg-primary mt-2" />}
-                    <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: `${n.color}15` }}>
-                      <NIcon size={18} color={n.color} />
+                    <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: `${cfg.color}15` }}>
+                      <NIcon size={18} color={cfg.color} />
                     </View>
                     <View className="flex-1">
                       <Text className={`text-sm ${n.read ? 'text-slate-500 font-medium' : 'text-midnight font-bold'}`}>{n.title}</Text>
                       <Text className="text-xs text-slate-400 mt-0.5" numberOfLines={2}>{n.body}</Text>
-                      <Text className="text-[10px] text-slate-300 mt-1">{n.time}</Text>
+                      <Text className="text-[10px] text-slate-300 mt-1">{formatRelativeTime(n.timestamp)}</Text>
                     </View>
                   </Pressable>
                 );

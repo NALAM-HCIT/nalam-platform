@@ -209,6 +209,8 @@ app.MapPharmacistEndpoints();
 app.MapPatientEndpoints();
 app.MapPatientProfileEndpoints();
 app.MapDoctorPortalEndpoints();
+app.MapMedicineEndpoints();
+app.MapMessageEndpoints();
 
 // Health check
 app.MapGet("/", () => Results.Ok(new
@@ -286,6 +288,45 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"⚠️  Schema safety check warning: {ex.Message}");
+    }
+
+    // Seed medicine catalog for hospitals that have none
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            INSERT INTO medicines (id, hospital_id, name, generic_name, category, dosage_form, strength, manufacturer, price, pack_size, stock_quantity, requires_prescription, is_active, created_at, updated_at)
+            SELECT
+                gen_random_uuid(), h.id, v.name, v.generic_name, v.category, v.dosage_form, v.strength, v.manufacturer, v.price, v.pack_size, v.stock_qty, v.rx, true, now(), now()
+            FROM hospitals h
+            CROSS JOIN (VALUES
+                ('Paracetamol 500mg','Paracetamol','General','Tablet','500mg','Cipla',35,'10 tablets',100,false),
+                ('Amoxicillin 500mg','Amoxicillin','Antibiotics','Capsule','500mg','Sun Pharma',85,'10 capsules',80,true),
+                ('Cetirizine 10mg','Cetirizine','General','Tablet','10mg','Mankind',45,'10 tablets',120,false),
+                ('Omeprazole 20mg','Omeprazole','Gastro','Capsule','20mg','Dr Reddys',65,'15 capsules',90,false),
+                ('Pantoprazole 40mg','Pantoprazole','Gastro','Tablet','40mg','Alkem',78,'15 tablets',75,false),
+                ('Azithromycin 500mg','Azithromycin','Antibiotics','Tablet','500mg','Cipla',110,'3 tablets',60,true),
+                ('Amlodipine 5mg','Amlodipine','Cardiac','Tablet','5mg','Torrent',120,'14 tablets',50,true),
+                ('Atorvastatin 10mg','Atorvastatin','Cardiac','Tablet','10mg','Lupin',95,'10 tablets',60,true),
+                ('Metformin 500mg','Metformin','Diabetes','Tablet','500mg','USV',95,'20 tablets',80,true),
+                ('Glimepiride 1mg','Glimepiride','Diabetes','Tablet','1mg','Sanofi',68,'10 tablets',50,true),
+                ('Telmisartan 40mg','Telmisartan','Cardiac','Tablet','40mg','Glenmark',110,'14 tablets',55,true),
+                ('Rosuvastatin 10mg','Rosuvastatin','Cardiac','Tablet','10mg','AstraZeneca',130,'10 tablets',45,true),
+                ('Salbutamol Inhaler','Salbutamol','Respiratory','Inhaler','100mcg','Cipla',220,'200 doses',30,true),
+                ('Beclometasone Inhaler','Beclometasone','Respiratory','Inhaler','250mcg','GSK',380,'200 doses',20,true),
+                ('Cough Relief Syrup','Dextromethorphan','Respiratory','Syrup','15mg/5ml','Pfizer',90,'100ml bottle',70,false),
+                ('Benadryl Syrup','Diphenhydramine','General','Syrup','12.5mg/5ml','Johnson',75,'150ml bottle',85,false),
+                ('Neurobion Forte','Vit B1+B6+B12','Neuro','Tablet',null,'Merck',180,'30 tablets',100,false),
+                ('Pregabalin 75mg','Pregabalin','Neuro','Capsule','75mg','Pfizer',145,'10 capsules',40,true),
+                ('Vitamin D3 60k','Cholecalciferol','General','Sachet','60000IU','Abbott',120,'4 sachets',90,false),
+                ('Clopidogrel 75mg','Clopidogrel','Cardiac','Tablet','75mg','Sanofi',95,'14 tablets',45,true)
+            ) AS v(name, generic_name, category, dosage_form, strength, manufacturer, price, pack_size, stock_qty, rx)
+            WHERE NOT EXISTS (SELECT 1 FROM medicines WHERE hospital_id = h.id);
+        ");
+        Console.WriteLine("✅ Medicine catalog seeded (skipped hospitals that already have medicines).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Medicine seed warning: {ex.Message}");
     }
 }
 
