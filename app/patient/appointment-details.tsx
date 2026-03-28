@@ -7,7 +7,7 @@ import { Shadows, Colors } from '@/constants/theme';
 import { getAppointment, AppointmentResponse } from '@/services/appointmentService';
 import {
   ArrowLeft, Calendar, MapPin, CheckCircle, UserCheck,
-  CalendarClock, Phone, Clock, CreditCard, AlertCircle,
+  CalendarClock, Phone, CreditCard, AlertCircle, FileText,
 } from 'lucide-react-native';
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -235,6 +235,17 @@ export default function AppointmentDetailsScreen() {
             >
               <UserCheck size={22} color="#FFFFFF" />
               <Text className="text-white font-bold text-lg">Mark My Arrival</Text>
+            </Pressable>
+          )}
+
+          {appointment.status === 'completed' && (
+            <Pressable
+              onPress={() => router.push({ pathname: '/patient/post-consultation', params: { appointmentId: appointment.id } })}
+              className="bg-[#1A73E8] w-full py-5 rounded-full flex-row items-center justify-center gap-3 active:opacity-80"
+              style={Shadows.focus}
+            >
+              <FileText size={22} color="#FFFFFF" />
+              <Text className="text-white font-bold text-lg">View Prescription</Text>
             </Pressable>
           )}
 

@@ -156,6 +156,7 @@ public static class PatientEndpoints
             .Include(a => a.DoctorProfile)
                 .ThenInclude(dp => dp.User)
             .Include(a => a.Hospital)
+            .Include(a => a.PrescriptionItems)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.PatientId == userId);
 
         if (appointment == null)
@@ -173,6 +174,16 @@ public static class PatientEndpoints
             consultationType = appointment.ConsultationType,
             prescriptionNotes = appointment.Notes,
             prescriptionStatus = appointment.PrescriptionStatus,
+            prescriptionItems = appointment.PrescriptionItems
+                .OrderBy(pi => pi.CreatedAt)
+                .Select(pi => new
+                {
+                    id                 = pi.Id,
+                    medicineName       = pi.MedicineName,
+                    dosageInstructions = pi.DosageInstructions,
+                    quantity           = pi.Quantity,
+                })
+                .ToList(),
             doctor = new
             {
                 name = appointment.DoctorProfile.User.FullName,

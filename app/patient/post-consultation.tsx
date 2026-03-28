@@ -3,10 +3,10 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
-import { patientService, PrescriptionDetail } from '@/services/patientService';
+import { patientService, PrescriptionDetail, PrescriptionLineItem } from '@/services/patientService';
 import {
-  ArrowLeft, Stethoscope, FileText, Lightbulb, Download,
-  ShoppingCart, Calendar, ChevronRight, AlertCircle,
+  ArrowLeft, Stethoscope, FileText, Pill, Download,
+  Calendar, AlertCircle,
 } from 'lucide-react-native';
 
 function formatDate(dateStr: string): string {
@@ -95,24 +95,46 @@ export default function PostConsultationScreen() {
               </View>
             </View>
 
-            {/* Summary Card */}
+            {/* Prescribed Medications */}
             <View className="bg-white rounded-[20px] p-6 border border-slate-100 mb-6" style={Shadows.card}>
-              {/* Prescription Notes */}
-              <View>
-                <View className="flex-row items-center gap-2 mb-3">
-                  <FileText size={18} color="#1A73E8" />
-                  <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
-                    Prescription
-                  </Text>
-                </View>
-                {detail.prescriptionNotes ? (
-                  <Text className="text-sm text-slate-700 leading-6">{detail.prescriptionNotes}</Text>
-                ) : (
-                  <Text className="text-sm text-slate-400 italic">
-                    No prescription notes recorded for this consultation.
-                  </Text>
+              <View className="flex-row items-center gap-2 mb-4">
+                <Pill size={18} color="#1A73E8" />
+                <Text className="font-bold text-sm text-[#1A73E8] uppercase tracking-[2px]">
+                  Medications
+                </Text>
+                {detail.prescriptionItems?.length > 0 && (
+                  <View className="ml-auto bg-primary/10 px-2 py-0.5 rounded-full">
+                    <Text className="text-[10px] font-bold text-primary">{detail.prescriptionItems.length} item{detail.prescriptionItems.length > 1 ? 's' : ''}</Text>
+                  </View>
                 )}
               </View>
+
+              {detail.prescriptionItems?.length > 0 ? (
+                <View className="gap-3">
+                  {detail.prescriptionItems.map((item: PrescriptionLineItem, i: number) => (
+                    <View key={item.id} className={`flex-row items-center gap-3 pb-3 ${i < detail.prescriptionItems.length - 1 ? 'border-b border-slate-50' : ''}`}>
+                      <View className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center">
+                        <Pill size={16} color="#1A73E8" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="font-bold text-midnight text-sm">{item.medicineName}</Text>
+                        {item.dosageInstructions ? (
+                          <Text className="text-xs text-slate-500 mt-0.5">{item.dosageInstructions}</Text>
+                        ) : null}
+                      </View>
+                      <View className="px-2 py-0.5 bg-slate-100 rounded-full">
+                        <Text className="text-[10px] font-bold text-slate-500">×{item.quantity}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : detail.prescriptionNotes ? (
+                <Text className="text-sm text-slate-700 leading-6">{detail.prescriptionNotes}</Text>
+              ) : (
+                <Text className="text-sm text-slate-400 italic">
+                  No medications prescribed for this consultation.
+                </Text>
+              )}
 
               {detail.doctor.bio && (
                 <>

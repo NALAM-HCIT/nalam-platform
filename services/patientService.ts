@@ -75,6 +75,13 @@ export interface PatientPrescription {
     prescriptionStatus: string;
 }
 
+export interface PrescriptionLineItem {
+    id: string;
+    medicineName: string;
+    dosageInstructions: string | null;
+    quantity: number;
+}
+
 export interface PrescriptionDetail {
     id: string;
     bookingReference: string;
@@ -83,6 +90,7 @@ export interface PrescriptionDetail {
     consultationType: string;
     prescriptionNotes: string | null;
     prescriptionStatus: string;
+    prescriptionItems: PrescriptionLineItem[];
     doctor: {
         name: string;
         specialty: string;
