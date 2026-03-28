@@ -290,6 +290,95 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"⚠️  Schema safety check warning: {ex.Message}");
     }
 
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE doctor_profiles ADD COLUMN IF NOT EXISTS qualification    varchar(200) NULL;
+            ALTER TABLE doctor_profiles ADD COLUMN IF NOT EXISTS mci_registration varchar(100) NULL;
+            ALTER TABLE appointments    ADD COLUMN IF NOT EXISTS prescription_status varchar(20) NULL;
+        ");
+        Console.WriteLine("✅ Schema safety check passed (doctor_profiles + prescription_status columns ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (doctor_profiles): {ex.Message}");
+    }
+
+    // Safety net: medicines table
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS medicines (
+                id                   uuid          NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                hospital_id          uuid          NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+                name                 varchar(200)  NOT NULL,
+                generic_name         varchar(200)  NULL,
+                category             varchar(100)  NOT NULL,
+                dosage_form          varchar(50)   NOT NULL,
+                strength             varchar(50)   NULL,
+                manufacturer         varchar(200)  NULL,
+                price                numeric(10,2) NOT NULL DEFAULT 0,
+                pack_size            varchar(100)  NULL,
+                stock_quantity       integer       NOT NULL DEFAULT 0,
+                requires_prescription boolean      NOT NULL DEFAULT true,
+                is_active            boolean       NOT NULL DEFAULT true,
+                created_at           timestamptz   NOT NULL DEFAULT now(),
+                updated_at           timestamptz   NOT NULL DEFAULT now()
+            );
+        ");
+        Console.WriteLine("✅ Schema safety check passed (medicines table ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (medicines): {ex.Message}");
+    }
+
+    // Safety net: hospital_messages table
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS hospital_messages (
+                id              uuid          NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                hospital_id     uuid          NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+                sender_id       uuid          NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+                recipient_id    uuid          NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+                body            varchar(2000) NOT NULL,
+                is_read         boolean       NOT NULL DEFAULT false,
+                created_at      timestamptz   NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ix_messages_hospital_thread_time
+                ON hospital_messages (hospital_id, sender_id, recipient_id, created_at);
+        ");
+        Console.WriteLine("✅ Schema safety check passed (hospital_messages table ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (hospital_messages): {ex.Message}");
+    }
+
+    // Safety net: prescription_items table
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS prescription_items (
+                id                  uuid         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                appointment_id      uuid         NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+                medicine_id         uuid         NULL     REFERENCES medicines(id)    ON DELETE SET NULL,
+                medicine_name       varchar(200) NOT NULL,
+                dosage_instructions varchar(500) NULL,
+                quantity            integer      NOT NULL DEFAULT 1,
+                created_at          timestamptz  NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ix_prescription_items_appointment
+                ON prescription_items (appointment_id);
+        ");
+        Console.WriteLine("✅ Schema safety check passed (prescription_items table ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (prescription_items): {ex.Message}");
+    }
+
     // Seed medicine catalog for hospitals that have none
     try
     {
