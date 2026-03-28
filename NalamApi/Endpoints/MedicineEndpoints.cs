@@ -46,6 +46,7 @@ public static class MedicineEndpoints
         HttpContext ctx,
         string? search = null,
         string? category = null,
+        bool includeInactive = false,
         int page = 1,
         int pageSize = 20)
     {
@@ -53,7 +54,7 @@ public static class MedicineEndpoints
 
         var query = db.Medicines
             .AsNoTracking()
-            .Where(m => m.IsActive);
+            .Where(m => includeInactive || m.IsActive);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -86,6 +87,7 @@ public static class MedicineEndpoints
                 m.PackSize,
                 m.StockQuantity,
                 m.RequiresPrescription,
+                m.IsActive,
             })
             .ToListAsync();
 

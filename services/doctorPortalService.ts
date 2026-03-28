@@ -227,6 +227,10 @@ export interface FinalizeConsultationPayload {
 
 // ─── Additional service methods ─────────────────────────────
 
+export interface MedicineAdminItem extends MedicineCatalogItem {
+    isActive: boolean;
+}
+
 export const medicineService = {
     /**
      * GET /api/medicines?search=&category=&page=&pageSize=
@@ -239,6 +243,52 @@ export const medicineService = {
         pageSize?: number;
     }): Promise<{ total: number; page: number; pageSize: number; medicines: MedicineCatalogItem[] }> => {
         const res = await api.get('/medicines', { params });
+        return res.data;
+    },
+
+    /**
+     * GET /api/medicines?includeInactive=true — for admin catalog management
+     */
+    listAll: async (params?: {
+        search?: string;
+        page?: number;
+        pageSize?: number;
+    }): Promise<{ total: number; page: number; pageSize: number; medicines: MedicineAdminItem[] }> => {
+        const res = await api.get('/medicines', { params: { ...params, includeInactive: true, pageSize: params?.pageSize ?? 100 } });
+        return res.data;
+    },
+
+    /**
+     * POST /api/medicines — add a new medicine (StaffAccess)
+     */
+    add: async (payload: {
+        name: string;
+        genericName?: string;
+        category: string;
+        dosageForm: string;
+        strength?: string;
+        manufacturer?: string;
+        price: number;
+        packSize?: string;
+        stockQuantity?: number;
+        requiresPrescription?: boolean;
+    }): Promise<{ id: string; name: string }> => {
+        const res = await api.post('/medicines', payload);
+        return res.data;
+    },
+
+    /**
+     * PUT /api/medicines/{id} — update/deactivate a medicine (StaffAccess)
+     */
+    update: async (id: string, payload: {
+        name?: string;
+        category?: string;
+        dosageForm?: string;
+        strength?: string;
+        stockQuantity?: number;
+        isActive?: boolean;
+    }): Promise<{ id: string; name: string; isActive: boolean }> => {
+        const res = await api.put(`/medicines/${id}`, payload);
         return res.data;
     },
 };

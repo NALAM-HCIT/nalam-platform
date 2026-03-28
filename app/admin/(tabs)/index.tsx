@@ -9,7 +9,7 @@ import {
   Bell, Users, Shield, UserPlus, Settings,
   Building2, ClipboardList, ChevronRight, X, Check, AlertTriangle,
   Server, Calendar, Database, Wifi,
-  FileText, Clock,
+  FileText, Clock, Pill,
 } from 'lucide-react-native';
 import { api, isAuthError } from '@/services/api';
 
@@ -37,8 +37,9 @@ interface Notification {
 
 const QUICK_ACTIONS = [
   { icon: UserPlus, label: 'Create User', color: '#FFFFFF', bg: Colors.primary, actionId: 'create-user' },
+  { icon: Pill, label: 'Medicines', color: '#059669', bg: '#ECFDF5', actionId: 'manage-medicines' },
   { icon: Settings, label: 'Settings', color: '#64748B', bg: '#F1F5F9', actionId: 'system-settings' },
-  { icon: ClipboardList, label: 'Audit Logs', color: '#059669', bg: '#ECFDF5', actionId: 'audit-logs' },
+  { icon: ClipboardList, label: 'Audit Logs', color: '#7C3AED', bg: '#F5F3FF', actionId: 'audit-logs' },
 ];
 
 /* ───── Sub-components ───── */
@@ -219,6 +220,9 @@ export default function AdminDashboard() {
     switch (actionId) {
       case 'create-user':
         router.push('/admin/create-user');
+        break;
+      case 'manage-medicines':
+        router.push('/admin/manage-medicines' as any);
         break;
       case 'system-settings':
         router.push('/admin/(tabs)/settings' as any);
