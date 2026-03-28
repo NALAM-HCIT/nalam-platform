@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, Clock, CheckCircle, Search, X, Pill } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
-import { pharmacistService, PrescriptionItem } from '@/services/pharmacistService';
+import { pharmacistService, PrescriptionItem, RxLineItem } from '@/services/pharmacistService';
 import { isAuthError } from '@/services/api';
 type OrderFilter = 'all' | 'dispensed' | 'rejected';
 
@@ -188,14 +188,46 @@ export default function OrdersScreen() {
                       <Text className="text-sm text-midnight">{o.time}</Text>
                     </View>
 
-                    {/* Prescription Notes */}
-                    <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
-                      <View className="flex-row items-center gap-2 mb-2">
-                        <Pill size={14} color="#F59E0B" />
-                        <Text className="text-xs font-bold uppercase tracking-wider text-amber-700">Prescription Notes</Text>
+                    {/* Structured Medications */}
+                    {o.prescriptionItems?.length > 0 ? (
+                      <View className="mb-4">
+                        <View className="flex-row items-center gap-2 mb-2 px-1">
+                          <Pill size={14} color="#1A73E8" />
+                          <Text className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Medications ({o.prescriptionItems.length})
+                          </Text>
+                        </View>
+                        <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden" style={Shadows.card}>
+                          {o.prescriptionItems.map((item: RxLineItem, i: number) => (
+                            <View
+                              key={item.id}
+                              className={`flex-row items-center gap-3 p-4 ${i < o.prescriptionItems.length - 1 ? 'border-b border-slate-50' : ''}`}
+                            >
+                              <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center">
+                                <Pill size={16} color="#1A73E8" />
+                              </View>
+                              <View className="flex-1">
+                                <Text className="font-bold text-midnight text-sm">{item.medicineName}</Text>
+                                {item.dosageInstructions ? (
+                                  <Text className="text-xs text-slate-500 mt-0.5">{item.dosageInstructions}</Text>
+                                ) : null}
+                              </View>
+                              <View className="px-2 py-0.5 bg-slate-100 rounded-full">
+                                <Text className="text-[10px] font-bold text-slate-500">×{item.quantity}</Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
                       </View>
-                      <Text className="text-sm text-amber-900">{o.prescriptionNotes || 'No notes'}</Text>
-                    </View>
+                    ) : o.prescriptionNotes ? (
+                      <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
+                        <View className="flex-row items-center gap-2 mb-2">
+                          <Pill size={14} color="#F59E0B" />
+                          <Text className="text-xs font-bold uppercase tracking-wider text-amber-700">Prescription Notes</Text>
+                        </View>
+                        <Text className="text-sm text-amber-900">{o.prescriptionNotes}</Text>
+                      </View>
+                    ) : null}
 
                     <View className="mt-4 mb-8">
                       {isDispensed ? (

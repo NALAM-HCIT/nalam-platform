@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, FileText, X, User, Stethoscope, Pill, Clock } from 'lucide-react-native';
 import { Shadows } from '@/constants/theme';
 import { StatusChip } from '@/components';
-import { pharmacistService, PrescriptionItem } from '@/services/pharmacistService';
+import { pharmacistService, PrescriptionItem, RxLineItem } from '@/services/pharmacistService';
 import { isAuthError } from '@/services/api';
 type RxFilter = 'all' | 'pending' | 'dispensed' | 'rejected';
 
@@ -211,6 +211,12 @@ export default function PrescriptionsScreen() {
                         <Text className="text-slate-400 text-xs">{rx.time}</Text>
                       </View>
                       <Text className="text-slate-300 text-xs">{rx.bookingReference}</Text>
+                      {rx.prescriptionItems?.length > 0 && (
+                        <View className="flex-row items-center gap-1">
+                          <Pill size={10} color="#1A73E8" />
+                          <Text className="text-primary text-xs font-bold">{rx.prescriptionItems.length} med{rx.prescriptionItems.length > 1 ? 's' : ''}</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                   <StatusChip
@@ -262,14 +268,50 @@ export default function PrescriptionsScreen() {
                       <Text className="text-xs text-slate-500 mt-0.5">{rx.doctorSpecialty}</Text>
                     </View>
 
-                    {/* Prescription Notes */}
-                    <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
-                      <View className="flex-row items-center gap-2 mb-2">
-                        <Pill size={14} color="#F59E0B" />
-                        <Text className="text-xs font-bold uppercase tracking-wider text-amber-700">Prescription Notes</Text>
+                    {/* Structured Medications */}
+                    {rx.prescriptionItems?.length > 0 ? (
+                      <View className="mb-4">
+                        <View className="flex-row items-center gap-2 mb-2 px-1">
+                          <Pill size={14} color="#1A73E8" />
+                          <Text className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Prescribed Medications ({rx.prescriptionItems.length})
+                          </Text>
+                        </View>
+                        <View className="bg-white rounded-2xl border border-slate-100 overflow-hidden" style={Shadows.card}>
+                          {rx.prescriptionItems.map((item: RxLineItem, i: number) => (
+                            <View
+                              key={item.id}
+                              className={`flex-row items-center gap-3 p-4 ${i < rx.prescriptionItems.length - 1 ? 'border-b border-slate-50' : ''}`}
+                            >
+                              <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center">
+                                <Pill size={16} color="#1A73E8" />
+                              </View>
+                              <View className="flex-1">
+                                <Text className="font-bold text-midnight text-sm">{item.medicineName}</Text>
+                                {item.dosageInstructions ? (
+                                  <Text className="text-xs text-slate-500 mt-0.5">{item.dosageInstructions}</Text>
+                                ) : null}
+                              </View>
+                              <View className="px-2 py-0.5 bg-slate-100 rounded-full">
+                                <Text className="text-[10px] font-bold text-slate-500">×{item.quantity}</Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
                       </View>
-                      <Text className="text-sm text-amber-900">{rx.prescriptionNotes || 'No prescription notes recorded.'}</Text>
-                    </View>
+                    ) : rx.prescriptionNotes ? (
+                      <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
+                        <View className="flex-row items-center gap-2 mb-2">
+                          <Pill size={14} color="#F59E0B" />
+                          <Text className="text-xs font-bold uppercase tracking-wider text-amber-700">Prescription Notes</Text>
+                        </View>
+                        <Text className="text-sm text-amber-900">{rx.prescriptionNotes}</Text>
+                      </View>
+                    ) : (
+                      <View className="bg-slate-50 rounded-2xl p-4 mb-4 items-center">
+                        <Text className="text-sm text-slate-400">No medications prescribed.</Text>
+                      </View>
+                    )}
 
                     {/* Status */}
                     <View className="mt-2 mb-2 flex-row items-center gap-2">

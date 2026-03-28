@@ -12,6 +12,14 @@ export interface PharmacyDashboardStats {
     };
 }
 
+export interface RxLineItem {
+    id: string;
+    medicineId: string | null;
+    medicineName: string;
+    dosageInstructions: string | null;
+    quantity: number;
+}
+
 export interface PrescriptionItem {
     id: string;
     bookingReference: string;
@@ -26,6 +34,7 @@ export interface PrescriptionItem {
     prescriptionStatus: string; // pending, dispensed, rejected
     appointmentStatus: string;
     updatedAt: string;
+    prescriptionItems: RxLineItem[];
 }
 
 // ─── Service ────────────────────────────────────────
