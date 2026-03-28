@@ -4,7 +4,7 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
-import { patientService, PrescriptionDetail } from '@/services/patientService';
+import { patientService, PrescriptionDetail, PrescriptionLineItem } from '@/services/patientService';
 import {
   ArrowLeft, Download, Share2, ShoppingCart, Stethoscope,
   FileText, Calendar, Clock, User, Building2, Pill,
@@ -158,13 +158,37 @@ export default function DigitalPrescriptionScreen() {
               </View>
             </View>
 
-            {/* Prescription Notes */}
+            {/* Medications */}
             <View className="p-5 border-b border-slate-100">
-              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Prescription Notes</Text>
-              <View className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex-row items-start gap-2">
-                <Pill size={16} color="#F59E0B" />
-                <Text className="text-sm text-amber-900 flex-1">{rx.prescriptionNotes || 'No prescription notes recorded.'}</Text>
-              </View>
+              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Prescribed Medications</Text>
+              {rx.prescriptionItems?.length > 0 ? (
+                <View className="gap-3">
+                  {rx.prescriptionItems.map((item: PrescriptionLineItem, i: number) => (
+                    <View
+                      key={item.id}
+                      className={`flex-row items-center gap-3 pb-3 ${i < rx.prescriptionItems.length - 1 ? 'border-b border-slate-50' : ''}`}
+                    >
+                      <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center">
+                        <Pill size={15} color="#1A73E8" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="font-bold text-[#0B1B3D] text-sm">{item.medicineName}</Text>
+                        {item.dosageInstructions ? (
+                          <Text className="text-xs text-slate-500 mt-0.5">{item.dosageInstructions}</Text>
+                        ) : null}
+                      </View>
+                      <View className="px-2 py-0.5 bg-slate-100 rounded-full">
+                        <Text className="text-[10px] font-bold text-slate-500">×{item.quantity}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex-row items-start gap-2">
+                  <Pill size={16} color="#F59E0B" />
+                  <Text className="text-sm text-amber-900 flex-1">{rx.prescriptionNotes || 'No medications prescribed.'}</Text>
+                </View>
+              )}
             </View>
 
             {/* Status */}
