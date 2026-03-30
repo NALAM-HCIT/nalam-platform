@@ -2,16 +2,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy and restore project file
-COPY global.json .
-COPY NalamApi/NalamApi.csproj ./NalamApi/
-RUN dotnet restore NalamApi/NalamApi.csproj
+# Copy project file and restore dependencies
+COPY NalamApi.csproj ./
+RUN dotnet restore --no-cache
 
-# Copy source code
-COPY NalamApi ./NalamApi
-WORKDIR /src/NalamApi
-
-# Build and publish
+# Copy source code and publish
+COPY . .
 RUN dotnet publish -c Release --no-restore -o /app/publish
 
 # ── Runtime Stage ─────────────────────────────────────────
@@ -20,11 +16,6 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-# Create non-root user for security
-RUN useradd -m -u 1000 dotnetuser && chown -R dotnetuser:dotnetuser /app
-USER dotnetuser
-
-# Railway uses PORT env variable, default to 5000
 ENV ASPNETCORE_ENVIRONMENT=Production \
     ASPNETCORE_URLS=http://+:5000 \
     DOTNET_EnableDiagnostics=0
