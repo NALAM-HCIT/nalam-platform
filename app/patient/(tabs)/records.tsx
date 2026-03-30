@@ -203,12 +203,6 @@ const PRESCRIBED_TESTS = [
   },
 ];
 
-const MY_UPLOADS = [
-  { name: 'Blood Sugar Log (March)', date: 'Mar 18, 2026', type: 'Self-monitored', pages: 2 },
-  { name: 'External Lab - Vitamin D', date: 'Feb 28, 2026', type: 'External Lab', pages: 1 },
-  { name: 'Physiotherapy Progress Note', date: 'Feb 15, 2026', type: 'Specialist Report', pages: 3 },
-];
-
 // RECENT_CONSULTATIONS is now loaded from the API — see liveConsultations state below
 
 /* ───── Sub-components ───── */
@@ -509,12 +503,32 @@ export default function HealthScreen() {
   const [recordsTab, setRecordsTab] = useState<'prescribed' | 'uploads'>('prescribed');
   const [liveConsultations, setLiveConsultations] = useState<ConsultationItem[]>([]);
   const [docUploading, setDocUploading] = useState(false);
+  const [myUploads, setMyUploads] = useState<{ name: string; url: string; date: string }[]>([]);
+  const [uploadsLoading, setUploadsLoading] = useState(false);
+
+  const loadMyUploads = useCallback(async () => {
+    if (!userId) return;
+    setUploadsLoading(true);
+    try {
+      const files = await uploadService.listFiles(`medical-documents/${userId}`);
+      setMyUploads(files.map(f => ({
+        name: decodeURIComponent(f.name.replace(/^\d+\./, '').replace(/-/g, ' ')),
+        url: f.url,
+        date: new Date(parseInt(f.name.split('.')[0]) || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      })));
+    } catch {
+      // silently fail — uploads may be empty
+    } finally {
+      setUploadsLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
     patientService.getConsultationHistory(1, 10)
       .then((res) => setLiveConsultations(res.consultations))
       .catch((err) => console.error('Failed to load consultations:', err));
-  }, []);
+    loadMyUploads();
+  }, [loadMyUploads]);
 
   const barCount = useMemo(
     () => (period === '7 Days' ? 7 : period === '30 Days' ? 15 : period === '90 Days' ? 20 : 24),
@@ -618,6 +632,7 @@ export default function HealthScreen() {
         `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`,
       );
       CustomAlert.alert('Uploaded', `${label} uploaded successfully to your health records.`);
+      loadMyUploads();
     } catch (err: any) {
       const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
       console.error('Document upload error:', msg);
@@ -625,7 +640,7 @@ export default function HealthScreen() {
     } finally {
       setDocUploading(false);
     }
-  }, [userId]);
+  }, [userId, loadMyUploads]);
 
   const handleUploadResult = useCallback((testName: string) => {
     CustomAlert.alert(
@@ -900,16 +915,40 @@ export default function HealthScreen() {
         ) : (
           <>
             {/* My Uploads */}
-            {MY_UPLOADS.map((upload, idx) => (
+            {uploadsLoading ? (
+              <View className="items-center py-8">
+                <ActivityIndicator color="#1A73E8" />
+                <Text className="text-xs text-slate-400 mt-2">Loading your documents…</Text>
+              </View>
+            ) : myUploads.length === 0 ? (
+              <View className="mx-6 mb-4 bg-white rounded-2xl p-6 items-center border border-dashed border-slate-200">
+                <FolderOpen size={28} color="#CBD5E1" />
+                <Text className="text-sm font-bold text-slate-400 mt-2">No documents yet</Text>
+                <Text className="text-[11px] text-slate-400 mt-1 text-center">Upload lab reports, prescriptions, or other documents</Text>
+              </View>
+            ) : myUploads.map((upload, idx) => (
               <Pressable
                 key={idx}
-                onPress={() => CustomAlert.alert(upload.name, `Type: ${upload.type}\nDate: ${upload.date}\nPages: ${upload.pages}\n\n(Document viewer would open in production)`, [
-                  { text: 'OK' },
-                  { text: 'Share', onPress: () => CustomAlert.alert('Share', `Sharing "${upload.name}" with your care team.`) },
-                  { text: 'Delete', style: 'destructive', onPress: () => CustomAlert.alert('Confirm Delete', `Are you sure you want to delete "${upload.name}"?`, [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => CustomAlert.alert('Deleted', 'Document has been removed.') },
-                  ]) },
+                onPress={() => CustomAlert.alert(upload.name, `Uploaded: ${upload.date}`, [
+                  { text: 'Close' },
+                  {
+                    text: 'Delete', style: 'destructive',
+                    onPress: () => CustomAlert.alert('Delete Document', `Remove "${upload.name}"?`, [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete', style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            const path = `medical-documents/${userId}/${upload.url.split('/').pop()}`;
+                            await uploadService.deleteFile(path);
+                            setMyUploads(prev => prev.filter((_, i) => i !== idx));
+                          } catch {
+                            CustomAlert.alert('Error', 'Could not delete document.');
+                          }
+                        },
+                      },
+                    ]),
+                  },
                 ])}
                 className="mx-6 mb-3 bg-white rounded-2xl p-4 active:opacity-80"
                 style={Shadows.card}
@@ -919,8 +958,8 @@ export default function HealthScreen() {
                     <FileText size={18} color="#64748B" />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-midnight">{upload.name}</Text>
-                    <Text className="text-[11px] text-slate-400 mt-0.5">{upload.type} - {upload.date}</Text>
+                    <Text className="text-sm font-semibold text-midnight" numberOfLines={1}>{upload.name}</Text>
+                    <Text className="text-[11px] text-slate-400 mt-0.5">{upload.date}</Text>
                   </View>
                   <ChevronRight size={14} color="#CBD5E1" />
                 </View>

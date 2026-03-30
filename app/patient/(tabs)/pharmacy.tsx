@@ -43,12 +43,18 @@ export default function PharmacyScreen() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [medicinesLoading, setMedicinesLoading] = useState(true);
 
-  // Load most recent prescription on mount
+  // Load most recent prescription + previously uploaded Rx images on mount
   useEffect(() => {
     patientService.getPrescriptions()
       .then((list) => setLastPrescription(list[0] ?? null))
       .catch(() => {});
-  }, []);
+
+    if (userId) {
+      uploadService.listFiles(`medical-documents/${userId}`)
+        .then((files) => setRxImages(files.map(f => f.url)))
+        .catch(() => {});
+    }
+  }, [userId]);
 
   // Fetch medicines whenever search or category changes (debounced)
   useEffect(() => {
