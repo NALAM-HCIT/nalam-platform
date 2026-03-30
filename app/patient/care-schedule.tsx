@@ -77,26 +77,8 @@ function timeOfDayToTime(tod: TimeOfDay): string {
   return '8:00 AM';
 }
 
-// Default wellbeing tasks always shown
+// Default task — vitals only. Water and physio have dedicated dashboard widgets.
 const DEFAULT_TASKS: CareTask[] = [
-  {
-    id: 'hydra-default',
-    title: 'Daily Water Intake',
-    subtitle: 'Drink 8 glasses of water',
-    category: 'hydration',
-    time: '11:00 AM',
-    timeOfDay: 'morning',
-    status: 'pending',
-  },
-  {
-    id: 'walk-default',
-    title: 'Evening Walk 20min',
-    subtitle: 'Moderate pace walk',
-    category: 'physio',
-    time: '6:00 PM',
-    timeOfDay: 'evening',
-    status: 'pending',
-  },
   {
     id: 'vitals-default',
     title: 'Log Blood Pressure',

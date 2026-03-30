@@ -127,30 +127,6 @@ function buildTasksFromCarePlan(data: CarePlan): CareTask[] {
     });
   });
 
-  // Default wellbeing tasks always included
-  tasks.push({
-    id: 'hydra-default',
-    title: 'Daily Water Intake',
-    subtitle: 'Drink 8 glasses of water',
-    category: 'hydration',
-    scheduledTime: 'All Day',
-    timeOfDay: 'afternoon',
-    status: 'pending',
-    color: '#0EA5E9',
-    bgColor: '#F0F9FF',
-  });
-  tasks.push({
-    id: 'walk-default',
-    title: 'Evening Walk',
-    subtitle: '20 min brisk walk',
-    category: 'physio',
-    scheduledTime: '6:00 PM',
-    timeOfDay: 'evening',
-    status: 'pending',
-    color: '#8B5CF6',
-    bgColor: '#F3EEFF',
-  });
-
   return tasks;
 }
 
