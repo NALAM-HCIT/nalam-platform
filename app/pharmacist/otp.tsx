@@ -167,6 +167,9 @@ export default function PharmacistOTPScreen() {
             <Text className="text-slate-400 text-sm font-medium">Resend in {countdown}s</Text>
           )}
         </View>
+        <Text className="text-[10px] text-slate-300 tracking-[3px] uppercase text-center mt-8 font-light">
+          Secure Staff Access
+        </Text>
       </View>
     </View>
   );

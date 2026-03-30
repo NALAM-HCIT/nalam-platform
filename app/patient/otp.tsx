@@ -200,6 +200,9 @@ export default function OTPScreen() {
             </Text>
           )}
         </View>
+        <Text className="text-[10px] text-slate-300 tracking-[3px] uppercase text-center mt-8 font-light">
+          Secure Patient Access
+        </Text>
       </View>
     </View>
   );
