@@ -31,7 +31,7 @@ import {
   Zap, ChevronRight, Sparkles, Wind, Gauge, Footprints,
   CircleAlert, SkipForward, Timer, Lightbulb, Award, Watch, Info,
   Smile, Frown, Meh, ThumbsUp, HeartPulse, Thermometer,
-  CloudLightning, Star, ArrowUpRight, ArrowDownRight, ArrowRight, Plus
+  CloudLightning, ArrowDownRight, Plus
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -445,13 +445,6 @@ export default function PatientDashboard() {
 
         {/* ── Daily Insights (below patient name) ── */}
         <View className="mb-4 mt-1">
-          <View className="px-5 mb-2.5 flex-row items-center justify-between">
-            <Text className="text-[15px] font-extrabold text-midnight">Daily Insights</Text>
-            <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
-              <Star size={10} color="#F59E0B" fill="#F59E0B" />
-              <Text className="text-[9px] font-bold text-warning-600 uppercase tracking-widest">New</Text>
-            </View>
-          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 20 }}>
             {(apiTips.length > 0 ? apiTips.map(t => ({ title: t.title, body: t.body, icon: Lightbulb, color: '#1A73E8' })) : FALLBACK_TIPS).map((tip, idx, arr) => {
               const TipIcon = tip.icon;
