@@ -404,21 +404,29 @@ export default function PatientDashboard() {
         {/* ── Dynamic Header ── */}
         <LinearGradient
           colors={currentHour < 12 ? ['#eff6ff', '#dbeafe'] : currentHour < 17 ? ['#fef3c7', '#fef08a'] : ['#eef2ff', '#e0e7ff']}
-          className="px-6 pt-5 pb-6 rounded-b-[32px] mb-4"
+          className="px-5 pt-4 pb-5 rounded-b-[32px] mb-4"
           style={Shadows.card}
         >
+          {/* Top row: logo + name + actions */}
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center gap-3">
-              <Image source={require('../../../assets/logo_arunpriya.png')} style={{ width: 44, height: 44 }} resizeMode="contain" />
+              <View className="w-[52px] h-[52px] rounded-[14px] bg-white items-center justify-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 }}>
+                <Image source={require('../../../assets/logo_arunpriya.png')} style={{ width: 42, height: 42 }} resizeMode="contain" />
+              </View>
               <View>
-                <Text className="text-[12px] font-bold text-midnight leading-[16px]">Arun Priya{'\n'}Hospital</Text>
+                <Text className="text-[13px] font-extrabold text-midnight leading-[17px]" numberOfLines={2}>Arun Priya{'\n'}Multispeciality Hospital</Text>
+                <View className="mt-1 self-start px-2 py-[2px] rounded-sm" style={{ backgroundColor: '#1A73E8' }}>
+                  <Text style={{ fontSize: 8, fontWeight: '800', color: '#fff', letterSpacing: 1.2 }}>PATIENT PORTAL</Text>
+                </View>
               </View>
             </View>
-            <View className="flex-row items-center gap-3">
-              <Pressable onPress={() => setShowNotifications(true)} className="w-10 h-10 rounded-full bg-white/60 items-center justify-center border border-white/50 active:opacity-70">
+            <View className="flex-row items-center gap-2">
+              <Pressable onPress={() => setShowNotifications(true)} className="w-10 h-10 rounded-full bg-white/70 items-center justify-center border border-white/60 active:opacity-70">
                 <Bell size={18} color="#0B1B3D" />
                 {unreadCount > 0 && (
-                  <View className="absolute -top-1 -right-1 w-5 h-5 bg-danger-500 rounded-full items-center justify-center border-2 border-white"><Text className="text-white text-[9px] font-bold">{unreadCount}</Text></View>
+                  <View className="absolute -top-1 -right-1 w-5 h-5 bg-danger-500 rounded-full items-center justify-center border-2 border-white">
+                    <Text className="text-white text-[9px] font-bold">{unreadCount}</Text>
+                  </View>
                 )}
               </Pressable>
               <Pressable onPress={() => router.push('/patient/(tabs)/profile' as any)} className="w-10 h-10 rounded-full items-center justify-center active:opacity-70" style={{ backgroundColor: '#0B1B3D' }}>
@@ -426,10 +434,26 @@ export default function PatientDashboard() {
               </Pressable>
             </View>
           </View>
-          <View>
-            <Text className="text-slate-600 font-semibold">{greetingText},</Text>
-            <Text className="text-[28px] font-extrabold text-midnight tracking-tight leading-8">{userName || 'David Miller'}</Text>
+
+          {/* Greeting + patient name */}
+          <View className="mb-3">
+            <Text className="text-[13px] font-semibold text-slate-500">{greetingText},</Text>
+            <Text className="text-[26px] font-extrabold text-midnight tracking-tight leading-8">{userName || 'David Miller'}</Text>
           </View>
+
+          {/* Health tip strip right below name */}
+          {(apiTips.length > 0 || true) && (() => {
+            const tip = apiTips[0] ?? FALLBACK_TIPS[0];
+            return (
+              <View className="flex-row items-center gap-2 rounded-xl px-3 py-2.5" style={{ backgroundColor: 'rgba(255,255,255,0.65)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}>
+                <View className="w-6 h-6 rounded-full items-center justify-center shrink-0" style={{ backgroundColor: '#FFF7ED' }}>
+                  <Lightbulb size={13} color="#F59E0B" />
+                </View>
+                <Text className="text-[11px] font-semibold text-slate-600 flex-1" numberOfLines={1}>{tip?.title ?? ''}</Text>
+                <ChevronRight size={12} color="#94A3B8" />
+              </View>
+            );
+          })()}
         </LinearGradient>
 
         {/* ── Health Score Hero ── */}
@@ -839,12 +863,92 @@ export default function PatientDashboard() {
               </View>
             )}
 
-            {/* View trends + last synced */}
-            <Pressable className="flex-row items-center justify-center gap-1.5 mb-1 active:opacity-70">
-              <TrendingUp size={13} color="#1A73E8" />
-              <Text className="text-[12px] font-bold text-primary">View 30-Day Trends</Text>
-            </Pressable>
-            <Text className="text-[10px] text-slate-400 text-center">
+            {/* ── Logged Vitals divider ── */}
+            <View className="flex-row items-center gap-3 mb-4 mt-2">
+              <View className="flex-1 h-px bg-slate-100" />
+              <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged Vitals</Text>
+              <View className="flex-1 h-px bg-slate-100" />
+            </View>
+
+            {latestVitals ? (
+              <>
+                <View className="flex-row flex-wrap gap-3 mb-4">
+                  {latestVitals.bp && (
+                    <View className="rounded-2xl p-3 border border-rose-100" style={{ backgroundColor: '#FFF1F2', width: '47%' }}>
+                      <View className="flex-row justify-between items-center mb-2">
+                        <Activity size={13} color="#E11D48" />
+                        <View className="flex-row items-center gap-0.5">
+                          <ArrowDownRight size={9} color="#16A34A" />
+                          <Text className="text-[8px] font-bold text-success-600">Normal</Text>
+                        </View>
+                      </View>
+                      <Text className="text-[17px] font-extrabold text-rose-950">{latestVitals.bp}</Text>
+                      <Text className="text-[9px] font-bold text-rose-500 mt-0.5 uppercase tracking-wide">Blood Pressure</Text>
+                    </View>
+                  )}
+                  {latestVitals.heart_rate && (
+                    <View className="rounded-2xl p-3 border border-sky-100" style={{ backgroundColor: '#F0F9FF', width: '47%' }}>
+                      <View className="flex-row justify-between items-center mb-2">
+                        <Heart size={13} color="#0284C7" />
+                        <CloudLightning size={10} color="#0284C7" />
+                      </View>
+                      <Text className="text-[17px] font-extrabold text-sky-950">
+                        {latestVitals.heart_rate}
+                        <Text className="text-[10px] font-bold text-sky-500"> bpm</Text>
+                      </Text>
+                      <Text className="text-[9px] font-bold text-sky-500 mt-0.5 uppercase tracking-wide">Heart Rate</Text>
+                    </View>
+                  )}
+                  {latestVitals.spo2 && (
+                    <View className="rounded-2xl p-3 border border-indigo-100" style={{ backgroundColor: '#F5F3FF', width: '47%' }}>
+                      <Wind size={13} color="#4F46E5" style={{ marginBottom: 6 }} />
+                      <Text className="text-[17px] font-extrabold text-indigo-950">{latestVitals.spo2}
+                        <Text className="text-[10px] font-bold text-indigo-500">%</Text>
+                      </Text>
+                      <Text className="text-[9px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">SpO₂</Text>
+                    </View>
+                  )}
+                  {latestVitals.temperature_c && (
+                    <View className="rounded-2xl p-3 border border-amber-100" style={{ backgroundColor: '#FFFBEB', width: '47%' }}>
+                      <Thermometer size={13} color="#D97706" style={{ marginBottom: 6 }} />
+                      <Text className="text-[17px] font-extrabold text-amber-950">{Number(latestVitals.temperature_c).toFixed(1)}
+                        <Text className="text-[10px] font-bold text-amber-500">°C</Text>
+                      </Text>
+                      <Text className="text-[9px] font-bold text-amber-500 mt-0.5 uppercase tracking-wide">Temperature</Text>
+                    </View>
+                  )}
+                </View>
+                <Text className="text-[10px] text-slate-400 text-center mb-4">
+                  Recorded at {new Date(latestVitals.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </>
+            ) : (
+              <View className="items-center py-4 mb-4">
+                <HeartPulse size={28} color="#CBD5E1" />
+                <Text className="text-xs font-bold text-slate-400 mt-2">No vitals recorded yet</Text>
+              </View>
+            )}
+
+            {/* Log New + View Trends row */}
+            <View className="flex-row items-center gap-3 mb-1">
+              <Pressable
+                onPress={() => router.push('/patient/log-vitals' as any)}
+                className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl active:opacity-70"
+                style={{ backgroundColor: '#EEF4FF', borderWidth: 1, borderColor: '#BFDBFE' }}
+              >
+                <Plus size={13} color="#1A73E8" />
+                <Text className="text-[12px] font-bold text-primary">Log Vitals</Text>
+              </Pressable>
+              <Pressable
+                className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl active:opacity-70"
+                style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' }}
+              >
+                <TrendingUp size={13} color="#64748B" />
+                <Text className="text-[12px] font-bold text-slate-500">30-Day Trends</Text>
+              </Pressable>
+            </View>
+
+            <Text className="text-[10px] text-slate-400 text-center mt-2">
               Last synced: {wearableDevice?.last_synced_at
                 ? new Date(wearableDevice.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : 'Just now'}
@@ -853,75 +957,6 @@ export default function PatientDashboard() {
           </View>
         </View>
 
-        {/* ── Vitals Spotlight ── */}
-        <View className="px-5 mb-5">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-[16px] font-extrabold text-midnight">My Vitals</Text>
-            <View className="flex-row items-center gap-3">
-              <Text className="text-[10px] font-bold text-slate-400">
-                {latestVitals ? new Date(latestVitals.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-              </Text>
-              <Pressable onPress={() => router.push('/patient/log-vitals' as any)} className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-70">
-                <Plus size={12} color="#1A73E8" />
-                <Text className="text-[11px] font-bold text-primary">Log New</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {latestVitals ? (
-            <View className="bg-white rounded-[24px] p-4 border border-slate-100" style={Shadows.card}>
-              <View className="flex-row flex-wrap gap-3">
-                {latestVitals.bp && (
-                  <View className="w-[47%] bg-rose-50 rounded-2xl p-3 border border-rose-100">
-                    <View className="flex-row justify-between items-start mb-2">
-                      <Activity size={14} color="#E11D48" />
-                      <View className="flex-row items-center gap-0.5"><ArrowDownRight size={10} color="#16A34A" /><Text className="text-[9px] font-bold text-success-700">Normal</Text></View>
-                    </View>
-                    <Text className="text-lg font-black text-rose-950">{latestVitals.bp}</Text>
-                    <Text className="text-[10px] font-bold text-rose-600/80 mt-0.5">Blood Pressure</Text>
-                  </View>
-                )}
-                {latestVitals.heart_rate && (
-                  <View className="w-[47%] bg-sky-50 rounded-2xl p-3 border border-sky-100">
-                    <View className="flex-row justify-between items-start mb-2">
-                      <Heart size={14} color="#0284C7" />
-                      <View className="flex-row items-center gap-0.5 absolute right-0"><CloudLightning size={10} color="#0284C7" className="animate-pulse" /></View>
-                    </View>
-                    <Text className="text-lg font-black text-sky-950">{latestVitals.heart_rate} <Text className="text-[11px] font-bold text-sky-600">bpm</Text></Text>
-                    <Text className="text-[10px] font-bold text-sky-600/80 mt-0.5">Heart Rate</Text>
-                  </View>
-                )}
-                {latestVitals.spo2 && (
-                  <View className="w-[47%] bg-indigo-50 rounded-2xl p-3 border border-indigo-100">
-                    <Wind size={14} color="#4F46E5" className="mb-2" />
-                    <Text className="text-lg font-black text-indigo-950">{latestVitals.spo2}%</Text>
-                    <Text className="text-[10px] font-bold text-indigo-600/80 mt-0.5">SpO₂</Text>
-                  </View>
-                )}
-                {latestVitals.temperature_c && (
-                  <View className="w-[47%] bg-amber-50 rounded-2xl p-3 border border-amber-100">
-                    <Thermometer size={14} color="#D97706" className="mb-2" />
-                    <Text className="text-lg font-black text-amber-950">{Number(latestVitals.temperature_c).toFixed(1)}°C</Text>
-                    <Text className="text-[10px] font-bold text-amber-600/80 mt-0.5">Temperature</Text>
-                  </View>
-                )}
-              </View>
-
-              <Pressable onPress={() => router.push('/patient/vitals-trend' as any)} className="mt-4 pt-4 border-t border-slate-100 flex-row justify-center items-center gap-1.5 active:opacity-60">
-                <TrendingUp size={14} color="#1A73E8" />
-                <Text className="text-xs font-bold text-primary">View Full Trends</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View className="bg-white rounded-[20px] p-6 items-center border border-slate-100" style={Shadows.card}>
-              <View className="w-12 h-12 rounded-full bg-slate-50 items-center justify-center mb-3">
-                <HeartPulse size={20} color="#94A3B8" />
-              </View>
-              <Text className="text-sm font-bold text-midnight mb-1">No Vitals Tracked</Text>
-              <Text className="text-xs text-slate-400 text-center">Log your baseline vitals to track your health.</Text>
-            </View>
-          )}
-        </View>
         {/* ── Smart Contextual Actions ── */}
         <View className="px-5 mb-5">
           <Text className="text-[16px] font-extrabold text-midnight mb-3">Quick Actions</Text>
