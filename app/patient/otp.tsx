@@ -109,17 +109,18 @@ export default function OTPScreen() {
 
   return (
     <View className="flex-1 bg-surface">
-      {/* Header with Gradient - shorter than login */}
+      {/* Header with Gradient */}
       <LinearGradient
         colors={['#0a192f', '#1c74e9', '#60a5fa']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="h-[28%] w-full px-6 pt-14"
+        className="w-full px-6"
+        style={{ paddingBottom: 52 }}
       >
         <SafeAreaView edges={['top']}>
           <Pressable
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white/15 items-center justify-center mb-6"
+            className="w-10 h-10 rounded-full bg-white/15 items-center justify-center mt-2 mb-5"
           >
             <ArrowLeft size={20} color="#FFFFFF" />
           </Pressable>
@@ -135,7 +136,7 @@ export default function OTPScreen() {
         style={Shadows.presence}
       >
         {/* Handle Bar */}
-        <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-8" />
+        <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-6" />
 
         {/* Title */}
         <Text className="text-midnight text-2xl font-extrabold tracking-tight">Verify OTP</Text>
