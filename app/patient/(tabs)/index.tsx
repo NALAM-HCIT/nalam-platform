@@ -441,20 +441,41 @@ export default function PatientDashboard() {
             <Text className="text-[26px] font-extrabold text-midnight tracking-tight leading-8">{userName || 'David Miller'}</Text>
           </View>
 
-          {/* Health tip strip right below name */}
-          {(apiTips.length > 0 || true) && (() => {
-            const tip = apiTips[0] ?? FALLBACK_TIPS[0];
-            return (
-              <View className="flex-row items-center gap-2 rounded-xl px-3 py-2.5" style={{ backgroundColor: 'rgba(255,255,255,0.65)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}>
-                <View className="w-6 h-6 rounded-full items-center justify-center shrink-0" style={{ backgroundColor: '#FFF7ED' }}>
-                  <Lightbulb size={13} color="#F59E0B" />
-                </View>
-                <Text className="text-[11px] font-semibold text-slate-600 flex-1" numberOfLines={1}>{tip?.title ?? ''}</Text>
-                <ChevronRight size={12} color="#94A3B8" />
-              </View>
-            );
-          })()}
         </LinearGradient>
+
+        {/* ── Daily Insights (below patient name) ── */}
+        <View className="mb-4 mt-1">
+          <View className="px-5 mb-2.5 flex-row items-center justify-between">
+            <Text className="text-[15px] font-extrabold text-midnight">Daily Insights</Text>
+            <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
+              <Star size={10} color="#F59E0B" fill="#F59E0B" />
+              <Text className="text-[9px] font-bold text-warning-600 uppercase tracking-widest">New</Text>
+            </View>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 20 }}>
+            {(apiTips.length > 0 ? apiTips.map(t => ({ title: t.title, body: t.body, icon: Lightbulb, color: '#1A73E8' })) : FALLBACK_TIPS).map((tip, idx, arr) => {
+              const TipIcon = tip.icon;
+              return (
+                <Pressable
+                  key={idx}
+                  onPress={() => CustomAlert.alert(tip.title, tip.body)}
+                  className="bg-white rounded-[20px] p-4 border border-slate-100/80"
+                  style={[Shadows.card, { width: width * 0.72, marginRight: idx === arr.length - 1 ? 0 : 12 }]}
+                >
+                  <View className="flex-row items-start gap-3">
+                    <View className="w-9 h-9 rounded-full items-center justify-center shrink-0" style={{ backgroundColor: `${tip.color}15` }}>
+                      <TipIcon size={18} color={tip.color} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-midnight mb-1" numberOfLines={1}>{tip.title}</Text>
+                      <Text className="text-xs text-slate-500 font-medium leading-relaxed" numberOfLines={2}>{tip.body}</Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         {/* ── Health Score Hero ── */}
         <View className="px-5 mb-4 mt-2">
@@ -985,40 +1006,6 @@ export default function PatientDashboard() {
           </View>
         </View>
 
-        {/* ── Swipeable Health Tips ── */}
-        <View className="mb-8">
-          <View className="px-5 mb-3 flex-row items-center justify-between">
-            <Text className="text-[16px] font-extrabold text-midnight">Daily Insights</Text>
-            <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
-              <Star size={10} color="#F59E0B" fill="#F59E0B" />
-              <Text className="text-[9px] font-bold text-warning-600 uppercase tracking-widest">New</Text>
-            </View>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5 pr-5">
-            {(apiTips.length > 0 ? apiTips.map(t => ({ title: t.title, body: t.body, icon: Lightbulb, color: '#1A73E8' })) : FALLBACK_TIPS).map((tip, idx, arr) => {
-              const TipIcon = tip.icon;
-              const isLast = idx === arr.length - 1;
-              return (
-                <Pressable
-                  key={idx}
-                  onPress={() => CustomAlert.alert(tip.title, tip.body)}
-                  className={`bg-white rounded-[20px] p-4 mr-3 border border-slate-100/80 ${isLast ? 'mr-10' : ''}`}
-                  style={[Shadows.card, { width: width * 0.75 }]}
-                >
-                  <View className="flex-row items-start gap-3">
-                    <View className="w-10 h-10 rounded-full items-center justify-center shrink-0" style={{ backgroundColor: `${tip.color}15` }}>
-                      <TipIcon size={20} color={tip.color} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-bold text-midnight mb-1" numberOfLines={1}>{tip.title}</Text>
-                      <Text className="text-xs text-slate-500 font-medium leading-relaxed" numberOfLines={2}>{tip.body}</Text>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
       </ScrollView>
 
       <Pressable onPress={() => router.push('/patient/sos-emergency')} className="absolute bottom-24 right-5 w-16 h-16 rounded-full items-center justify-center active:opacity-80" style={{ backgroundColor: '#EF4444', shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 12 }}>
