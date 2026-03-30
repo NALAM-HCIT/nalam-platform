@@ -215,6 +215,8 @@ export default function PatientDashboard() {
   const [wearableDevice, setWearableDevice] = useState<WearableDevice | null>(null);
   const [wearableVitals, setWearableVitals] = useState<WearableVitalData | null>(null);
   const [showWearablePairing, setShowWearablePairing] = useState(false);
+  const [remoteShare, setRemoteShare]       = useState(true);
+  const [stepsBannerDismissed, setStepsBannerDismissed] = useState(false);
   const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null);
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
@@ -680,147 +682,175 @@ export default function PatientDashboard() {
           </View>
         </View>
 
-        {/* ── Step Count ── */}
+        {/* ── Vitals + Wearable + Steps ── */}
         <View className="px-5 mb-5">
           <View className="bg-white rounded-[24px] p-5 border border-outline-variant" style={Shadows.card}>
+
+            {/* Header row */}
             <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#FFF7ED' }}>
-                  <Footprints size={16} color="#F59E0B" />
-                </View>
-                <Text className="text-[15px] font-extrabold text-midnight">Daily Steps</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                {pedometerAvailable && (
-                  <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
-                    <View className="w-1.5 h-1.5 rounded-full bg-success-500" />
-                    <Text className="text-[9px] font-bold text-success-700 uppercase tracking-widest">Live</Text>
-                  </View>
-                )}
-                <Text className="text-[11px] font-bold text-warning-500">Goal: {(stepData?.goal_steps ?? 10000).toLocaleString()}</Text>
+              <Text className="text-[17px] font-extrabold text-midnight">Vitals</Text>
+              <View className="flex-row items-center gap-3">
+                <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remote Share</Text>
+                <Switch
+                  value={remoteShare}
+                  onValueChange={setRemoteShare}
+                  trackColor={{ false: '#E2E8F0', true: '#1A73E8' }}
+                  thumbColor="#fff"
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                />
               </View>
             </View>
 
-            {pedometerAvailable === false ? (
-              <View className="items-center py-4">
-                <Text className="text-sm font-semibold text-slate-400">Step counting not available on this device</Text>
-              </View>
-            ) : (
-              <>
-                {/* Circular Progress Ring */}
-                <View className="items-center mb-6">
-                  <View style={{ position: 'relative', width: 160, height: 160 }}>
-                    <Svg width={160} height={160} viewBox="0 0 160 160">
-                      {/* Background circle */}
-                      <Circle cx="80" cy="80" r="70" fill="none" stroke="#E2E8F0" strokeWidth="4" />
-                      {/* Progress circle - rotated -90 degrees to start at top */}
-                      <Circle
-                        cx="80"
-                        cy="80"
-                        r="70"
-                        fill="none"
-                        stroke={liveSteps >= (stepData?.goal_steps ?? 10000) ? '#22C55E' : '#F59E0B'}
-                        strokeWidth="4"
-                        strokeDasharray={`${(liveSteps / (stepData?.goal_steps ?? 10000)) * 440} 440`}
-                        strokeLinecap="round"
-                        transform="rotate(-90 80 80)"
-                      />
-                    </Svg>
-                    {/* Center text */}
-                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-                      <Text className="text-3xl font-black text-midnight">{liveSteps.toLocaleString()}</Text>
-                      <Text className="text-[11px] font-bold text-slate-400 mt-1">of {(stepData?.goal_steps ?? 10000).toLocaleString()}</Text>
-                    </View>
+            {/* Connect Watch button */}
+            <Pressable
+              onPress={() => setShowWearablePairing(true)}
+              className="rounded-full py-3 mb-3 flex-row items-center justify-center gap-2 active:opacity-80"
+              style={{ backgroundColor: wearableDevice ? '#DCFCE7' : '#FFF1F2', borderWidth: 1, borderColor: wearableDevice ? '#86EFAC' : '#FECDD3' }}
+            >
+              <Watch size={16} color={wearableDevice ? '#16A34A' : '#E11D48'} />
+              <Text className="text-sm font-bold" style={{ color: wearableDevice ? '#16A34A' : '#E11D48' }}>
+                {wearableDevice ? `Connected: ${wearableDevice.device_name ?? wearableDevice.device_type}` : 'Connect Watch for Vitals'}
+              </Text>
+            </Pressable>
+
+            {/* Live syncing badge + info */}
+            <View className="flex-row items-center gap-2 mb-1">
+              <View className="w-2 h-2 rounded-full" style={{ backgroundColor: '#22C55E' }} />
+              <Text className="text-[11px] font-extrabold text-success-600 uppercase tracking-widest">Live Syncing</Text>
+            </View>
+            <Text className="text-[11px] text-slate-400 mb-5">
+              {wearableDevice
+                ? 'Watch syncing Heart Rate & SpO₂. Steps tracked via phone.'
+                : 'Connect watch for Heart Rate & SpO₂. Steps tracked via phone.'}
+            </Text>
+
+            {/* Three metric rings: HR · SpO2 · Activity */}
+            <View className="flex-row justify-between mb-5">
+              {/* Heart Rate */}
+              <View className="items-center" style={{ width: '30%' }}>
+                <View style={{ position: 'relative', width: 80, height: 80 }}>
+                  <Svg width={80} height={80} viewBox="0 0 80 80">
+                    <Circle cx="40" cy="40" r="34" fill="none" stroke="#FEE2E2" strokeWidth="5" />
+                    {wearableVitals?.heart_rate ? (
+                      <Circle cx="40" cy="40" r="34" fill="none" stroke="#EF4444" strokeWidth="5"
+                        strokeDasharray={`${Math.min((wearableVitals.heart_rate / 180) * 213.6, 213.6)} 213.6`}
+                        strokeLinecap="round" transform="rotate(-90 40 40)" />
+                    ) : null}
+                  </Svg>
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                    {wearableVitals?.heart_rate ? (
+                      <Text className="text-base font-black text-slate-800">{wearableVitals.heart_rate}</Text>
+                    ) : (
+                      <Text className="text-sm font-bold text-slate-300">--</Text>
+                    )}
+                    <Text className="text-[8px] font-bold text-slate-400">BPM</Text>
                   </View>
                 </View>
+                <Text className="text-[11px] font-semibold text-slate-600 mt-2">Heart Rate</Text>
+                {!wearableDevice && (
+                  <Pressable onPress={() => setShowWearablePairing(true)}>
+                    <Text className="text-[10px] font-bold text-primary mt-0.5">Tap to pair</Text>
+                  </Pressable>
+                )}
+              </View>
 
-                {/* Steps to go message */}
-                <View className="items-center mb-4">
-                  {liveSteps >= (stepData?.goal_steps ?? 10000) ? (
-                    <View className="flex-row items-center gap-2 px-3 py-2 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
-                      <Check size={14} color="#16A34A" />
-                      <Text className="text-sm font-bold text-success-700">Daily goal achieved! 🎉</Text>
-                    </View>
-                  ) : (
-                    <Text className="text-base font-bold text-slate-600">
-                      <Text className="text-lg font-black text-amber-500">{((stepData?.goal_steps ?? 10000) - liveSteps).toLocaleString()}</Text>
-                      {' '}steps to go
+              {/* SpO2 */}
+              <View className="items-center" style={{ width: '30%' }}>
+                <View style={{ position: 'relative', width: 80, height: 80 }}>
+                  <Svg width={80} height={80} viewBox="0 0 80 80">
+                    <Circle cx="40" cy="40" r="34" fill="none" stroke="#EDE9FE" strokeWidth="5" />
+                    {wearableVitals?.spo2 ? (
+                      <Circle cx="40" cy="40" r="34" fill="none" stroke="#7C3AED" strokeWidth="5"
+                        strokeDasharray={`${Math.min(((wearableVitals.spo2 - 90) / 10) * 213.6, 213.6)} 213.6`}
+                        strokeLinecap="round" transform="rotate(-90 40 40)" />
+                    ) : null}
+                  </Svg>
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                    {wearableVitals?.spo2 ? (
+                      <Text className="text-base font-black text-slate-800">{wearableVitals.spo2}</Text>
+                    ) : (
+                      <Text className="text-sm font-bold text-slate-300">--</Text>
+                    )}
+                    <Text className="text-[8px] font-bold text-slate-400">%</Text>
+                  </View>
+                </View>
+                <Text className="text-[11px] font-semibold text-slate-600 mt-2">SpO₂</Text>
+                {!wearableDevice && (
+                  <Pressable onPress={() => setShowWearablePairing(true)}>
+                    <Text className="text-[10px] font-bold text-primary mt-0.5">Tap to pair</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {/* Activity / Steps */}
+              <View className="items-center" style={{ width: '30%' }}>
+                <View style={{ position: 'relative', width: 80, height: 80 }}>
+                  <Svg width={80} height={80} viewBox="0 0 80 80">
+                    <Circle cx="40" cy="40" r="34" fill="none" stroke="#FEF3C7" strokeWidth="5" />
+                    <Circle cx="40" cy="40" r="34" fill="none"
+                      stroke={liveSteps >= (stepData?.goal_steps ?? 10000) ? '#22C55E' : '#F59E0B'}
+                      strokeWidth="5"
+                      strokeDasharray={`${Math.min((liveSteps / (stepData?.goal_steps ?? 10000)) * 213.6, 213.6)} 213.6`}
+                      strokeLinecap="round" transform="rotate(-90 40 40)" />
+                  </Svg>
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text className="text-sm font-black text-slate-800">
+                      {liveSteps >= 1000 ? `${(liveSteps / 1000).toFixed(1)}k` : liveSteps.toString()}
                     </Text>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* ── Wearable Devices ── */}
-        <View className="px-5 mb-5">
-          {wearableDevice ? (
-            <>
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="flex-row items-center gap-2">
-                  <Watch size={16} color="#1A73E8" />
-                  <Text className="text-[14px] font-bold text-midnight">Connected Watch</Text>
-                </View>
-                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
-                  <View className="w-1.5 h-1.5 rounded-full bg-success-500" />
-                  <Text className="text-[9px] font-bold text-success-700 uppercase tracking-widest">Live Syncing</Text>
-                </View>
-              </View>
-              {wearableVitals && (
-                <View className="bg-white rounded-[20px] p-3 border border-slate-100 mb-3" style={Shadows.card}>
-                  <View className="flex-row gap-3">
-                    {wearableVitals.heart_rate && (
-                      <View className="flex-1 bg-red-50 rounded-xl p-2.5 border border-red-100">
-                        <View className="flex-row justify-between items-center mb-1">
-                          <Heart size={12} color="#DC2626" />
-                          <Text className="text-[8px] font-bold text-red-500">Just now</Text>
-                        </View>
-                        <Text className="text-base font-black text-red-900">{wearableVitals.heart_rate}</Text>
-                        <Text className="text-[9px] font-bold text-red-600 mt-0.5">bpm</Text>
-                      </View>
-                    )}
-                    {wearableVitals.spo2 && (
-                      <View className="flex-1 bg-blue-50 rounded-xl p-2.5 border border-blue-100">
-                        <View className="flex-row justify-between items-center mb-1">
-                          <Wind size={12} color="#2563EB" />
-                          <Text className="text-[8px] font-bold text-blue-500">Just now</Text>
-                        </View>
-                        <Text className="text-base font-black text-blue-900">{wearableVitals.spo2}%</Text>
-                        <Text className="text-[9px] font-bold text-blue-600 mt-0.5">SpO₂</Text>
-                      </View>
-                    )}
+                    <Text className="text-[8px] font-bold text-slate-400">STEPS</Text>
                   </View>
                 </View>
-              )}
-              <Pressable
-                onPress={() => setShowWearablePairing(true)}
-                className="bg-red-50 px-3 py-2 rounded-lg flex-row items-center justify-center gap-1 border border-red-200 active:opacity-70"
-              >
-                <X size={12} color="#DC2626" />
-                <Text className="text-[11px] font-bold text-red-600">Disconnect</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="flex-row items-center gap-2">
-                  <Watch size={16} color="#64748B" />
-                  <Text className="text-[14px] font-bold text-midnight">Connect Watch for Vitals</Text>
-                </View>
+                <Text className="text-[11px] font-semibold text-slate-600 mt-2">Activity</Text>
+                {pedometerAvailable && (
+                  <View className="flex-row items-center gap-0.5 mt-0.5">
+                    <View className="w-1.5 h-1.5 rounded-full bg-success-500" />
+                    <Text className="text-[9px] font-bold text-success-600">Live</Text>
+                  </View>
+                )}
               </View>
-              <Pressable
-                onPress={() => setShowWearablePairing(true)}
-                className="bg-blue-50 border-2 border-blue-200 rounded-[16px] p-4 flex-row items-center justify-between active:opacity-70"
-              >
-                <View>
-                  <Text className="text-sm font-bold text-midnight mb-0.5">Apple Watch, Fitbit & more</Text>
-                  <Text className="text-[11px] text-slate-600">Get real-time heart rate and SpO₂</Text>
+            </View>
+
+            {/* Steps to go banner */}
+            {!stepsBannerDismissed && liveSteps < (stepData?.goal_steps ?? 10000) && (
+              <View className="rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-3" style={{ backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A' }}>
+                <Footprints size={22} color="#F59E0B" />
+                <View className="flex-1">
+                  <Text className="text-sm font-extrabold text-amber-800">
+                    {((stepData?.goal_steps ?? 10000) - liveSteps).toLocaleString()} steps to go!
+                  </Text>
+                  <Text className="text-[11px] text-amber-700 mt-0.5">
+                    {liveSteps < 3000
+                      ? 'A 30-min morning walk can help you get started'
+                      : liveSteps < 7000
+                        ? 'A 20-min evening walk can help you hit your goal'
+                        : 'Almost there — a short walk will do it!'}
+                  </Text>
                 </View>
-                <ChevronRight size={16} color="#2563EB" />
-              </Pressable>
-            </>
-          )}
+                <Pressable onPress={() => setStepsBannerDismissed(true)} hitSlop={8}>
+                  <X size={16} color="#D97706" />
+                </Pressable>
+              </View>
+            )}
+
+            {liveSteps >= (stepData?.goal_steps ?? 10000) && (
+              <View className="rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-3" style={{ backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0' }}>
+                <Check size={18} color="#16A34A" />
+                <Text className="text-sm font-extrabold text-success-700">Daily step goal achieved! 🎉</Text>
+              </View>
+            )}
+
+            {/* View trends + last synced */}
+            <Pressable className="flex-row items-center justify-center gap-1.5 mb-1 active:opacity-70">
+              <TrendingUp size={13} color="#1A73E8" />
+              <Text className="text-[12px] font-bold text-primary">View 30-Day Trends</Text>
+            </Pressable>
+            <Text className="text-[10px] text-slate-400 text-center">
+              Last synced: {wearableDevice?.last_synced_at
+                ? new Date(wearableDevice.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'Just now'}
+            </Text>
+
+          </View>
         </View>
 
         {/* ── Vitals Spotlight ── */}
