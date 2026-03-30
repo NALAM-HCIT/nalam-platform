@@ -13,6 +13,7 @@ import {
   getTodayPhysio, TodayPhysio,
   getLatestVitals, LatestVitals,
   getHealthTips, HealthTip,
+  getCustomTasks,
 } from '@/services/patientDashboardService';
 import { scheduleWaterReminders, configureNotificationHandler } from '@/services/waterReminders';
 import {
@@ -345,9 +346,34 @@ export default function PatientDashboard() {
   const [waterLogLoading, setWaterLogLoading] = useState(false);
 
   const loadCarePlan = useCallback(() => {
-    patientService.getCarePlan()
-      .then((data) => setTasks(buildTasksFromCarePlan(data)))
-      .catch(() => { /* silently fall back to empty; defaults already in builder */ });
+    Promise.allSettled([
+      patientService.getCarePlan(),
+      getCustomTasks(),
+    ]).then(([carePlanResult, customResult]) => {
+      const baseTasks = carePlanResult.status === 'fulfilled'
+        ? buildTasksFromCarePlan(carePlanResult.value)
+        : [];
+
+      const customTasks: CareTask[] = customResult.status === 'fulfilled'
+        ? customResult.value.map((ct) => {
+            const cfg = categoryConfig[ct.category as TaskCategory] ?? categoryConfig.vitals;
+            const tod = ct.time_of_day as TimeOfDay;
+            return {
+              id: `custom-${ct.id}`,
+              title: ct.title,
+              subtitle: ct.notes ?? undefined,
+              category: ct.category as TaskCategory,
+              scheduledTime: tod === 'afternoon' ? '1:00 PM' : tod === 'evening' ? '8:00 PM' : '8:00 AM',
+              timeOfDay: tod,
+              status: 'pending' as TaskStatus,
+              color: cfg.color,
+              bgColor: cfg.bg,
+            };
+          })
+        : [];
+
+      setTasks([...baseTasks, ...customTasks]);
+    });
   }, []);
 
   const loadNotifications = useCallback(() => {
@@ -592,7 +618,27 @@ export default function PatientDashboard() {
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     Promise.allSettled([
-      patientService.getCarePlan().then((data) => setTasks(buildTasksFromCarePlan(data))),
+      Promise.allSettled([patientService.getCarePlan(), getCustomTasks()]).then(([cpRes, ctRes]) => {
+        const base = cpRes.status === 'fulfilled' ? buildTasksFromCarePlan(cpRes.value) : [];
+        const custom: CareTask[] = ctRes.status === 'fulfilled'
+          ? ctRes.value.map((ct) => {
+              const cfg = categoryConfig[ct.category as TaskCategory] ?? categoryConfig.vitals;
+              const tod = ct.time_of_day as TimeOfDay;
+              return {
+                id: `custom-${ct.id}`,
+                title: ct.title,
+                subtitle: ct.notes ?? undefined,
+                category: ct.category as TaskCategory,
+                scheduledTime: tod === 'afternoon' ? '1:00 PM' : tod === 'evening' ? '8:00 PM' : '8:00 AM',
+                timeOfDay: tod,
+                status: 'pending' as TaskStatus,
+                color: cfg.color,
+                bgColor: cfg.bg,
+              };
+            })
+          : [];
+        setTasks([...base, ...custom]);
+      }),
       patientService.getNotifications().then((data) => setNotifications(data)),
       getTodayMood().then(setTodayMoodData),
       getWaterSettings().then(setWaterData),
