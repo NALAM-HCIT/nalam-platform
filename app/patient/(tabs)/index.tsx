@@ -1,6 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Switch, Modal, Animated, RefreshControl, Dimensions, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, Image, Switch, Modal, RefreshControl, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -22,14 +22,14 @@ import {
   getWearableStatus, getWearableVitals, requestWearablePairing, disconnectWearable,
   WearableDevice, WearableVitalData,
 } from '@/services/patientDashboardService';
-import { scheduleWaterReminders, configureNotificationHandler } from '@/services/waterReminders';
+import { configureNotificationHandler } from '@/services/waterReminders';
 import { Pedometer } from 'expo-sensors';
 import {
   Bell, Check, Droplets, Pill, CalendarPlus, Package, FileText,
-  BriefcaseMedical, Sun, Moon, Sunrise, Sunset, Heart, Activity,
+  BriefcaseMedical, Sun, Moon, Sunrise, Heart, Activity,
   Apple, Dumbbell, X, Clock, AlertTriangle, Flame, TrendingUp,
-  Zap, ChevronRight, Sparkles, Wind, Gauge, Footprints,
-  CircleAlert, SkipForward, Timer, Lightbulb, Award, Watch, Info,
+  ChevronRight, Wind, Footprints,
+  Lightbulb, Watch,
   Smile, Frown, Meh, ThumbsUp, HeartPulse, Thermometer,
   CloudLightning, ArrowDownRight, Plus
 } from 'lucide-react-native';
@@ -164,14 +164,6 @@ function formatRelativeTime(iso: string): string {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-// ─── Motivational Messages ───
-const motivationalMessages = [
-  { threshold: 0.9, message: 'You are crushing it! Excellent care routine.', emoji: '🚀' },
-  { threshold: 0.7, message: 'Great progress today, almost there!', emoji: '🌟' },
-  { threshold: 0.4, message: 'Keep up the momentum, you got this.', emoji: '💪' },
-  { threshold: 0.1, message: 'Every healthy choice counts today.', emoji: '🌱' },
-  { threshold: 0.0, message: 'Let\'s start fresh! One step at a time.', emoji: '🌞' },
-];
 
 // ─── Segmented Sweep Ring ───
 function SweepRing({ progress, size = 130, strokeWidth = 8, color = '#1A73E8' }: {
@@ -191,7 +183,7 @@ function SweepRing({ progress, size = 130, strokeWidth = 8, color = '#1A73E8' }:
           cx={size / 2} cy={size / 2} r={radius}
           stroke={color} strokeWidth={strokeWidth} fill="none"
           strokeDasharray={`${filled} ${circumference - filled}`}
-          strokeLinecap="round" rotation={-90} origin={`${size / 2}, ${size / 2}`}
+          strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
     </View>
@@ -217,7 +209,7 @@ export default function PatientDashboard() {
   const [showWearablePairing, setShowWearablePairing] = useState(false);
   const [remoteShare, setRemoteShare]       = useState(true);
   const [stepsBannerDismissed, setStepsBannerDismissed] = useState(false);
-  const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null);
+  const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null); // used in loadDashboard
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
   const [waterLogLoading, setWaterLogLoading] = useState(false);
@@ -356,7 +348,7 @@ export default function PatientDashboard() {
   const progress = totalTasks > 0 ? completedTasks / totalTasks : 0;
   const healthScore = Math.floor((progress * 40) + (waterData?.progress_pct ? Math.min(waterData.progress_pct, 100) * 0.2 : 0) + (mood ? 20 : 0) + (latestVitals ? 20 : 0));
   const unreadCount = notifications.filter(n => !n.read).length;
-  const motivMsg = motivationalMessages.find(m => (healthScore/100) >= m.threshold) || motivationalMessages[motivationalMessages.length - 1];
+
 
   const handleCompleteTask = (taskId: string) => {
     setTasks((prev) => {
@@ -394,7 +386,6 @@ export default function PatientDashboard() {
   // Header dynamic colors
   const currentHour = new Date().getHours();
   // using gradient configuration instead of dynamic JS color classes
-  const ptGradient = currentHour < 12 ? ['#60A5FA', '#3B82F6'] : currentHour < 17 ? ['#F59E0B', '#D97706'] : ['#4F46E5', '#312E81'];
   const greetingText = currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
@@ -443,56 +434,42 @@ export default function PatientDashboard() {
 
         </LinearGradient>
 
-        {/* ── Daily Insights (below patient name) ── */}
-        <View className="mb-4 mt-1">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 20 }}>
-            {(apiTips.length > 0 ? apiTips.map(t => ({ title: t.title, body: t.body, icon: Lightbulb, color: '#1A73E8' })) : FALLBACK_TIPS).map((tip, idx, arr) => {
-              const TipIcon = tip.icon;
-              return (
-                <Pressable
-                  key={idx}
-                  onPress={() => CustomAlert.alert(tip.title, tip.body)}
-                  className="bg-white rounded-[20px] p-4 border border-slate-100/80"
-                  style={[Shadows.card, { width: width * 0.72, marginRight: idx === arr.length - 1 ? 0 : 12 }]}
-                >
-                  <View className="flex-row items-start gap-3">
-                    <View className="w-9 h-9 rounded-full items-center justify-center shrink-0" style={{ backgroundColor: `${tip.color}15` }}>
-                      <TipIcon size={18} color={tip.color} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-bold text-midnight mb-1" numberOfLines={1}>{tip.title}</Text>
-                      <Text className="text-xs text-slate-500 font-medium leading-relaxed" numberOfLines={2}>{tip.body}</Text>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* ── Health Score Hero ── */}
-        <View className="px-5 mb-4 mt-2">
-          <View className="bg-white rounded-[24px] p-5 flex-row items-center gap-4 border border-slate-100/60" style={Shadows.card}>
-            <View style={{ width: 88, height: 88 }}>
-              <SweepRing progress={healthScore / 100} size={88} strokeWidth={8} color={healthScore >= 80 ? '#22C55E' : healthScore >= 50 ? '#1A73E8' : '#F59E0B'} />
+        {/* ── Health Stats Strip ── */}
+        <View className="px-5 mb-4 mt-1 flex-row gap-3">
+          {/* Health Score */}
+          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
+            <View style={{ width: 52, height: 52 }}>
+              <SweepRing progress={healthScore / 100} size={52} strokeWidth={5} color={healthScore >= 80 ? '#22C55E' : healthScore >= 50 ? '#1A73E8' : '#F59E0B'} />
               <View className="absolute inset-0 items-center justify-center">
-                <Text className="text-[22px] font-extrabold text-midnight">{healthScore}</Text>
-                <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-[-2px]">Score</Text>
+                <Text className="text-[13px] font-extrabold text-midnight">{healthScore}</Text>
               </View>
             </View>
-            <View className="flex-1">
-              <Text className="text-base font-extrabold text-midnight mb-1">{motivMsg.message}</Text>
-              <View className="flex-row items-center gap-2 mt-2">
-                <View className="px-2.5 py-1 rounded-full flex-row items-center gap-1" style={{ backgroundColor: '#EEF4FF' }}>
-                  <Check size={10} color="#1A73E8" />
-                  <Text className="text-[10px] font-bold text-primary">{completedTasks}/{totalTasks} Tasks</Text>
-                </View>
-                <View className="px-2.5 py-1 rounded-full flex-row items-center gap-1" style={{ backgroundColor: '#FFF7ED' }}>
-                  <Flame size={10} color="#F59E0B" />
-                  <Text className="text-[10px] font-bold text-warning-600">7d Streak</Text>
-                </View>
-              </View>
+            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">Health Score</Text>
+          </View>
+          {/* Tasks */}
+          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center" style={{ backgroundColor: '#EEF4FF' }}>
+              <Text className="text-[18px] font-extrabold text-primary">{completedTasks}</Text>
             </View>
+            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">of {totalTasks} Tasks</Text>
+          </View>
+          {/* Streak */}
+          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center" style={{ backgroundColor: '#FFF7ED' }}>
+              <Flame size={22} color="#F59E0B" />
+            </View>
+            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">7d Streak</Text>
+          </View>
+          {/* Mood */}
+          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center" style={{ backgroundColor: mood ? '#F0FDF4' : '#F8FAFC' }}>
+              {mood ? (() => {
+                const Icon = { great: ThumbsUp, good: Smile, okay: Meh, unwell: Frown, pain: HeartPulse }[mood] ?? Smile;
+                const col = { great: '#22C55E', good: '#1A73E8', okay: '#F59E0B', unwell: '#EF4444', pain: '#DC2626' }[mood] ?? '#94A3B8';
+                return <Icon size={22} color={col} />;
+              })() : <Smile size={22} color="#CBD5E1" />}
+            </View>
+            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">{mood ? mood.charAt(0).toUpperCase() + mood.slice(1) : 'Mood'}</Text>
           </View>
         </View>
 
@@ -545,6 +522,74 @@ export default function PatientDashboard() {
             </View>
           </View>
         </View>
+
+        {/* ── Daily Tip Carousel ── */}
+        {(() => {
+          const tips = apiTips.length > 0
+            ? apiTips.map(t => ({ title: t.title, body: t.body, icon: Lightbulb, color: '#1A73E8' }))
+            : FALLBACK_TIPS;
+          const gradients: [string, string][] = [
+            ['#1A73E8', '#0D47A1'],
+            ['#059669', '#065F46'],
+            ['#7C3AED', '#4C1D95'],
+            ['#D97706', '#92400E'],
+            ['#DC2626', '#7F1D1D'],
+          ];
+          return (
+            <View className="mb-5">
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={width - 28}
+                snapToAlignment="start"
+                contentContainerStyle={{ paddingLeft: 20, paddingRight: 20, gap: 12 }}
+              >
+                {tips.map((tip, idx) => {
+                  const TipIcon = tip.icon;
+                  const [g1, g2] = gradients[idx % gradients.length];
+                  return (
+                    <LinearGradient
+                      key={idx}
+                      colors={[g1, g2]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{ width: width - 40, borderRadius: 24, padding: 20, overflow: 'hidden' }}
+                    >
+                      {/* Decorative circle */}
+                      <View style={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                      <View style={{ position: 'absolute', right: 20, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+
+                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1, paddingRight: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
+                              <Text style={{ fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 1.2, textTransform: 'uppercase' }}>Health Tip</Text>
+                            </View>
+                          </View>
+                          <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 20, marginBottom: 6 }}>{tip.title}</Text>
+                          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 18, fontWeight: '500' }} numberOfLines={3}>{tip.body}</Text>
+                        </View>
+                        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <TipIcon size={26} color="#fff" />
+                        </View>
+                      </View>
+
+                      {/* Dot indicators */}
+                      <View style={{ flexDirection: 'row', gap: 4, marginTop: 16 }}>
+                        {tips.map((_, dotIdx) => (
+                          <View key={dotIdx} style={{ height: 3, borderRadius: 2, backgroundColor: dotIdx === idx ? '#fff' : 'rgba(255,255,255,0.35)', width: dotIdx === idx ? 16 : 6 }} />
+                        ))}
+                      </View>
+                    </LinearGradient>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          );
+        })()}
+
         {/* ── Today's Timeline (Care Tasks) ── */}
         <View className="px-5 mb-5">
           <View className="flex-row items-center justify-between mb-4">
@@ -971,32 +1016,32 @@ export default function PatientDashboard() {
           </View>
         </View>
 
-        {/* ── Smart Contextual Actions ── */}
-        <View className="px-5 mb-5">
-          <Text className="text-[16px] font-extrabold text-midnight mb-3">Quick Actions</Text>
-          <View className="flex-row flex-wrap gap-2.5">
+        {/* ── Quick Actions ── */}
+        <View className="mb-6">
+          <Text className="text-[14px] font-extrabold text-midnight px-5 mb-3">Quick Actions</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 20, gap: 12 }}>
             {([
-              { label: 'Book\nAppointment', icon: CalendarPlus, color: '#1A73E8', bg: '#EEF4FF', route: '/patient/consultation-type' },
-              { label: 'Order\nMedicines', icon: Package, color: '#7C3AED', bg: '#F0EEFF', route: '/patient/(tabs)/pharmacy' },
-              { label: 'Health\nDashboard', icon: FileText, color: '#059669', bg: '#EEFBF4', route: '/patient/(tabs)/records' },
-              { label: 'Visit\nPharmacy', icon: BriefcaseMedical, color: '#D97706', bg: '#FFFBEB', route: '/patient/(tabs)/pharmacy' },
+              { label: 'Book Appointment', icon: CalendarPlus, color: '#1A73E8', bg: '#EEF4FF', route: '/patient/consultation-type' },
+              { label: 'Order Medicines',  icon: Package,      color: '#7C3AED', bg: '#F0EEFF', route: '/patient/(tabs)/pharmacy' },
+              { label: 'My Records',       icon: FileText,     color: '#059669', bg: '#EEFBF4', route: '/patient/(tabs)/records' },
+              { label: 'Pharmacy',         icon: BriefcaseMedical, color: '#D97706', bg: '#FFFBEB', route: '/patient/(tabs)/pharmacy' },
             ] as const).map((item, idx) => {
               const QIcon = item.icon;
               return (
                 <Pressable
                   key={idx}
                   onPress={() => router.push(item.route as any)}
-                  className="bg-white rounded-xl p-4 items-center gap-2 active:scale-95 transition-transform"
-                  style={[Shadows.card, { width: '47%' }]}
+                  className="items-center active:opacity-70"
+                  style={{ width: 76 }}
                 >
-                  <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: item.bg }}>
+                  <View className="w-14 h-14 rounded-2xl items-center justify-center mb-2" style={{ backgroundColor: item.bg, shadowColor: item.color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 }}>
                     <QIcon size={24} color={item.color} />
                   </View>
-                  <Text className="text-[11px] font-bold text-slate-600 text-center">{item.label}</Text>
+                  <Text className="text-[10px] font-bold text-slate-600 text-center leading-3">{item.label}</Text>
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
 
       </ScrollView>
