@@ -95,8 +95,10 @@ export default function PharmacyScreen() {
       );
       // Replace local URI with Supabase public URL
       setRxImages((prev) => prev.map((img) => (img === uri ? url : img)));
-    } catch {
-      CustomAlert.alert('Upload Failed', 'Could not upload prescription. It is saved locally for now.');
+    } catch (err: any) {
+      const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
+      console.error('Prescription upload error:', msg);
+      CustomAlert.alert('Upload Failed', msg || 'Could not upload prescription.');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);

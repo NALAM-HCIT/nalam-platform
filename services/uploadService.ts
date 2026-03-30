@@ -71,7 +71,10 @@ async function uploadFile(
         upsert: true,
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase storage upload error:', JSON.stringify(error));
+      throw new Error(error.message ?? JSON.stringify(error));
+    }
 
     // Get public URL
     const { data: urlData } = supabase.storage

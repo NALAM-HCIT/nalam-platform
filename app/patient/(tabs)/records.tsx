@@ -618,8 +618,10 @@ export default function HealthScreen() {
         `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`,
       );
       CustomAlert.alert('Uploaded', `${label} uploaded successfully to your health records.`);
-    } catch {
-      CustomAlert.alert('Upload Failed', 'Could not upload document. Please try again.');
+    } catch (err: any) {
+      const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
+      console.error('Document upload error:', msg);
+      CustomAlert.alert('Upload Failed', msg || 'Could not upload document.');
     } finally {
       setDocUploading(false);
     }
