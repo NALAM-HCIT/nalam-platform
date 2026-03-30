@@ -25,6 +25,7 @@ public record PatientProfileResponse(
 public record UpdatePatientProfileRequest(
     string? FullName = null,
     string? Email = null,
+    string? ProfilePhotoUrl = null,
     string? BloodGroup = null,
     string? DateOfBirth = null,     // "yyyy-MM-dd"
     string? Gender = null,

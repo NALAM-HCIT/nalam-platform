@@ -27,6 +27,7 @@ export interface PatientProfile {
 export interface UpdatePatientProfileRequest {
     fullName?: string;
     email?: string;
+    profilePhotoUrl?: string;
     bloodGroup?: string;
     dateOfBirth?: string;   // "YYYY-MM-DD"
     gender?: string;

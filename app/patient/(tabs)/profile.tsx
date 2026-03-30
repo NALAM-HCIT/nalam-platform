@@ -196,12 +196,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { userName, phone, logout } = useAuthStore();
 
-  const { profileImage, handleChangePhoto } = useProfilePhoto();
-
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [quickStats, setQuickStats] = useState<ProfileStats | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
+
+  const { profileImage, setProfileImage, handleChangePhoto } = useProfilePhoto(profile?.profilePhotoUrl);
 
   useFocusEffect(
     useCallback(() => {
@@ -216,6 +216,8 @@ export default function ProfileScreen() {
           if (cancelled) return;
           setProfile(prof);
           setQuickStats(stats);
+          // Populate photo from API if hook hasn't been set yet
+          if (prof.profilePhotoUrl) setProfileImage(prof.profilePhotoUrl);
         })
         .catch((err) => {
           if (!cancelled) console.error('Failed to load profile data:', err);

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadService, UploadProgress } from '@/services/uploadService';
 import { useAuthStore } from '@/stores/authStore';
+import { patientService } from '@/services/patientService';
 /**
  * Shared hook for profile photo upload with Firebase Storage.
  * Handles camera/gallery picking, Firebase upload with progress, and state management.
@@ -54,6 +55,8 @@ export function useProfilePhoto(existingImageUrl?: string | null) {
         (progress: UploadProgress) => setUploadProgress(progress.progress),
       );
       setProfileImage(url);
+      // Persist URL back to the backend so it reloads on next session
+      await patientService.updateProfile({ profilePhotoUrl: url });
       CustomAlert.alert('Success', 'Profile photo uploaded!');
     } catch (err) {
       console.error('Upload failed:', err);

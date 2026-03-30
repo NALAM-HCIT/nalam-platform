@@ -94,6 +94,7 @@ public static class PatientProfileEndpoints
         // Update only provided fields
         if (request.FullName != null) patient.FullName = request.FullName.Trim();
         if (request.Email != null) patient.Email = request.Email.Trim();
+        if (request.ProfilePhotoUrl != null) patient.ProfilePhotoUrl = request.ProfilePhotoUrl.Trim();
         if (request.BloodGroup != null) patient.BloodGroup = request.BloodGroup;
         if (request.DateOfBirth != null && DateOnly.TryParse(request.DateOfBirth, out var dob))
             patient.DateOfBirth = dob;
