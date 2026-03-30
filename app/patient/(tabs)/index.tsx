@@ -209,7 +209,7 @@ export default function PatientDashboard() {
   const [showWearablePairing, setShowWearablePairing] = useState(false);
   const [remoteShare, setRemoteShare]       = useState(true);
   const [stepsBannerDismissed, setStepsBannerDismissed] = useState(false);
-  const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null); // used in loadDashboard
+  const [, setPhysioToday]                  = useState<TodayPhysio | null>(null);
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
   const [waterLogLoading, setWaterLogLoading] = useState(false);
@@ -394,25 +394,31 @@ export default function PatientDashboard() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#1A73E8" />}>
         {/* ── Dynamic Header ── */}
         <LinearGradient
-          colors={currentHour < 12 ? ['#eff6ff', '#dbeafe'] : currentHour < 17 ? ['#fef3c7', '#fef08a'] : ['#eef2ff', '#e0e7ff']}
-          className="px-5 pt-4 pb-5 rounded-b-[32px] mb-4"
+          colors={currentHour < 12 ? ['#eff6ff', '#dbeafe'] : currentHour < 17 ? ['#fef3c7', '#fde68a'] : ['#eef2ff', '#e0e7ff']}
+          className="px-5 pt-4 pb-5 rounded-b-[32px] mb-3"
           style={Shadows.card}
         >
-          {/* Top row: logo + name + actions */}
+          {/* Hospital identity row */}
           <View className="flex-row items-center justify-between mb-4">
-            <View className="flex-row items-center gap-3">
-              <View className="w-[52px] h-[52px] rounded-[14px] bg-white items-center justify-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 }}>
-                <Image source={require('../../../assets/logo_arunpriya.png')} style={{ width: 42, height: 42 }} resizeMode="contain" />
-              </View>
-              <View>
-                <Text className="text-[13px] font-extrabold text-midnight leading-[17px]" numberOfLines={2}>Arun Priya{'\n'}Multispeciality Hospital</Text>
-                <View className="mt-1 self-start px-2 py-[2px] rounded-sm" style={{ backgroundColor: '#1A73E8' }}>
-                  <Text style={{ fontSize: 8, fontWeight: '800', color: '#fff', letterSpacing: 1.2 }}>PATIENT PORTAL</Text>
+            {/* Logo + name block */}
+            <View className="flex-row items-center gap-3 flex-1 mr-3">
+              <Image source={require('../../../assets/logo_arunpriya.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
+              <View className="flex-1">
+                <Text className="text-[15px] font-extrabold text-midnight leading-[19px]" numberOfLines={2}>Arun Priya{'\n'}Multispeciality Hospital</Text>
+                <View className="mt-1.5 self-start flex-row items-center gap-1 px-2.5 py-[3px] rounded-full" style={{ backgroundColor: '#1A73E8' }}>
+                  <View className="w-1.5 h-1.5 rounded-full bg-white/70" />
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 1 }}>PATIENT PORTAL</Text>
                 </View>
               </View>
             </View>
+
+            {/* Action buttons */}
             <View className="flex-row items-center gap-2">
-              <Pressable onPress={() => setShowNotifications(true)} className="w-10 h-10 rounded-full bg-white/70 items-center justify-center border border-white/60 active:opacity-70">
+              <Pressable
+                onPress={() => setShowNotifications(true)}
+                className="w-10 h-10 rounded-full items-center justify-center active:opacity-70"
+                style={{ backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' }}
+              >
                 <Bell size={18} color="#0B1B3D" />
                 {unreadCount > 0 && (
                   <View className="absolute -top-1 -right-1 w-5 h-5 bg-danger-500 rounded-full items-center justify-center border-2 border-white">
@@ -420,64 +426,71 @@ export default function PatientDashboard() {
                   </View>
                 )}
               </Pressable>
-              <Pressable onPress={() => router.push('/patient/(tabs)/profile' as any)} className="w-10 h-10 rounded-full items-center justify-center active:opacity-70" style={{ backgroundColor: '#0B1B3D' }}>
+              <Pressable
+                onPress={() => router.push('/patient/(tabs)/profile' as any)}
+                className="w-10 h-10 rounded-full items-center justify-center active:opacity-70"
+                style={{ backgroundColor: '#0B1B3D' }}
+              >
                 <Text className="text-sm font-bold text-white">{(userName || 'DM').slice(0, 2).toUpperCase()}</Text>
               </Pressable>
             </View>
           </View>
 
+          {/* Divider */}
+          <View className="h-px bg-black/5 mb-3" />
+
           {/* Greeting + patient name */}
-          <View className="mb-3">
-            <Text className="text-[13px] font-semibold text-slate-500">{greetingText},</Text>
-            <Text className="text-[26px] font-extrabold text-midnight tracking-tight leading-8">{userName || 'David Miller'}</Text>
+          <View>
+            <Text className="text-[12px] font-semibold text-slate-500">{greetingText},</Text>
+            <Text className="text-[23px] font-extrabold text-midnight tracking-tight leading-7">{userName || 'David Miller'}</Text>
           </View>
 
         </LinearGradient>
 
         {/* ── Health Stats Strip ── */}
-        <View className="px-5 mb-4 mt-1 flex-row gap-3">
+        <View className="px-5 mb-3 flex-row gap-2">
           {/* Health Score */}
-          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
-            <View style={{ width: 52, height: 52 }}>
-              <SweepRing progress={healthScore / 100} size={52} strokeWidth={5} color={healthScore >= 80 ? '#22C55E' : healthScore >= 50 ? '#1A73E8' : '#F59E0B'} />
+          <View className="flex-1 bg-white rounded-2xl p-2 items-center border border-slate-100" style={Shadows.card}>
+            <View style={{ width: 44, height: 44 }}>
+              <SweepRing progress={healthScore / 100} size={44} strokeWidth={4} color={healthScore >= 80 ? '#22C55E' : healthScore >= 50 ? '#1A73E8' : '#F59E0B'} />
               <View className="absolute inset-0 items-center justify-center">
-                <Text className="text-[13px] font-extrabold text-midnight">{healthScore}</Text>
+                <Text className="text-[11px] font-extrabold text-midnight">{healthScore}</Text>
               </View>
             </View>
-            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">Health Score</Text>
+            <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Score</Text>
           </View>
           {/* Tasks */}
-          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
-            <View className="w-[52px] h-[52px] rounded-full items-center justify-center" style={{ backgroundColor: '#EEF4FF' }}>
-              <Text className="text-[18px] font-extrabold text-primary">{completedTasks}</Text>
+          <View className="flex-1 bg-white rounded-2xl p-2 items-center border border-slate-100" style={Shadows.card}>
+            <View className="w-[44px] h-[44px] rounded-full items-center justify-center" style={{ backgroundColor: '#EEF4FF' }}>
+              <Text className="text-[16px] font-extrabold text-primary">{completedTasks}</Text>
             </View>
-            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">of {totalTasks} Tasks</Text>
+            <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">of {totalTasks} Tasks</Text>
           </View>
           {/* Streak */}
-          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
-            <View className="w-[52px] h-[52px] rounded-full items-center justify-center" style={{ backgroundColor: '#FFF7ED' }}>
-              <Flame size={22} color="#F59E0B" />
+          <View className="flex-1 bg-white rounded-2xl p-2 items-center border border-slate-100" style={Shadows.card}>
+            <View className="w-[44px] h-[44px] rounded-full items-center justify-center" style={{ backgroundColor: '#FFF7ED' }}>
+              <Flame size={20} color="#F59E0B" />
             </View>
-            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">7d Streak</Text>
+            <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">7d Streak</Text>
           </View>
           {/* Mood */}
-          <View className="flex-1 bg-white rounded-2xl p-3 items-center border border-slate-100" style={Shadows.card}>
-            <View className="w-[52px] h-[52px] rounded-full items-center justify-center" style={{ backgroundColor: mood ? '#F0FDF4' : '#F8FAFC' }}>
+          <View className="flex-1 bg-white rounded-2xl p-2 items-center border border-slate-100" style={Shadows.card}>
+            <View className="w-[44px] h-[44px] rounded-full items-center justify-center" style={{ backgroundColor: mood ? '#F0FDF4' : '#F8FAFC' }}>
               {mood ? (() => {
                 const Icon = { great: ThumbsUp, good: Smile, okay: Meh, unwell: Frown, pain: HeartPulse }[mood] ?? Smile;
                 const col = { great: '#22C55E', good: '#1A73E8', okay: '#F59E0B', unwell: '#EF4444', pain: '#DC2626' }[mood] ?? '#94A3B8';
-                return <Icon size={22} color={col} />;
-              })() : <Smile size={22} color="#CBD5E1" />}
+                return <Icon size={20} color={col} />;
+              })() : <Smile size={20} color="#CBD5E1" />}
             </View>
-            <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1">{mood ? mood.charAt(0).toUpperCase() + mood.slice(1) : 'Mood'}</Text>
+            <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">{mood ? mood.charAt(0).toUpperCase() + mood.slice(1) : 'Mood'}</Text>
           </View>
         </View>
 
         {/* ── Animated Mood Check-in ── */}
-        <View className="px-5 mb-5">
-          <View className="bg-white rounded-[20px] px-4 py-3.5 border border-slate-100" style={Shadows.card}>
-            <Text className="text-[12px] font-bold text-midnight mb-3">How are you feeling?</Text>
-            <View className="flex-row justify-between pt-1">
+        <View className="px-5 mb-3">
+          <View className="bg-white rounded-[18px] px-4 py-3 border border-slate-100" style={Shadows.card}>
+            <Text className="text-[11px] font-bold text-midnight mb-2">How are you feeling?</Text>
+            <View className="flex-row justify-between">
               {([
                 { key: 'great', label: 'Great', icon: ThumbsUp, color: '#22C55E' },
                 { key: 'good', label: 'Good', icon: Smile, color: '#1A73E8' },
@@ -505,17 +518,17 @@ export default function PatientDashboard() {
                     className="items-center active:scale-95 transition-transform"
                   >
                     <View
-                      className="w-[42px] h-[42px] rounded-full items-center justify-center mb-1.5"
+                      className="w-[36px] h-[36px] rounded-full items-center justify-center mb-1"
                       style={{
                         backgroundColor: isSelected ? m.color : `${m.color}08`,
                         borderWidth: isSelected ? 0 : 1,
                         borderColor: isSelected ? 'transparent' : `${m.color}20`,
-                        ...(isSelected ? { shadowColor: m.color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 6 } : {}),
+                        ...(isSelected ? { shadowColor: m.color, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 5, elevation: 5 } : {}),
                       }}
                     >
-                      <Icon size={18} color={isSelected ? '#FFFFFF' : m.color} />
+                      <Icon size={16} color={isSelected ? '#FFFFFF' : m.color} />
                     </View>
-                    <Text style={{ fontSize: 9, fontWeight: isSelected ? '800' : '600', color: isSelected ? m.color : '#94A3B8' }}>{m.label}</Text>
+                    <Text style={{ fontSize: 8, fontWeight: isSelected ? '800' : '600', color: isSelected ? m.color : '#94A3B8' }}>{m.label}</Text>
                   </Pressable>
                 );
               })}
@@ -536,7 +549,7 @@ export default function PatientDashboard() {
             ['#DC2626', '#7F1D1D'],
           ];
           return (
-            <View className="mb-5">
+            <View className="mb-3">
               <ScrollView
                 horizontal
                 pagingEnabled
@@ -555,31 +568,31 @@ export default function PatientDashboard() {
                       colors={[g1, g2]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                      style={{ width: width - 40, borderRadius: 24, padding: 20, overflow: 'hidden' }}
+                      style={{ width: width - 40, borderRadius: 20, padding: 14, overflow: 'hidden' }}
                     >
                       {/* Decorative circle */}
-                      <View style={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                      <View style={{ position: 'absolute', right: 20, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                      <View style={{ position: 'absolute', right: -16, top: -16, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                      <View style={{ position: 'absolute', right: 16, bottom: -24, width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.08)' }} />
 
                       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                        <View style={{ flex: 1, paddingRight: 12 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
-                              <Text style={{ fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 1.2, textTransform: 'uppercase' }}>Health Tip</Text>
+                        <View style={{ flex: 1, paddingRight: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20 }}>
+                              <Text style={{ fontSize: 8, fontWeight: '800', color: '#fff', letterSpacing: 1.2, textTransform: 'uppercase' }}>Health Tip</Text>
                             </View>
                           </View>
-                          <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 20, marginBottom: 6 }}>{tip.title}</Text>
-                          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 18, fontWeight: '500' }} numberOfLines={3}>{tip.body}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', lineHeight: 18, marginBottom: 4 }}>{tip.title}</Text>
+                          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', lineHeight: 16, fontWeight: '500' }} numberOfLines={2}>{tip.body}</Text>
                         </View>
-                        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <TipIcon size={26} color="#fff" />
+                        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <TipIcon size={22} color="#fff" />
                         </View>
                       </View>
 
                       {/* Dot indicators */}
-                      <View style={{ flexDirection: 'row', gap: 4, marginTop: 16 }}>
+                      <View style={{ flexDirection: 'row', gap: 4, marginTop: 10 }}>
                         {tips.map((_, dotIdx) => (
-                          <View key={dotIdx} style={{ height: 3, borderRadius: 2, backgroundColor: dotIdx === idx ? '#fff' : 'rgba(255,255,255,0.35)', width: dotIdx === idx ? 16 : 6 }} />
+                          <View key={dotIdx} style={{ height: 3, borderRadius: 2, backgroundColor: dotIdx === idx ? '#fff' : 'rgba(255,255,255,0.35)', width: dotIdx === idx ? 14 : 5 }} />
                         ))}
                       </View>
                     </LinearGradient>
@@ -591,9 +604,9 @@ export default function PatientDashboard() {
         })()}
 
         {/* ── Today's Timeline (Care Tasks) ── */}
-        <View className="px-5 mb-5">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-[16px] font-extrabold text-midnight">Today's Timeline</Text>
+        <View className="px-5 mb-3">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-[15px] font-extrabold text-midnight">Today's Timeline</Text>
             <Pressable onPress={() => router.push('/patient/care-schedule')} className="active:opacity-60">
               <Text className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: '#1A73E8' }}>View All</Text>
             </Pressable>
@@ -608,7 +621,7 @@ export default function PatientDashboard() {
               <Text className="text-xs text-slate-400 text-center">You have no pending care tasks for today.</Text>
             </View>
           ) : (
-            <View className="bg-white rounded-[24px] p-5 border border-slate-100" style={Shadows.card}>
+            <View className="bg-white rounded-[20px] p-4 border border-slate-100" style={Shadows.card}>
               {(['morning', 'afternoon', 'evening'] as TimeOfDay[]).map((tod, slotIndex, arr) => {
                 const todTasks = tasks.filter(t => t.timeOfDay === tod);
                 if (todTasks.length === 0) return null;
@@ -619,7 +632,7 @@ export default function PatientDashboard() {
                 return (
                   <View key={tod} className="mb-2 relative">
                     {/* Time Slot Header */}
-                    <View className="flex-row items-center gap-2 mb-3 z-10 bg-white self-start px-2 -ml-2">
+                    <View className="flex-row items-center gap-2 mb-2 z-10 bg-white self-start px-2 -ml-2">
                       <TodIcon size={14} color={todConfig.color} />
                       <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest">{todConfig.label}</Text>
                     </View>
@@ -634,7 +647,7 @@ export default function PatientDashboard() {
                         const isLastTask = idx === todTasks.length - 1;
                         
                         return (
-                          <View key={task.id} className="flex-row mb-4 relative">
+                          <View key={task.id} className="flex-row mb-3 relative">
                             {/* Vertical Line connecting tasks */}
                             {(!isLastTask || !isLastSlot) && (
                               <View className="absolute top-8 bottom-[-24px] left-[15px] w-[2px] bg-slate-100 z-0" />
@@ -694,9 +707,9 @@ export default function PatientDashboard() {
           )}
         </View>
         {/* ── Animated Water Intake ── */}
-        <View className="px-5 mb-5">
-          <View className="bg-white rounded-[24px] p-5 border border-slate-100" style={Shadows.card}>
-            <View className="flex-row items-center justify-between mb-4">
+        <View className="px-5 mb-3">
+          <View className="bg-white rounded-[20px] p-4 border border-slate-100" style={Shadows.card}>
+            <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <View className="w-8 h-8 rounded-xl items-center justify-center bg-tertiary-fixed">
                   <Droplets size={16} color="#38BDF8" />
@@ -708,10 +721,10 @@ export default function PatientDashboard() {
               </Pressable>
             </View>
 
-            <View className="flex-row items-center gap-5 mt-1">
+            <View className="flex-row items-center gap-4">
               {/* Bottle Visualization */}
               <View className="items-center">
-                <View className="w-14 h-28 border-[3px] border-tertiary-container rounded-t-lg rounded-b-xl overflow-hidden justify-end bg-surface-variant relative">
+                <View className="w-12 h-20 border-[3px] border-tertiary-container rounded-t-lg rounded-b-xl overflow-hidden justify-end bg-surface-variant relative">
                   <View
                     className="w-full absolute bottom-0 left-0 right-0 bg-tertiary"
                     style={{ height: `${Math.min(waterData?.progress_pct ?? 0, 100)}%` }}
@@ -722,16 +735,16 @@ export default function PatientDashboard() {
               </View>
 
               <View className="flex-1 justify-center">
-                <Text className="text-2xl font-black text-midnight mb-0.5">{waterData?.today_total_ml ?? 0} <Text className="text-sm font-bold text-slate-400">ml</Text></Text>
-                
+                <Text className="text-xl font-black text-midnight mb-0.5">{waterData?.today_total_ml ?? 0} <Text className="text-xs font-bold text-slate-400">ml</Text></Text>
+
                 {/* 100% Celebration Text */}
                 {(waterData?.progress_pct ?? 0) >= 100 ? (
-                  <View className="flex-row items-center gap-1 mb-3 self-start px-2 py-1 rounded-md" style={{ backgroundColor: '#DCFCE7' }}>
-                    <Check size={12} color="#16A34A" />
-                    <Text className="text-[10px] font-bold text-success-700">Goal Reached!</Text>
+                  <View className="flex-row items-center gap-1 mb-2 self-start px-2 py-1 rounded-md" style={{ backgroundColor: '#DCFCE7' }}>
+                    <Check size={11} color="#16A34A" />
+                    <Text className="text-[9px] font-bold text-success-700">Goal Reached!</Text>
                   </View>
                 ) : (
-                  <Text className="text-xs text-slate-500 mb-3 font-medium">Keep drinking to reach your daily goal.</Text>
+                  <Text className="text-[11px] text-slate-500 mb-2 font-medium">Keep drinking to reach your daily goal.</Text>
                 )}
 
                 <View className="flex-row gap-2">
@@ -766,12 +779,12 @@ export default function PatientDashboard() {
         </View>
 
         {/* ── Vitals + Wearable + Steps ── */}
-        <View className="px-5 mb-5">
-          <View className="bg-white rounded-[24px] p-5 border border-outline-variant" style={Shadows.card}>
+        <View className="px-5 mb-3">
+          <View className="bg-white rounded-[20px] p-4 border border-outline-variant" style={Shadows.card}>
 
             {/* Header row */}
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-[17px] font-extrabold text-midnight">Vitals</Text>
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-[15px] font-extrabold text-midnight">Vitals</Text>
               <View className="flex-row items-center gap-3">
                 <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remote Share</Text>
                 <Switch
@@ -787,7 +800,7 @@ export default function PatientDashboard() {
             {/* Connect Watch button */}
             <Pressable
               onPress={() => setShowWearablePairing(true)}
-              className="rounded-full py-3 mb-3 flex-row items-center justify-center gap-2 active:opacity-80"
+              className="rounded-full py-2.5 mb-3 flex-row items-center justify-center gap-2 active:opacity-80"
               style={{ backgroundColor: wearableDevice ? '#DCFCE7' : '#FFF1F2', borderWidth: 1, borderColor: wearableDevice ? '#86EFAC' : '#FECDD3' }}
             >
               <Watch size={16} color={wearableDevice ? '#16A34A' : '#E11D48'} />
@@ -801,18 +814,18 @@ export default function PatientDashboard() {
               <View className="w-2 h-2 rounded-full" style={{ backgroundColor: '#22C55E' }} />
               <Text className="text-[11px] font-extrabold text-success-600 uppercase tracking-widest">Live Syncing</Text>
             </View>
-            <Text className="text-[11px] text-slate-400 mb-5">
+            <Text className="text-[10px] text-slate-400 mb-4">
               {wearableDevice
                 ? 'Watch syncing Heart Rate & SpO₂. Steps tracked via phone.'
                 : 'Connect watch for Heart Rate & SpO₂. Steps tracked via phone.'}
             </Text>
 
             {/* Three metric rings: HR · SpO2 · Activity */}
-            <View className="flex-row justify-between mb-5">
+            <View className="flex-row justify-between mb-4">
               {/* Heart Rate */}
               <View className="items-center" style={{ width: '30%' }}>
-                <View style={{ position: 'relative', width: 80, height: 80 }}>
-                  <Svg width={80} height={80} viewBox="0 0 80 80">
+                <View style={{ position: 'relative', width: 68, height: 68 }}>
+                  <Svg width={68} height={68} viewBox="0 0 80 80">
                     <Circle cx="40" cy="40" r="34" fill="none" stroke="#FEE2E2" strokeWidth="5" />
                     {wearableVitals?.heart_rate ? (
                       <Circle cx="40" cy="40" r="34" fill="none" stroke="#EF4444" strokeWidth="5"
@@ -822,25 +835,25 @@ export default function PatientDashboard() {
                   </Svg>
                   <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
                     {wearableVitals?.heart_rate ? (
-                      <Text className="text-base font-black text-slate-800">{wearableVitals.heart_rate}</Text>
+                      <Text className="text-[13px] font-black text-slate-800">{wearableVitals.heart_rate}</Text>
                     ) : (
-                      <Text className="text-sm font-bold text-slate-300">--</Text>
+                      <Text className="text-[11px] font-bold text-slate-300">--</Text>
                     )}
-                    <Text className="text-[8px] font-bold text-slate-400">BPM</Text>
+                    <Text className="text-[7px] font-bold text-slate-400">BPM</Text>
                   </View>
                 </View>
-                <Text className="text-[11px] font-semibold text-slate-600 mt-2">Heart Rate</Text>
+                <Text className="text-[10px] font-semibold text-slate-600 mt-1.5">Heart Rate</Text>
                 {!wearableDevice && (
                   <Pressable onPress={() => setShowWearablePairing(true)}>
-                    <Text className="text-[10px] font-bold text-primary mt-0.5">Tap to pair</Text>
+                    <Text className="text-[9px] font-bold text-primary mt-0.5">Tap to pair</Text>
                   </Pressable>
                 )}
               </View>
 
               {/* SpO2 */}
               <View className="items-center" style={{ width: '30%' }}>
-                <View style={{ position: 'relative', width: 80, height: 80 }}>
-                  <Svg width={80} height={80} viewBox="0 0 80 80">
+                <View style={{ position: 'relative', width: 68, height: 68 }}>
+                  <Svg width={68} height={68} viewBox="0 0 80 80">
                     <Circle cx="40" cy="40" r="34" fill="none" stroke="#EDE9FE" strokeWidth="5" />
                     {wearableVitals?.spo2 ? (
                       <Circle cx="40" cy="40" r="34" fill="none" stroke="#7C3AED" strokeWidth="5"
@@ -850,25 +863,25 @@ export default function PatientDashboard() {
                   </Svg>
                   <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
                     {wearableVitals?.spo2 ? (
-                      <Text className="text-base font-black text-slate-800">{wearableVitals.spo2}</Text>
+                      <Text className="text-[13px] font-black text-slate-800">{wearableVitals.spo2}</Text>
                     ) : (
-                      <Text className="text-sm font-bold text-slate-300">--</Text>
+                      <Text className="text-[11px] font-bold text-slate-300">--</Text>
                     )}
-                    <Text className="text-[8px] font-bold text-slate-400">%</Text>
+                    <Text className="text-[7px] font-bold text-slate-400">%</Text>
                   </View>
                 </View>
-                <Text className="text-[11px] font-semibold text-slate-600 mt-2">SpO₂</Text>
+                <Text className="text-[10px] font-semibold text-slate-600 mt-1.5">SpO₂</Text>
                 {!wearableDevice && (
                   <Pressable onPress={() => setShowWearablePairing(true)}>
-                    <Text className="text-[10px] font-bold text-primary mt-0.5">Tap to pair</Text>
+                    <Text className="text-[9px] font-bold text-primary mt-0.5">Tap to pair</Text>
                   </Pressable>
                 )}
               </View>
 
               {/* Activity / Steps */}
               <View className="items-center" style={{ width: '30%' }}>
-                <View style={{ position: 'relative', width: 80, height: 80 }}>
-                  <Svg width={80} height={80} viewBox="0 0 80 80">
+                <View style={{ position: 'relative', width: 68, height: 68 }}>
+                  <Svg width={68} height={68} viewBox="0 0 80 80">
                     <Circle cx="40" cy="40" r="34" fill="none" stroke="#FEF3C7" strokeWidth="5" />
                     <Circle cx="40" cy="40" r="34" fill="none"
                       stroke={liveSteps >= (stepData?.goal_steps ?? 10000) ? '#22C55E' : '#F59E0B'}
@@ -877,13 +890,13 @@ export default function PatientDashboard() {
                       strokeLinecap="round" transform="rotate(-90 40 40)" />
                   </Svg>
                   <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text className="text-sm font-black text-slate-800">
+                    <Text className="text-[11px] font-black text-slate-800">
                       {liveSteps >= 1000 ? `${(liveSteps / 1000).toFixed(1)}k` : liveSteps.toString()}
                     </Text>
-                    <Text className="text-[8px] font-bold text-slate-400">STEPS</Text>
+                    <Text className="text-[7px] font-bold text-slate-400">STEPS</Text>
                   </View>
                 </View>
-                <Text className="text-[11px] font-semibold text-slate-600 mt-2">Activity</Text>
+                <Text className="text-[10px] font-semibold text-slate-600 mt-1.5">Activity</Text>
                 {pedometerAvailable && (
                   <View className="flex-row items-center gap-0.5 mt-0.5">
                     <View className="w-1.5 h-1.5 rounded-full bg-success-500" />
@@ -895,7 +908,7 @@ export default function PatientDashboard() {
 
             {/* Steps to go banner */}
             {!stepsBannerDismissed && liveSteps < (stepData?.goal_steps ?? 10000) && (
-              <View className="rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-3" style={{ backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A' }}>
+              <View className="rounded-2xl px-3 py-2.5 mb-3 flex-row items-center gap-3" style={{ backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A' }}>
                 <Footprints size={22} color="#F59E0B" />
                 <View className="flex-1">
                   <Text className="text-sm font-extrabold text-amber-800">
@@ -916,14 +929,14 @@ export default function PatientDashboard() {
             )}
 
             {liveSteps >= (stepData?.goal_steps ?? 10000) && (
-              <View className="rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-3" style={{ backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0' }}>
+              <View className="rounded-2xl px-3 py-2.5 mb-3 flex-row items-center gap-3" style={{ backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0' }}>
                 <Check size={18} color="#16A34A" />
                 <Text className="text-sm font-extrabold text-success-700">Daily step goal achieved! 🎉</Text>
               </View>
             )}
 
             {/* ── Logged Vitals divider ── */}
-            <View className="flex-row items-center gap-3 mb-4 mt-2">
+            <View className="flex-row items-center gap-3 mb-3 mt-1">
               <View className="flex-1 h-px bg-slate-100" />
               <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged Vitals</Text>
               <View className="flex-1 h-px bg-slate-100" />
@@ -931,7 +944,7 @@ export default function PatientDashboard() {
 
             {latestVitals ? (
               <>
-                <View className="flex-row flex-wrap gap-3 mb-4">
+                <View className="flex-row flex-wrap gap-2 mb-3">
                   {latestVitals.bp && (
                     <View className="rounded-2xl p-3 border border-rose-100" style={{ backgroundColor: '#FFF1F2', width: '47%' }}>
                       <View className="flex-row justify-between items-center mb-2">
@@ -977,7 +990,7 @@ export default function PatientDashboard() {
                     </View>
                   )}
                 </View>
-                <Text className="text-[10px] text-slate-400 text-center mb-4">
+                <Text className="text-[9px] text-slate-400 text-center mb-3">
                   Recorded at {new Date(latestVitals.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </>
@@ -999,6 +1012,7 @@ export default function PatientDashboard() {
                 <Text className="text-[12px] font-bold text-primary">Log Vitals</Text>
               </Pressable>
               <Pressable
+                onPress={() => router.push('/patient/vitals-trend' as any)}
                 className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl active:opacity-70"
                 style={{ backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0' }}
               >
@@ -1017,14 +1031,14 @@ export default function PatientDashboard() {
         </View>
 
         {/* ── Quick Actions ── */}
-        <View className="mb-6">
-          <Text className="text-[14px] font-extrabold text-midnight px-5 mb-3">Quick Actions</Text>
+        <View className="mb-4">
+          <Text className="text-[13px] font-extrabold text-midnight px-5 mb-2">Quick Actions</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20, paddingRight: 20, gap: 12 }}>
             {([
-              { label: 'Book Appointment', icon: CalendarPlus, color: '#1A73E8', bg: '#EEF4FF', route: '/patient/consultation-type' },
-              { label: 'Order Medicines',  icon: Package,      color: '#7C3AED', bg: '#F0EEFF', route: '/patient/(tabs)/pharmacy' },
-              { label: 'My Records',       icon: FileText,     color: '#059669', bg: '#EEFBF4', route: '/patient/(tabs)/records' },
-              { label: 'Pharmacy',         icon: BriefcaseMedical, color: '#D97706', bg: '#FFFBEB', route: '/patient/(tabs)/pharmacy' },
+              { label: 'Book Appointment', icon: CalendarPlus,     color: '#1A73E8', bg: '#EEF4FF', route: '/patient/consultation-type' },
+              { label: 'Order Medicines',  icon: Package,          color: '#7C3AED', bg: '#F0EEFF', route: '/patient/(tabs)/pharmacy' },
+              { label: 'My Records',       icon: FileText,         color: '#059669', bg: '#EEFBF4', route: '/patient/(tabs)/records' },
+              { label: 'My Bookings',      icon: BriefcaseMedical, color: '#D97706', bg: '#FFFBEB', route: '/patient/(tabs)/bookings' },
             ] as const).map((item, idx) => {
               const QIcon = item.icon;
               return (
