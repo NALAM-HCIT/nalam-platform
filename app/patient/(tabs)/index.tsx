@@ -19,6 +19,8 @@ import {
   getTodayCareTasks,
   logCareTaskComplete,
   getTodaySteps, logSteps, StepLog,
+  getWearableStatus, getWearableVitals, requestWearablePairing, disconnectWearable,
+  WearableDevice, WearableVitalData,
 } from '@/services/patientDashboardService';
 import { scheduleWaterReminders, configureNotificationHandler } from '@/services/waterReminders';
 import { Pedometer } from 'expo-sensors';
@@ -210,6 +212,9 @@ export default function PatientDashboard() {
   const [stepData, setStepData]             = useState<StepLog | null>(null);
   const [liveSteps, setLiveSteps]           = useState(0);
   const [pedometerAvailable, setPedometerAvailable] = useState<boolean | null>(null);
+  const [wearableDevice, setWearableDevice] = useState<WearableDevice | null>(null);
+  const [wearableVitals, setWearableVitals] = useState<WearableVitalData | null>(null);
+  const [showWearablePairing, setShowWearablePairing] = useState(false);
   const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null);
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
@@ -258,6 +263,12 @@ export default function PatientDashboard() {
     getTodayPhysio().then(setPhysioToday).catch(() => {});
     getLatestVitals().then(setLatestVitals).catch(() => {});
     getHealthTips().then(setApiTips).catch(() => {});
+    getWearableStatus().then((devices) => {
+      if (devices && devices.length > 0) {
+        setWearableDevice(devices[0]);
+        getWearableVitals().then(setWearableVitals).catch(() => {});
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -310,10 +321,16 @@ export default function PatientDashboard() {
     };
   }, []);
 
-  // Re-fetch vitals + steps whenever the tab comes back into focus
+  // Re-fetch vitals + steps + wearable data whenever the tab comes back into focus
   useFocusEffect(useCallback(() => {
     getLatestVitals().then(setLatestVitals).catch(() => {});
     getTodaySteps().then(setStepData).catch(() => {});
+    getWearableStatus().then((devices) => {
+      if (devices && devices.length > 0) {
+        setWearableDevice(devices[0]);
+        getWearableVitals().then(setWearableVitals).catch(() => {});
+      }
+    }).catch(() => {});
   }, []));
 
   const [mood, setMood] = useState<string | null>(null);
@@ -690,35 +707,120 @@ export default function PatientDashboard() {
               </View>
             ) : (
               <>
-                <View className="flex-row items-end gap-3 mb-4">
-                  <Text className="text-3xl font-black text-midnight">
-                    {liveSteps.toLocaleString()}
-                    <Text className="text-sm font-bold text-slate-400"> steps</Text>
-                  </Text>
-                  {liveSteps >= (stepData?.goal_steps ?? 10000) && (
-                    <View className="flex-row items-center gap-1 mb-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
-                      <Check size={10} color="#16A34A" />
-                      <Text className="text-[10px] font-bold text-success-700">Goal!</Text>
+                {/* Circular Progress Ring */}
+                <View className="items-center mb-6">
+                  <View style={{ position: 'relative', width: 160, height: 160 }}>
+                    <Svg width={160} height={160} viewBox="0 0 160 160">
+                      {/* Background circle */}
+                      <Circle cx="80" cy="80" r="70" fill="none" stroke="#E2E8F0" strokeWidth="4" />
+                      {/* Progress circle - rotated -90 degrees to start at top */}
+                      <Circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        fill="none"
+                        stroke={liveSteps >= (stepData?.goal_steps ?? 10000) ? '#22C55E' : '#F59E0B'}
+                        strokeWidth="4"
+                        strokeDasharray={`${(liveSteps / (stepData?.goal_steps ?? 10000)) * 440} 440`}
+                        strokeLinecap="round"
+                        transform="rotate(-90 80 80)"
+                      />
+                    </Svg>
+                    {/* Center text */}
+                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text className="text-3xl font-black text-midnight">{liveSteps.toLocaleString()}</Text>
+                      <Text className="text-[11px] font-bold text-slate-400 mt-1">of {(stepData?.goal_steps ?? 10000).toLocaleString()}</Text>
                     </View>
-                  )}
+                  </View>
                 </View>
 
-                {/* Progress bar */}
-                <View className="h-3 rounded-full bg-surface-variant overflow-hidden">
-                  <View
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${Math.min((liveSteps / (stepData?.goal_steps ?? 10000)) * 100, 100)}%`,
-                      backgroundColor: liveSteps >= (stepData?.goal_steps ?? 10000) ? '#22C55E' : '#F59E0B',
-                    }}
-                  />
+                {/* Steps to go message */}
+                <View className="items-center mb-4">
+                  {liveSteps >= (stepData?.goal_steps ?? 10000) ? (
+                    <View className="flex-row items-center gap-2 px-3 py-2 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
+                      <Check size={14} color="#16A34A" />
+                      <Text className="text-sm font-bold text-success-700">Daily goal achieved! 🎉</Text>
+                    </View>
+                  ) : (
+                    <Text className="text-base font-bold text-slate-600">
+                      <Text className="text-lg font-black text-amber-500">{((stepData?.goal_steps ?? 10000) - liveSteps).toLocaleString()}</Text>
+                      {' '}steps to go
+                    </Text>
+                  )}
                 </View>
-                <Text className="text-[10px] text-slate-400 mt-1.5 text-right">
-                  {Math.round((liveSteps / (stepData?.goal_steps ?? 10000)) * 100)}% of daily goal
-                </Text>
               </>
             )}
           </View>
+        </View>
+
+        {/* ── Wearable Devices ── */}
+        <View className="px-5 mb-5">
+          {wearableDevice ? (
+            <>
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center gap-2">
+                  <Watch size={16} color="#1A73E8" />
+                  <Text className="text-[14px] font-bold text-midnight">Connected Watch</Text>
+                </View>
+                <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
+                  <View className="w-1.5 h-1.5 rounded-full bg-success-500" />
+                  <Text className="text-[9px] font-bold text-success-700 uppercase tracking-widest">Live Syncing</Text>
+                </View>
+              </View>
+              {wearableVitals && (
+                <View className="bg-white rounded-[20px] p-3 border border-slate-100 mb-3" style={Shadows.card}>
+                  <View className="flex-row gap-3">
+                    {wearableVitals.heart_rate && (
+                      <View className="flex-1 bg-red-50 rounded-xl p-2.5 border border-red-100">
+                        <View className="flex-row justify-between items-center mb-1">
+                          <Heart size={12} color="#DC2626" />
+                          <Text className="text-[8px] font-bold text-red-500">Just now</Text>
+                        </View>
+                        <Text className="text-base font-black text-red-900">{wearableVitals.heart_rate}</Text>
+                        <Text className="text-[9px] font-bold text-red-600 mt-0.5">bpm</Text>
+                      </View>
+                    )}
+                    {wearableVitals.spo2 && (
+                      <View className="flex-1 bg-blue-50 rounded-xl p-2.5 border border-blue-100">
+                        <View className="flex-row justify-between items-center mb-1">
+                          <Wind size={12} color="#2563EB" />
+                          <Text className="text-[8px] font-bold text-blue-500">Just now</Text>
+                        </View>
+                        <Text className="text-base font-black text-blue-900">{wearableVitals.spo2}%</Text>
+                        <Text className="text-[9px] font-bold text-blue-600 mt-0.5">SpO₂</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+              <Pressable
+                onPress={() => setShowWearablePairing(true)}
+                className="bg-red-50 px-3 py-2 rounded-lg flex-row items-center justify-center gap-1 border border-red-200 active:opacity-70"
+              >
+                <X size={12} color="#DC2626" />
+                <Text className="text-[11px] font-bold text-red-600">Disconnect</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center gap-2">
+                  <Watch size={16} color="#64748B" />
+                  <Text className="text-[14px] font-bold text-midnight">Connect Watch for Vitals</Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => setShowWearablePairing(true)}
+                className="bg-blue-50 border-2 border-blue-200 rounded-[16px] p-4 flex-row items-center justify-between active:opacity-70"
+              >
+                <View>
+                  <Text className="text-sm font-bold text-midnight mb-0.5">Apple Watch, Fitbit & more</Text>
+                  <Text className="text-[11px] text-slate-600">Get real-time heart rate and SpO₂</Text>
+                </View>
+                <ChevronRight size={16} color="#2563EB" />
+              </Pressable>
+            </>
+          )}
         </View>
 
         {/* ── Vitals Spotlight ── */}
@@ -891,6 +993,93 @@ export default function PatientDashboard() {
                 );
               })}
               <View className="h-8" />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showWearablePairing} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-white rounded-t-3xl max-h-[80%]" style={Shadows.presence}>
+            <View className="flex-row items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+              <Text className="text-xl font-extrabold text-midnight">
+                {wearableDevice ? 'Manage Watch' : 'Connect Wearable'}
+              </Text>
+              <Pressable onPress={() => setShowWearablePairing(false)} className="w-9 h-9 rounded-full bg-slate-100 items-center justify-center active:bg-slate-200">
+                <X size={18} color="#64748B" />
+              </Pressable>
+            </View>
+            <ScrollView className="px-6 py-6" showsVerticalScrollIndicator={false}>
+              {!wearableDevice ? (
+                <>
+                  <Text className="text-sm text-slate-600 mb-4">
+                    Pair your wearable device to get real-time heart rate, SpO₂, and other vital signs.
+                  </Text>
+                  <View className="space-y-3 mb-6">
+                    {['apple_watch', 'fitbit', 'garmin'].map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={async () => {
+                          try {
+                            const device = await requestWearablePairing({ device_type: type });
+                            setWearableDevice(device as any);
+                            setShowWearablePairing(false);
+                            // In production, this would deep link to the device's pairing flow
+                          } catch (err) {
+                            CustomAlert.alert('Error', 'Failed to pair device. Please try again.');
+                          }
+                        }}
+                        className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex-row items-center justify-between active:opacity-70"
+                      >
+                        <View className="flex-row items-center gap-3 flex-1">
+                          <Watch size={24} color="#1A73E8" />
+                          <View>
+                            <Text className="text-sm font-bold text-midnight capitalize">{type.replace('_', ' ')}</Text>
+                            <Text className="text-xs text-slate-500 mt-0.5">Tap to pair</Text>
+                          </View>
+                        </View>
+                        <ChevronRight size={16} color="#94A3B8" />
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text className="text-xs text-slate-500 text-center">
+                    We support Apple Watch, Fitbit, Garmin, and more wearable devices.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                    <View className="flex-row items-center gap-2 mb-2">
+                      <View className="w-2 h-2 rounded-full bg-success-500" />
+                      <Text className="text-sm font-bold text-success-700">Connected</Text>
+                    </View>
+                    <Text className="text-sm text-slate-600">
+                      <Text className="font-bold">{wearableDevice.device_name || wearableDevice.device_type}</Text> is syncing vitals in real-time.
+                    </Text>
+                    {wearableDevice.last_synced_at && (
+                      <Text className="text-xs text-slate-500 mt-2">
+                        Last synced: {new Date(wearableDevice.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    )}
+                  </View>
+                  <Pressable
+                    onPress={async () => {
+                      try {
+                        await disconnectWearable();
+                        setWearableDevice(null);
+                        setWearableVitals(null);
+                        setShowWearablePairing(false);
+                      } catch (err) {
+                        CustomAlert.alert('Error', 'Failed to disconnect device. Please try again.');
+                      }
+                    }}
+                    className="bg-red-50 border border-red-200 rounded-xl p-4 flex-row items-center justify-center gap-2 active:opacity-70"
+                  >
+                    <X size={16} color="#DC2626" />
+                    <Text className="text-sm font-bold text-red-600">Disconnect Device</Text>
+                  </Pressable>
+                </>
+              )}
             </ScrollView>
           </View>
         </View>

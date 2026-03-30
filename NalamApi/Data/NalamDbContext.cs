@@ -46,6 +46,8 @@ public class NalamDbContext : DbContext
     public DbSet<PatientWaterLog> PatientWaterLogs => Set<PatientWaterLog>();
     public DbSet<PatientPhysioLog> PatientPhysioLogs => Set<PatientPhysioLog>();
     public DbSet<PatientVital> PatientVitals => Set<PatientVital>();
+    public DbSet<PatientWearableDevice> PatientWearableDevices => Set<PatientWearableDevice>();
+    public DbSet<WearableVital> WearableVitals => Set<WearableVital>();
     public DbSet<HealthTip> HealthTips => Set<HealthTip>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -141,6 +143,12 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<PatientVital>()
             .HasQueryFilter(v => !_currentHospitalId.HasValue || v.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientWearableDevice>()
+            .HasQueryFilter(wd => !_currentHospitalId.HasValue || wd.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<WearableVital>()
+            .HasQueryFilter(wv => !_currentHospitalId.HasValue || wv.Patient.HospitalId == _currentHospitalId.Value);
 
         // HealthTip: show hospital-specific tips AND global tips (hospital_id IS NULL)
         modelBuilder.Entity<HealthTip>()
@@ -497,6 +505,40 @@ public class NalamDbContext : DbContext
         modelBuilder.Entity<PatientVital>()
             .HasIndex(v => new { v.HospitalId, v.PatientId, v.LogDate, v.RecordedAt })
             .HasDatabaseName("ix_vitals_patient_date");
+
+        // ── PatientWearableDevice ──────────────────────────────────
+        modelBuilder.Entity<PatientWearableDevice>()
+            .HasOne(wd => wd.Hospital)
+            .WithMany()
+            .HasForeignKey(wd => wd.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientWearableDevice>()
+            .HasOne(wd => wd.Patient)
+            .WithMany()
+            .HasForeignKey(wd => wd.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientWearableDevice>()
+            .HasIndex(wd => new { wd.HospitalId, wd.PatientId, wd.IsActive })
+            .HasDatabaseName("ix_wearable_device_patient_active");
+
+        // ── WearableVital ─────────────────────────────────────────
+        modelBuilder.Entity<WearableVital>()
+            .HasOne(wv => wv.Patient)
+            .WithMany()
+            .HasForeignKey(wv => wv.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WearableVital>()
+            .HasOne(wv => wv.Device)
+            .WithMany()
+            .HasForeignKey(wv => wv.DeviceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WearableVital>()
+            .HasIndex(wv => new { wv.PatientId, wv.DeviceId, wv.RecordedAt })
+            .HasDatabaseName("ix_wearable_vital_device_time");
 
         // ── HealthTip ─────────────────────────────────────────────
         modelBuilder.Entity<HealthTip>()

@@ -318,3 +318,48 @@ export async function getHealthTips(category?: string, limit = 5): Promise<Healt
   const res = await api.get(`/patient/health-tips?${params.toString()}`);
   return res.data.tips ?? [];
 }
+
+// ── Wearable Devices ────────────────────────────────────────
+
+export interface WearableDevice {
+  id: string;
+  device_type: string;
+  device_name: string | null;
+  is_active: boolean;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface RequestWearablePairingRequest {
+  device_type: string;
+  device_name?: string;
+}
+
+export interface WearableVitalData {
+  id: string;
+  device_id: string;
+  heart_rate: number | null;
+  spo2: number | null;
+  recorded_at: string;
+}
+
+export async function requestWearablePairing(data: RequestWearablePairingRequest): Promise<WearableDevice> {
+  const res = await api.post('/patient/wearables/request', data);
+  return res.data;
+}
+
+export async function getWearableStatus(): Promise<WearableDevice[] | null> {
+  const res = await api.get('/patient/wearables/status');
+  if (res.status === 204 || !res.data) return null;
+  return res.data.devices ?? [];
+}
+
+export async function getWearableVitals(): Promise<WearableVitalData | null> {
+  const res = await api.get('/patient/wearables/vitals');
+  if (res.status === 204 || !res.data) return null;
+  return res.data;
+}
+
+export async function disconnectWearable(): Promise<void> {
+  await api.post('/patient/wearables/disconnect', {});
+}

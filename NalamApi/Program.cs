@@ -552,6 +552,30 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE INDEX IF NOT EXISTS ix_health_tips_active
                 ON health_tips (hospital_id, is_active, category);
+
+            CREATE TABLE IF NOT EXISTS patient_wearable_devices (
+                id              uuid        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                hospital_id     uuid        NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+                patient_id      uuid        NOT NULL REFERENCES patients(id)  ON DELETE CASCADE,
+                device_type     varchar(50) NOT NULL,
+                device_name     varchar(200) NULL,
+                is_active       boolean     NOT NULL DEFAULT true,
+                last_synced_at  timestamptz NULL,
+                created_at      timestamptz NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ix_wearable_device_patient_active
+                ON patient_wearable_devices (hospital_id, patient_id, is_active);
+
+            CREATE TABLE IF NOT EXISTS wearable_vitals (
+                id          uuid        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                patient_id  uuid        NOT NULL REFERENCES patients(id)  ON DELETE CASCADE,
+                device_id   uuid        NOT NULL REFERENCES patient_wearable_devices(id) ON DELETE CASCADE,
+                heart_rate  smallint    NULL CHECK (heart_rate BETWEEN 30 AND 250),
+                spo2        smallint    NULL CHECK (spo2 BETWEEN 70 AND 100),
+                recorded_at timestamptz NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ix_wearable_vital_device_time
+                ON wearable_vitals (patient_id, device_id, recorded_at DESC);
         ");
         Console.WriteLine("✅ Schema safety check passed (patient dashboard tables ensured).");
     }

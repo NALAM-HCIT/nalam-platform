@@ -53,6 +53,12 @@ public static class PatientDashboardEndpoints
 
         // ── Health Tips ───────────────────────────────────────
         group.MapGet("/health-tips",    GetHealthTips);
+
+        // ── Wearable Devices ──────────────────────────────────
+        group.MapGet("/wearables/status",      GetWearableStatus);
+        group.MapPost("/wearables/request",    RequestWearablePairing);
+        group.MapGet("/wearables/vitals",      GetWearableVitals);
+        group.MapPost("/wearables/disconnect", DisconnectWearable);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -1052,5 +1058,128 @@ public static class PatientDashboardEndpoints
         }).ToList();
 
         return Results.Ok(new { tips = result });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  WEARABLE DEVICES (Apple Watch, Fitbit, etc.)
+    // ═══════════════════════════════════════════════════════════
+
+    private record RequestWearablePairingRequest(
+        [property: JsonPropertyName("device_type")]  string DeviceType,
+        [property: JsonPropertyName("device_name")]  string? DeviceName);
+
+    // POST /api/patient/wearables/request — initiate device pairing
+    // In production, this would trigger a pairing flow with OAuth/deep link
+    private static async Task<IResult> RequestWearablePairing(
+        RequestWearablePairingRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(request.DeviceType) || request.DeviceType.Length > 50)
+            return Results.BadRequest(new { error = "device_type is required (max 50 chars, e.g., 'apple_watch')." });
+
+        var patientId  = GetPatientId(ctx);
+        var hospitalId = GetHospitalId(ctx);
+
+        // Check if device already paired (and active)
+        var existing = await db.PatientWearableDevices
+            .FirstOrDefaultAsync(wd => wd.PatientId == patientId && wd.DeviceType == request.DeviceType && wd.IsActive);
+
+        if (existing != null)
+            return Results.BadRequest(new { error = "Device already paired." });
+
+        var device = new PatientWearableDevice
+        {
+            HospitalId = hospitalId,
+            PatientId  = patientId,
+            DeviceType = request.DeviceType.ToLower().Trim(),
+            DeviceName = request.DeviceName?.Trim(),
+            IsActive   = true,
+            CreatedAt  = DateTime.UtcNow,
+        };
+
+        db.PatientWearableDevices.Add(device);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            id           = device.Id,
+            device_type  = device.DeviceType,
+            device_name  = device.DeviceName,
+            is_active    = device.IsActive,
+            last_synced_at = device.LastSyncedAt,
+            created_at   = device.CreatedAt,
+        });
+    }
+
+    // GET /api/patient/wearables/status — check if device paired, last sync, etc.
+    private static async Task<IResult> GetWearableStatus(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+
+        var devices = await db.PatientWearableDevices
+            .AsNoTracking()
+            .Where(wd => wd.PatientId == patientId && wd.IsActive)
+            .Select(wd => new
+            {
+                id            = wd.Id,
+                device_type   = wd.DeviceType,
+                device_name   = wd.DeviceName,
+                is_active     = wd.IsActive,
+                last_synced_at = wd.LastSyncedAt,
+                created_at    = wd.CreatedAt,
+            })
+            .ToListAsync();
+
+        if (!devices.Any()) return Results.NoContent();
+
+        return Results.Ok(new { devices });
+    }
+
+    // GET /api/patient/wearables/vitals — get latest heart_rate + spo2 from paired device
+    private static async Task<IResult> GetWearableVitals(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+
+        var latest = await db.WearableVitals
+            .AsNoTracking()
+            .Where(wv => wv.PatientId == patientId)
+            .OrderByDescending(wv => wv.RecordedAt)
+            .FirstOrDefaultAsync();
+
+        if (latest is null) return Results.NoContent();
+
+        return Results.Ok(new
+        {
+            id           = latest.Id,
+            device_id    = latest.DeviceId,
+            heart_rate   = latest.HeartRate,
+            spo2         = latest.Spo2,
+            recorded_at  = latest.RecordedAt,
+        });
+    }
+
+    // POST /api/patient/wearables/disconnect — deactivate device
+    private static async Task<IResult> DisconnectWearable(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+
+        var device = await db.PatientWearableDevices
+            .FirstOrDefaultAsync(wd => wd.PatientId == patientId && wd.IsActive);
+
+        if (device is null)
+            return Results.NotFound(new { error = "No active wearable device found." });
+
+        device.IsActive = false;
+        device.LastSyncedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new { message = "Device disconnected." });
     }
 }
