@@ -21,6 +21,7 @@ import {
   getTodaySteps, logSteps, StepLog,
 } from '@/services/patientDashboardService';
 import { scheduleWaterReminders, configureNotificationHandler } from '@/services/waterReminders';
+import { Pedometer } from 'expo-sensors';
 import {
   Bell, Check, Droplets, Pill, CalendarPlus, Package, FileText,
   BriefcaseMedical, Sun, Moon, Sunrise, Sunset, Heart, Activity,
@@ -207,7 +208,8 @@ export default function PatientDashboard() {
   const [todayMoodData, setTodayMoodData]   = useState<TodayMood | null>(null);
   const [waterData, setWaterData]           = useState<WaterSettings | null>(null);
   const [stepData, setStepData]             = useState<StepLog | null>(null);
-  const [stepLogLoading, setStepLogLoading] = useState(false);
+  const [liveSteps, setLiveSteps]           = useState(0);
+  const [pedometerAvailable, setPedometerAvailable] = useState<boolean | null>(null);
   const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null);
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
@@ -263,6 +265,50 @@ export default function PatientDashboard() {
     loadCarePlan();
     loadDashboard();
   }, [loadCarePlan, loadDashboard]);
+
+  // ── Live Pedometer ────────────────────────────────────────────────────────
+  useEffect(() => {
+    let subscription: ReturnType<typeof Pedometer.watchStepCount> | null = null;
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+    let baseSteps = 0;
+
+    const setup = async () => {
+      const available = await Pedometer.isAvailableAsync();
+      setPedometerAvailable(available);
+      if (!available) return;
+
+      // Get today's steps from midnight → now for the initial count
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      try {
+        const { steps } = await Pedometer.getStepCountAsync(start, new Date());
+        baseSteps = steps;
+        setLiveSteps(steps);
+        logSteps(steps).then(setStepData).catch(() => {});
+      } catch {
+        // getStepCountAsync not supported on some Android devices — start from 0
+        baseSteps = 0;
+      }
+
+      // watchStepCount gives incremental steps since subscription started
+      subscription = Pedometer.watchStepCount((result) => {
+        const total = baseSteps + result.steps;
+        setLiveSteps(total);
+        // Debounce backend save — only persist after 10 s of no new steps
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          logSteps(total).then(setStepData).catch(() => {});
+        }, 10_000);
+      });
+    };
+
+    setup();
+
+    return () => {
+      subscription?.remove();
+      if (saveTimer) clearTimeout(saveTimer);
+    };
+  }, []);
 
   // Re-fetch vitals + steps whenever the tab comes back into focus
   useFocusEffect(useCallback(() => {
@@ -627,62 +673,51 @@ export default function PatientDashboard() {
                 </View>
                 <Text className="text-[15px] font-extrabold text-midnight">Daily Steps</Text>
               </View>
-              <Text className="text-[11px] font-bold text-warning-500">Goal: {(stepData?.goal_steps ?? 10000).toLocaleString()}</Text>
+              <View className="flex-row items-center gap-2">
+                {pedometerAvailable && (
+                  <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
+                    <View className="w-1.5 h-1.5 rounded-full bg-success-500" />
+                    <Text className="text-[9px] font-bold text-success-700 uppercase tracking-widest">Live</Text>
+                  </View>
+                )}
+                <Text className="text-[11px] font-bold text-warning-500">Goal: {(stepData?.goal_steps ?? 10000).toLocaleString()}</Text>
+              </View>
             </View>
 
-            <View className="flex-row items-end gap-4 mb-4">
-              <Text className="text-3xl font-black text-midnight">
-                {(stepData?.step_count ?? 0).toLocaleString()}
-                <Text className="text-sm font-bold text-slate-400"> steps</Text>
-              </Text>
-              {(stepData?.progress_pct ?? 0) >= 100 && (
-                <View className="flex-row items-center gap-1 mb-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
-                  <Check size={10} color="#16A34A" />
-                  <Text className="text-[10px] font-bold text-success-700">Goal Reached!</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Progress bar */}
-            <View className="h-3 rounded-full bg-surface-variant mb-4 overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(stepData?.progress_pct ?? 0, 100)}%`,
-                  backgroundColor: (stepData?.progress_pct ?? 0) >= 100 ? '#22C55E' : '#F59E0B',
-                }}
-              />
-            </View>
-
-            {/* Quick add buttons */}
-            <View className="flex-row gap-2">
-              {[500, 1000, 2000, 5000].map((amount) => (
-                <Pressable
-                  key={amount}
-                  disabled={stepLogLoading}
-                  onPress={async () => {
-                    setStepLogLoading(true);
-                    try {
-                      const current = stepData?.step_count ?? 0;
-                      const result = await logSteps(current + amount);
-                      setStepData(result);
-                    } catch {
-                      CustomAlert.alert('Error', 'Could not update step count.');
-                    } finally {
-                      setStepLogLoading(false);
-                    }
-                  }}
-                  className="flex-1 py-2.5 rounded-xl items-center active:opacity-70"
-                  style={{ backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FED7AA' }}
-                >
-                  {stepLogLoading ? (
-                    <ActivityIndicator size="small" color="#F59E0B" />
-                  ) : (
-                    <Text className="text-[11px] font-extrabold text-warning-600">+{amount >= 1000 ? `${amount / 1000}k` : amount}</Text>
+            {pedometerAvailable === false ? (
+              <View className="items-center py-4">
+                <Text className="text-sm font-semibold text-slate-400">Step counting not available on this device</Text>
+              </View>
+            ) : (
+              <>
+                <View className="flex-row items-end gap-3 mb-4">
+                  <Text className="text-3xl font-black text-midnight">
+                    {liveSteps.toLocaleString()}
+                    <Text className="text-sm font-bold text-slate-400"> steps</Text>
+                  </Text>
+                  {liveSteps >= (stepData?.goal_steps ?? 10000) && (
+                    <View className="flex-row items-center gap-1 mb-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
+                      <Check size={10} color="#16A34A" />
+                      <Text className="text-[10px] font-bold text-success-700">Goal!</Text>
+                    </View>
                   )}
-                </Pressable>
-              ))}
-            </View>
+                </View>
+
+                {/* Progress bar */}
+                <View className="h-3 rounded-full bg-surface-variant overflow-hidden">
+                  <View
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min((liveSteps / (stepData?.goal_steps ?? 10000)) * 100, 100)}%`,
+                      backgroundColor: liveSteps >= (stepData?.goal_steps ?? 10000) ? '#22C55E' : '#F59E0B',
+                    }}
+                  />
+                </View>
+                <Text className="text-[10px] text-slate-400 mt-1.5 text-right">
+                  {Math.round((liveSteps / (stepData?.goal_steps ?? 10000)) * 100)}% of daily goal
+                </Text>
+              </>
+            )}
           </View>
         </View>
 

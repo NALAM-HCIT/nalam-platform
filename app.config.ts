@@ -90,6 +90,7 @@ export default ({ config }: ConfigContext): ExpoConfig => withSlimAndroid({
       NSCameraUsageDescription: `${hospitalName} uses your camera to scan documents and enable teleconsultation.`,
       NSFaceIDUsageDescription: `${hospitalName} uses Face ID to keep your health data secure.`,
       NSLocalAuthenticationUsageDescription: `${hospitalName} uses biometrics so only you can access your health records.`,
+      NSMotionUsageDescription: `${hospitalName} uses your device's motion sensor to count your daily steps and help you stay active.`,
     },
   },
   android: {
