@@ -18,6 +18,10 @@ public static class PatientDashboardEndpoints
             .WithTags("Patient Dashboard")
             .RequireAuthorization("PatientOnly");
 
+        // ── Care Tasks ────────────────────────────────────────
+        group.MapPost("/care-tasks/complete", LogCareTask);
+        group.MapGet("/care-tasks/today",     GetTodayCareTasks);
+
         // ── Mood ──────────────────────────────────────────────
         group.MapPost("/mood",          LogMood);
         group.MapGet("/mood/today",     GetTodayMood);
@@ -52,6 +56,86 @@ public static class PatientDashboardEndpoints
         Guid.Parse(ctx.User.FindFirst("hospitalId")!.Value);
 
     private static DateOnly Today() => DateOnly.FromDateTime(DateTime.UtcNow);
+
+    // ═══════════════════════════════════════════════════════════
+    //  CARE TASK LOGS
+    // ═══════════════════════════════════════════════════════════
+
+    // POST /api/patient/care-tasks/complete
+    // Upserts the completion status for a single care task for today.
+    // task_id is the stable client-side key (e.g. "rx-{apptId}-{itemId}" or "hydra-default").
+    private record LogCareTaskRequest(
+        [property: JsonPropertyName("task_id")]    string TaskId,
+        [property: JsonPropertyName("task_title")] string TaskTitle,
+        [property: JsonPropertyName("status")]     string Status);  // completed | snoozed | skipped
+
+    private static async Task<IResult> LogCareTask(
+        LogCareTaskRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(request.TaskId) || request.TaskId.Length > 200)
+            return Results.BadRequest(new { error = "task_id is required (max 200 chars)." });
+
+        var validStatuses = new[] { "completed", "snoozed", "skipped" };
+        var status = request.Status?.ToLower();
+        if (string.IsNullOrWhiteSpace(status) || !validStatuses.Contains(status))
+            return Results.BadRequest(new { error = "status must be: completed, snoozed, or skipped." });
+
+        var patientId  = GetPatientId(ctx);
+        var hospitalId = GetHospitalId(ctx);
+        var today      = Today();
+
+        var existing = await db.PatientCareTaskLogs
+            .FirstOrDefaultAsync(ct => ct.PatientId == patientId && ct.LogDate == today && ct.TaskId == request.TaskId);
+
+        if (existing != null)
+        {
+            existing.Status      = status;
+            existing.TaskTitle   = request.TaskTitle?.Trim() ?? existing.TaskTitle;
+            existing.CompletedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            db.PatientCareTaskLogs.Add(new PatientCareTaskLog
+            {
+                HospitalId  = hospitalId,
+                PatientId   = patientId,
+                LogDate     = today,
+                TaskId      = request.TaskId.Trim(),
+                TaskTitle   = request.TaskTitle?.Trim() ?? string.Empty,
+                Status      = status,
+                CompletedAt = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+        return Results.Ok(new { task_id = request.TaskId, status, log_date = today.ToString("yyyy-MM-dd") });
+    }
+
+    // GET /api/patient/care-tasks/today
+    // Returns all task log entries for today so the UI can restore completion state.
+    private static async Task<IResult> GetTodayCareTasks(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+        var today     = Today();
+
+        var logs = await db.PatientCareTaskLogs
+            .AsNoTracking()
+            .Where(ct => ct.PatientId == patientId && ct.LogDate == today)
+            .Select(ct => new
+            {
+                task_id      = ct.TaskId,
+                task_title   = ct.TaskTitle,
+                status       = ct.Status,
+                completed_at = ct.CompletedAt,
+            })
+            .ToListAsync();
+
+        return Results.Ok(new { log_date = today.ToString("yyyy-MM-dd"), tasks = logs });
+    }
 
     // ═══════════════════════════════════════════════════════════
     //  MOOD / FEELING

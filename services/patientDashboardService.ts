@@ -148,7 +148,34 @@ export interface HealthTip {
   is_global: boolean;
 }
 
+export interface CareTaskLog {
+  task_id: string;
+  task_title: string;
+  status: 'completed' | 'snoozed' | 'skipped';
+  completed_at: string;
+}
+
+export interface TodayCareTasksResponse {
+  log_date: string;
+  tasks: CareTaskLog[];
+}
+
 // ─── API Functions ──────────────────────────────────────────────────────────
+
+// ── Care Tasks ───────────────────────────────────────────────────────────────
+
+export async function getTodayCareTasks(): Promise<CareTaskLog[]> {
+  const res = await api.get('/patient/care-tasks/today');
+  return res.data.tasks ?? [];
+}
+
+export async function logCareTaskComplete(
+  task_id: string,
+  task_title: string,
+  status: 'completed' | 'snoozed' | 'skipped' = 'completed',
+): Promise<void> {
+  await api.post('/patient/care-tasks/complete', { task_id, task_title, status });
+}
 
 // ── Mood ────────────────────────────────────────────────────────────────────
 

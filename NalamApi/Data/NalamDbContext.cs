@@ -38,6 +38,7 @@ public class NalamDbContext : DbContext
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
 
     // ── Patient Dashboard ───────────────────────────────────────
+    public DbSet<PatientCareTaskLog> PatientCareTaskLogs => Set<PatientCareTaskLog>();
     public DbSet<PatientMoodLog> PatientMoodLogs => Set<PatientMoodLog>();
     public DbSet<PatientWaterSetting> PatientWaterSettings => Set<PatientWaterSetting>();
     public DbSet<PatientWaterLog> PatientWaterLogs => Set<PatientWaterLog>();
@@ -114,6 +115,9 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<HospitalMessage>()
             .HasQueryFilter(msg => !_currentHospitalId.HasValue || msg.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientCareTaskLog>()
+            .HasQueryFilter(ct => !_currentHospitalId.HasValue || ct.HospitalId == _currentHospitalId.Value);
 
         modelBuilder.Entity<PatientMoodLog>()
             .HasQueryFilter(m => !_currentHospitalId.HasValue || m.HospitalId == _currentHospitalId.Value);
@@ -335,6 +339,28 @@ public class NalamDbContext : DbContext
         modelBuilder.Entity<PrescriptionItem>()
             .HasIndex(pi => pi.AppointmentId)
             .HasDatabaseName("ix_prescription_items_appointment");
+
+        // ── PatientCareTaskLog ────────────────────────────────────
+        modelBuilder.Entity<PatientCareTaskLog>()
+            .HasOne(ct => ct.Hospital)
+            .WithMany()
+            .HasForeignKey(ct => ct.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientCareTaskLog>()
+            .HasOne(ct => ct.Patient)
+            .WithMany()
+            .HasForeignKey(ct => ct.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientCareTaskLog>()
+            .HasIndex(ct => new { ct.HospitalId, ct.PatientId, ct.LogDate, ct.TaskId })
+            .IsUnique()
+            .HasDatabaseName("uq_care_task_patient_day");
+
+        modelBuilder.Entity<PatientCareTaskLog>()
+            .HasIndex(ct => new { ct.HospitalId, ct.PatientId, ct.LogDate })
+            .HasDatabaseName("ix_care_task_patient_date");
 
         // ── PatientMoodLog ────────────────────────────────────────
         modelBuilder.Entity<PatientMoodLog>()

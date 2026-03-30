@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { patientService } from '@/services/patientService';
+import { getTodayCareTasks, logCareTaskComplete } from '@/services/patientDashboardService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TaskCategory = 'medicine' | 'physio' | 'diet' | 'vitals' | 'hydration';
@@ -133,32 +134,46 @@ export default function CareScheduleScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const prescriptions = await patientService.getPrescriptions();
-        // Take up to 2 most recent active prescriptions
+        // Load prescriptions and today's saved task logs in parallel
+        const [prescriptions, savedLogs] = await Promise.all([
+          patientService.getPrescriptions().catch(() => []),
+          getTodayCareTasks().catch(() => []),
+        ]);
+
+        const savedStatusMap = new Map(savedLogs.map((l) => [l.task_id, l.status as TaskStatus]));
+
         const active = prescriptions
           .filter((p) => p.prescriptionStatus !== 'cancelled')
           .slice(0, 2);
 
         const medicineTasks: CareTask[] = [];
         for (const rx of active) {
-          const detail = await patientService.getPrescriptionDetail(rx.id);
-          detail.prescriptionItems.forEach((item) => {
-            const tod = inferTimeOfDay(item.dosageInstructions);
-            medicineTasks.push({
-              id: `rx-${rx.id}-${item.id}`,
-              title: item.medicineName,
-              subtitle: item.dosageInstructions ?? undefined,
-              category: 'medicine',
-              time: timeOfDayToTime(tod),
-              timeOfDay: tod,
-              status: 'pending',
+          try {
+            const detail = await patientService.getPrescriptionDetail(rx.id);
+            detail.prescriptionItems.forEach((item) => {
+              const taskId = `rx-${rx.id}-${item.id}`;
+              const tod = inferTimeOfDay(item.dosageInstructions);
+              medicineTasks.push({
+                id: taskId,
+                title: item.medicineName,
+                subtitle: item.dosageInstructions ?? undefined,
+                category: 'medicine',
+                time: timeOfDayToTime(tod),
+                timeOfDay: tod,
+                status: savedStatusMap.get(taskId) ?? 'pending',
+              });
             });
-          });
+          } catch { /* skip this prescription if detail fetch fails */ }
         }
 
-        setTasks([...medicineTasks, ...DEFAULT_TASKS]);
+        // Apply saved status to default tasks too
+        const defaults = DEFAULT_TASKS.map((t) => ({
+          ...t,
+          status: savedStatusMap.get(t.id) ?? t.status,
+        }));
+
+        setTasks([...medicineTasks, ...defaults]);
       } catch {
-        // Fall back to just defaults if API fails
         setTasks(DEFAULT_TASKS);
       } finally {
         setLoading(false);
@@ -180,25 +195,31 @@ export default function CareScheduleScreen() {
 
   // ── Task actions ──
   const markComplete = useCallback((id: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === id);
+      if (task) logCareTaskComplete(id, task.title, 'completed').catch(() => {});
+      return prev.map((t) =>
         t.id === id
           ? { ...t, status: 'completed' as TaskStatus, completedAt: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }
           : t,
-      ),
-    );
+      );
+    });
   }, []);
 
   const snoozeTask = useCallback((id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'snoozed' as TaskStatus } : t)),
-    );
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === id);
+      if (task) logCareTaskComplete(id, task.title, 'snoozed').catch(() => {});
+      return prev.map((t) => (t.id === id ? { ...t, status: 'snoozed' as TaskStatus } : t));
+    });
   }, []);
 
   const skipTask = useCallback((id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'completed' as TaskStatus, completedAt: 'Skipped' } : t)),
-    );
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === id);
+      if (task) logCareTaskComplete(id, task.title, 'skipped').catch(() => {});
+      return prev.map((t) => (t.id === id ? { ...t, status: 'completed' as TaskStatus, completedAt: 'Skipped' } : t));
+    });
   }, []);
 
   const handleTaskPress = useCallback((task: CareTask) => {
