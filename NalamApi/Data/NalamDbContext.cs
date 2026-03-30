@@ -39,6 +39,7 @@ public class NalamDbContext : DbContext
 
     // ── Patient Dashboard ───────────────────────────────────────
     public DbSet<PatientCareTaskLog> PatientCareTaskLogs => Set<PatientCareTaskLog>();
+    public DbSet<PatientCustomTask> PatientCustomTasks => Set<PatientCustomTask>();
     public DbSet<PatientMoodLog> PatientMoodLogs => Set<PatientMoodLog>();
     public DbSet<PatientWaterSetting> PatientWaterSettings => Set<PatientWaterSetting>();
     public DbSet<PatientWaterLog> PatientWaterLogs => Set<PatientWaterLog>();
@@ -117,6 +118,9 @@ public class NalamDbContext : DbContext
             .HasQueryFilter(msg => !_currentHospitalId.HasValue || msg.HospitalId == _currentHospitalId.Value);
 
         modelBuilder.Entity<PatientCareTaskLog>()
+            .HasQueryFilter(ct => !_currentHospitalId.HasValue || ct.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientCustomTask>()
             .HasQueryFilter(ct => !_currentHospitalId.HasValue || ct.HospitalId == _currentHospitalId.Value);
 
         modelBuilder.Entity<PatientMoodLog>()
@@ -361,6 +365,23 @@ public class NalamDbContext : DbContext
         modelBuilder.Entity<PatientCareTaskLog>()
             .HasIndex(ct => new { ct.HospitalId, ct.PatientId, ct.LogDate })
             .HasDatabaseName("ix_care_task_patient_date");
+
+        // ── PatientCustomTask ─────────────────────────────────────
+        modelBuilder.Entity<PatientCustomTask>()
+            .HasOne(ct => ct.Hospital)
+            .WithMany()
+            .HasForeignKey(ct => ct.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientCustomTask>()
+            .HasOne(ct => ct.Patient)
+            .WithMany()
+            .HasForeignKey(ct => ct.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientCustomTask>()
+            .HasIndex(ct => new { ct.HospitalId, ct.PatientId, ct.IsActive })
+            .HasDatabaseName("ix_custom_task_patient_active");
 
         // ── PatientMoodLog ────────────────────────────────────────
         modelBuilder.Entity<PatientMoodLog>()

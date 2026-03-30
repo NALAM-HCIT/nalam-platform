@@ -1,16 +1,25 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import {
+  View, Text, ScrollView, Pressable, ActivityIndicator,
+  Modal, TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows } from '@/constants/theme';
 import {
   ArrowLeft, SlidersHorizontal, Check, Pill, Dumbbell, Apple,
   Heart, Droplets, Sunrise, Sun, Moon, AlertTriangle, Timer,
-  ChevronRight,
+  ChevronRight, Plus, X,
 } from 'lucide-react-native';
 import { patientService } from '@/services/patientService';
-import { getTodayCareTasks, logCareTaskComplete } from '@/services/patientDashboardService';
+import {
+  getTodayCareTasks,
+  logCareTaskComplete,
+  getCustomTasks,
+  createCustomTask,
+  deleteCustomTask,
+} from '@/services/patientDashboardService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TaskCategory = 'medicine' | 'physio' | 'diet' | 'vitals' | 'hydration';
@@ -30,6 +39,8 @@ interface CareTask {
   status: TaskStatus;
   dosage?: DosageSchedule;
   completedAt?: string;
+  isCustom?: boolean;      // true for patient-created tasks
+  customDbId?: string;     // UUID from DB — needed for delete
 }
 
 // ─── Category Config ─────────────────────────────────────────────────────────
@@ -102,6 +113,170 @@ function buildCalendarDays(today: Date): { date: Date; label: string; day: numbe
   return days;
 }
 
+// ─── Add Task Modal ───────────────────────────────────────────────────────────
+
+const CATEGORY_OPTIONS: { key: TaskCategory; label: string; color: string }[] = [
+  { key: 'vitals',    label: 'Vitals',     color: '#EF4444' },
+  { key: 'medicine',  label: 'Medicine',   color: '#1A73E8' },
+  { key: 'diet',      label: 'Diet',       color: '#22C55E' },
+  { key: 'physio',    label: 'Physio',     color: '#8B5CF6' },
+  { key: 'hydration', label: 'Hydration',  color: '#0EA5E9' },
+];
+
+const TIME_OPTIONS: { key: TimeOfDay; label: string; icon: typeof Sunrise; color: string }[] = [
+  { key: 'morning',   label: 'Morning',   icon: Sunrise, color: '#F59E0B' },
+  { key: 'afternoon', label: 'Afternoon', icon: Sun,     color: '#EA580C' },
+  { key: 'evening',   label: 'Evening',   icon: Moon,    color: '#6366F1' },
+];
+
+interface AddTaskModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave: (title: string, category: TaskCategory, timeOfDay: TimeOfDay, notes: string) => Promise<void>;
+}
+
+function AddTaskModal({ visible, onClose, onSave }: AddTaskModalProps) {
+  const [title, setTitle]           = useState('');
+  const [category, setCategory]     = useState<TaskCategory>('vitals');
+  const [timeOfDay, setTimeOfDay]   = useState<TimeOfDay>('morning');
+  const [notes, setNotes]           = useState('');
+  const [saving, setSaving]         = useState(false);
+
+  const reset = () => { setTitle(''); setCategory('vitals'); setTimeOfDay('morning'); setNotes(''); };
+
+  const handleClose = () => { reset(); onClose(); };
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      CustomAlert.alert('Required', 'Please enter a task title.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(title.trim(), category, timeOfDay, notes.trim());
+      reset();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+        style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      >
+        <Pressable className="flex-1" onPress={handleClose} />
+
+        <View className="bg-white rounded-t-3xl px-5 pt-4 pb-8" style={{ minHeight: 420 }}>
+          {/* Handle */}
+          <View className="w-10 h-1 rounded-full bg-[#E2E8F0] self-center mb-4" />
+
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-5">
+            <Text className="text-lg font-bold text-midnight">Add New Task</Text>
+            <Pressable onPress={handleClose} className="w-8 h-8 items-center justify-center">
+              <X size={20} color="#94A3B8" />
+            </Pressable>
+          </View>
+
+          {/* Title */}
+          <Text className="text-xs font-semibold text-[#64748B] mb-2 uppercase tracking-wide">Task Title *</Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Take evening walk"
+            placeholderTextColor="#CBD5E1"
+            className="bg-[#F8FAFC] rounded-xl px-4 py-3 text-sm text-midnight border border-[#E2E8F0] mb-5"
+            maxLength={200}
+            returnKeyType="done"
+          />
+
+          {/* Category */}
+          <Text className="text-xs font-semibold text-[#64748B] mb-2 uppercase tracking-wide">Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} className="mb-5">
+            {CATEGORY_OPTIONS.map((opt) => {
+              const active = category === opt.key;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => setCategory(opt.key)}
+                  className="px-4 py-2 rounded-full"
+                  style={{ backgroundColor: active ? opt.color : '#F1F5F9' }}
+                >
+                  <Text
+                    className="text-xs font-semibold"
+                    style={{ color: active ? '#fff' : opt.color }}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Time of Day */}
+          <Text className="text-xs font-semibold text-[#64748B] mb-2 uppercase tracking-wide">Time of Day</Text>
+          <View className="flex-row gap-3 mb-5">
+            {TIME_OPTIONS.map((opt) => {
+              const active = timeOfDay === opt.key;
+              const Icon = opt.icon;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => setTimeOfDay(opt.key)}
+                  className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
+                  style={{
+                    backgroundColor: active ? opt.color : '#F8FAFC',
+                    borderWidth: active ? 0 : 1,
+                    borderColor: '#E2E8F0',
+                  }}
+                >
+                  <Icon size={14} color={active ? '#fff' : opt.color} />
+                  <Text
+                    className="text-xs font-semibold ml-1.5"
+                    style={{ color: active ? '#fff' : opt.color }}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Notes (optional) */}
+          <Text className="text-xs font-semibold text-[#64748B] mb-2 uppercase tracking-wide">Notes (optional)</Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Any instructions or details…"
+            placeholderTextColor="#CBD5E1"
+            className="bg-[#F8FAFC] rounded-xl px-4 py-3 text-sm text-midnight border border-[#E2E8F0] mb-6"
+            maxLength={500}
+            multiline
+            numberOfLines={2}
+          />
+
+          {/* Save button */}
+          <Pressable
+            onPress={handleSave}
+            disabled={saving}
+            className="rounded-2xl py-4 items-center"
+            style={{ backgroundColor: saving ? '#94A3B8' : '#1A73E8' }}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text className="text-sm font-bold text-white">Add Task</Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function CareScheduleScreen() {
   const router = useRouter();
@@ -112,14 +287,16 @@ export default function CareScheduleScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [tasks, setTasks] = useState<CareTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        // Load prescriptions and today's saved task logs in parallel
-        const [prescriptions, savedLogs] = await Promise.all([
+        // Load prescriptions, today's saved logs, and custom tasks in parallel
+        const [prescriptions, savedLogs, customTasksFromDb] = await Promise.all([
           patientService.getPrescriptions().catch(() => []),
           getTodayCareTasks().catch(() => []),
+          getCustomTasks().catch(() => []),
         ]);
 
         const savedStatusMap = new Map(savedLogs.map((l) => [l.task_id, l.status as TaskStatus]));
@@ -148,13 +325,26 @@ export default function CareScheduleScreen() {
           } catch { /* skip this prescription if detail fetch fails */ }
         }
 
+        // Custom tasks created by the patient
+        const customCareTasks: CareTask[] = customTasksFromDb.map((ct) => ({
+          id: `custom-${ct.id}`,
+          title: ct.title,
+          subtitle: ct.notes ?? undefined,
+          category: ct.category as TaskCategory,
+          time: timeOfDayToTime(ct.time_of_day as TimeOfDay),
+          timeOfDay: ct.time_of_day as TimeOfDay,
+          status: savedStatusMap.get(`custom-${ct.id}`) ?? 'pending',
+          isCustom: true,
+          customDbId: ct.id,
+        }));
+
         // Apply saved status to default tasks too
         const defaults = DEFAULT_TASKS.map((t) => ({
           ...t,
           status: savedStatusMap.get(t.id) ?? t.status,
         }));
 
-        setTasks([...medicineTasks, ...defaults]);
+        setTasks([...medicineTasks, ...customCareTasks, ...defaults]);
       } catch {
         setTasks(DEFAULT_TASKS);
       } finally {
@@ -204,6 +394,24 @@ export default function CareScheduleScreen() {
     });
   }, []);
 
+  const removeCustomTask = useCallback((task: CareTask) => {
+    CustomAlert.alert(
+      'Delete Task',
+      `Remove "${task.title}" from your care plan?`,
+      [
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setTasks((prev) => prev.filter((t) => t.id !== task.id));
+            if (task.customDbId) deleteCustomTask(task.customDbId).catch(() => {});
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }, []);
+
   const handleTaskPress = useCallback((task: CareTask) => {
     if (task.status === 'completed') {
       CustomAlert.alert('Completed', `${task.title} was completed at ${task.completedAt || 'earlier today'}.`);
@@ -233,13 +441,55 @@ export default function CareScheduleScreen() {
   }, [markComplete, snoozeTask, skipTask]);
 
   const handleTaskLongPress = useCallback((task: CareTask) => {
+    if (task.isCustom) {
+      // Long-press on custom tasks → offer delete or snooze
+      const actions: Parameters<typeof CustomAlert.alert>[2] = [
+        { text: 'Delete Task', style: 'destructive', onPress: () => removeCustomTask(task) },
+        { text: 'Cancel', style: 'cancel' },
+      ];
+      if (task.status === 'pending' || task.status === 'overdue') {
+        actions.unshift({ text: 'Snooze 1hr', onPress: () => snoozeTask(task.id) });
+      }
+      CustomAlert.alert(task.title, 'What would you like to do?', actions);
+      return;
+    }
     if (task.status === 'pending' || task.status === 'overdue') {
       CustomAlert.alert('Snooze', `Snooze "${task.title}" by 1 hour?`, [
         { text: 'Snooze 1hr', onPress: () => snoozeTask(task.id) },
         { text: 'Cancel', style: 'cancel' },
       ]);
     }
-  }, [snoozeTask]);
+  }, [snoozeTask, removeCustomTask]);
+
+  // ── Add Task ──
+  const handleAddTask = useCallback(async (
+    title: string,
+    category: TaskCategory,
+    timeOfDay: TimeOfDay,
+    notes: string,
+  ) => {
+    const saved = await createCustomTask({
+      title,
+      category,
+      time_of_day: timeOfDay,
+      notes: notes || undefined,
+    });
+
+    const newTask: CareTask = {
+      id: `custom-${saved.id}`,
+      title: saved.title,
+      subtitle: saved.notes ?? undefined,
+      category: saved.category as TaskCategory,
+      time: timeOfDayToTime(saved.time_of_day as TimeOfDay),
+      timeOfDay: saved.time_of_day as TimeOfDay,
+      status: 'pending',
+      isCustom: true,
+      customDbId: saved.id,
+    };
+
+    setTasks((prev) => [newTask, ...prev]);
+    setShowAddModal(false);
+  }, []);
 
   // ── Counts ──
   const totalForDay = tasks.length;
@@ -349,7 +599,7 @@ export default function CareScheduleScreen() {
           <ActivityIndicator size="large" color="#1A73E8" />
         </View>
       ) : null}
-      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }} style={loading ? { display: 'none' } : undefined}>
+      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} style={loading ? { display: 'none' } : undefined}>
         {(['morning', 'afternoon', 'evening'] as TimeOfDay[]).map((period) => {
           const periodTasks = groupedByPeriod[period];
           if (periodTasks.length === 0) return null;
@@ -465,14 +715,22 @@ export default function CareScheduleScreen() {
                         {/* Content */}
                         <View className="flex-1">
                           <View className="flex-row items-center justify-between">
-                            <Text
-                              className={`text-sm font-semibold flex-1 ${
-                                isCompleted ? 'text-[#94A3B8] line-through' : 'text-midnight'
-                              }`}
-                              numberOfLines={1}
-                            >
-                              {task.title}
-                            </Text>
+                            <View className="flex-row items-center flex-1 gap-1.5">
+                              <Text
+                                className={`text-sm font-semibold flex-shrink ${
+                                  isCompleted ? 'text-[#94A3B8] line-through' : 'text-midnight'
+                                }`}
+                                numberOfLines={1}
+                              >
+                                {task.title}
+                              </Text>
+                              {/* Custom badge */}
+                              {task.isCustom && !isCompleted && (
+                                <View className="bg-[#FFF7ED] px-1.5 py-0.5 rounded-full">
+                                  <Text className="text-[9px] font-bold text-[#EA580C]">MY</Text>
+                                </View>
+                              )}
+                            </View>
 
                             {/* Status Badge */}
                             {isCompleted && (
@@ -539,10 +797,10 @@ export default function CareScheduleScreen() {
                             </Text>
                           )}
 
-                          {/* Swipe hint for actionable tasks */}
+                          {/* Hint */}
                           {(isPending || isOverdue) && (
                             <Text className="text-[9px] text-[#CBD5E1] mt-1.5 italic">
-                              Hold to snooze · Tap to complete
+                              {task.isCustom ? 'Hold to delete · Tap to complete' : 'Hold to snooze · Tap to complete'}
                             </Text>
                           )}
                         </View>
@@ -568,6 +826,22 @@ export default function CareScheduleScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ── FAB: Add Task ── */}
+      <Pressable
+        onPress={() => setShowAddModal(true)}
+        className="absolute bottom-8 right-5 w-14 h-14 rounded-full bg-[#1A73E8] items-center justify-center"
+        style={Shadows.focus}
+      >
+        <Plus size={24} color="#fff" />
+      </Pressable>
+
+      {/* ── Add Task Modal ── */}
+      <AddTaskModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleAddTask}
+      />
     </SafeAreaView>
   );
 }

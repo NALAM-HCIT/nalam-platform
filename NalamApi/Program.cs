@@ -411,6 +411,31 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"⚠️  Schema safety check warning (patient_care_task_logs): {ex.Message}");
     }
 
+    // Safety net: patient custom tasks
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS patient_custom_tasks (
+                id          uuid         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                hospital_id uuid         NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+                patient_id  uuid         NOT NULL REFERENCES patients(id)  ON DELETE CASCADE,
+                title       varchar(200) NOT NULL,
+                category    varchar(20)  NOT NULL DEFAULT 'vitals',
+                time_of_day varchar(20)  NOT NULL DEFAULT 'morning',
+                notes       varchar(500),
+                is_active   boolean      NOT NULL DEFAULT true,
+                created_at  timestamptz  NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ix_custom_task_patient_active
+                ON patient_custom_tasks (hospital_id, patient_id, is_active);
+        ");
+        Console.WriteLine("✅ Schema safety check passed (patient_custom_tasks table ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (patient_custom_tasks): {ex.Message}");
+    }
+
     // Safety net: patient dashboard tables
     try
     {

@@ -22,6 +22,11 @@ public static class PatientDashboardEndpoints
         group.MapPost("/care-tasks/complete", LogCareTask);
         group.MapGet("/care-tasks/today",     GetTodayCareTasks);
 
+        // ── Custom Tasks ──────────────────────────────────────
+        group.MapPost("/custom-tasks",           CreateCustomTask);
+        group.MapGet("/custom-tasks",            GetCustomTasks);
+        group.MapDelete("/custom-tasks/{id:guid}", DeleteCustomTask);
+
         // ── Mood ──────────────────────────────────────────────
         group.MapPost("/mood",          LogMood);
         group.MapGet("/mood/today",     GetTodayMood);
@@ -135,6 +140,109 @@ public static class PatientDashboardEndpoints
             .ToListAsync();
 
         return Results.Ok(new { log_date = today.ToString("yyyy-MM-dd"), tasks = logs });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CUSTOM TASKS  (patient-created)
+    // ═══════════════════════════════════════════════════════════
+
+    private record CreateCustomTaskRequest(
+        [property: JsonPropertyName("title")]       string  Title,
+        [property: JsonPropertyName("category")]    string  Category,
+        [property: JsonPropertyName("time_of_day")] string  TimeOfDay,
+        [property: JsonPropertyName("notes")]       string? Notes);
+
+    private static readonly string[] ValidCategories  = ["medicine", "physio", "diet", "vitals", "hydration"];
+    private static readonly string[] ValidTimesOfDay  = ["morning", "afternoon", "evening"];
+
+    // POST /api/patient/custom-tasks
+    private static async Task<IResult> CreateCustomTask(
+        CreateCustomTaskRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length > 200)
+            return Results.BadRequest(new { error = "title is required (max 200 chars)." });
+
+        var category   = request.Category?.ToLower();
+        var timeOfDay  = request.TimeOfDay?.ToLower();
+
+        if (string.IsNullOrWhiteSpace(category) || !ValidCategories.Contains(category))
+            return Results.BadRequest(new { error = $"category must be one of: {string.Join(", ", ValidCategories)}." });
+
+        if (string.IsNullOrWhiteSpace(timeOfDay) || !ValidTimesOfDay.Contains(timeOfDay))
+            return Results.BadRequest(new { error = $"time_of_day must be one of: {string.Join(", ", ValidTimesOfDay)}." });
+
+        var patientId  = GetPatientId(ctx);
+        var hospitalId = GetHospitalId(ctx);
+
+        var task = new PatientCustomTask
+        {
+            HospitalId = hospitalId,
+            PatientId  = patientId,
+            Title      = request.Title.Trim(),
+            Category   = category,
+            TimeOfDay  = timeOfDay,
+            Notes      = request.Notes?.Trim(),
+            IsActive   = true,
+            CreatedAt  = DateTime.UtcNow,
+        };
+
+        db.PatientCustomTasks.Add(task);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            id          = task.Id,
+            title       = task.Title,
+            category    = task.Category,
+            time_of_day = task.TimeOfDay,
+            notes       = task.Notes,
+            created_at  = task.CreatedAt,
+        });
+    }
+
+    // GET /api/patient/custom-tasks
+    private static async Task<IResult> GetCustomTasks(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+
+        var tasks = await db.PatientCustomTasks
+            .AsNoTracking()
+            .Where(ct => ct.PatientId == patientId && ct.IsActive)
+            .OrderByDescending(ct => ct.CreatedAt)
+            .Select(ct => new
+            {
+                id          = ct.Id,
+                title       = ct.Title,
+                category    = ct.Category,
+                time_of_day = ct.TimeOfDay,
+                notes       = ct.Notes,
+                created_at  = ct.CreatedAt,
+            })
+            .ToListAsync();
+
+        return Results.Ok(new { tasks });
+    }
+
+    // DELETE /api/patient/custom-tasks/{id}
+    private static async Task<IResult> DeleteCustomTask(
+        Guid id,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+
+        var task = await db.PatientCustomTasks
+            .FirstOrDefaultAsync(ct => ct.Id == id && ct.PatientId == patientId);
+
+        if (task is null) return Results.NotFound();
+
+        task.IsActive = false;   // soft delete
+        await db.SaveChangesAsync();
+        return Results.Ok(new { id });
     }
 
     // ═══════════════════════════════════════════════════════════

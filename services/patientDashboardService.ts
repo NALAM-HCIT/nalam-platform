@@ -160,6 +160,22 @@ export interface TodayCareTasksResponse {
   tasks: CareTaskLog[];
 }
 
+export interface CustomTask {
+  id: string;
+  title: string;
+  category: string;
+  time_of_day: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface CreateCustomTaskRequest {
+  title: string;
+  category: string;
+  time_of_day: string;
+  notes?: string;
+}
+
 // ─── API Functions ──────────────────────────────────────────────────────────
 
 // ── Care Tasks ───────────────────────────────────────────────────────────────
@@ -175,6 +191,22 @@ export async function logCareTaskComplete(
   status: 'completed' | 'snoozed' | 'skipped' = 'completed',
 ): Promise<void> {
   await api.post('/patient/care-tasks/complete', { task_id, task_title, status });
+}
+
+// ── Custom Tasks ─────────────────────────────────────────────────────────────
+
+export async function getCustomTasks(): Promise<CustomTask[]> {
+  const res = await api.get('/patient/custom-tasks');
+  return res.data.tasks ?? [];
+}
+
+export async function createCustomTask(data: CreateCustomTaskRequest): Promise<CustomTask> {
+  const res = await api.post('/patient/custom-tasks', data);
+  return res.data;
+}
+
+export async function deleteCustomTask(id: string): Promise<void> {
+  await api.delete(`/patient/custom-tasks/${id}`);
 }
 
 // ── Mood ────────────────────────────────────────────────────────────────────
