@@ -22,6 +22,10 @@ public static class PatientDashboardEndpoints
         group.MapPost("/care-tasks/complete", LogCareTask);
         group.MapGet("/care-tasks/today",     GetTodayCareTasks);
 
+        // ── Step Count ────────────────────────────────────────
+        group.MapPost("/steps",       LogSteps);
+        group.MapGet("/steps/today",  GetTodaySteps);
+
         // ── Custom Tasks ──────────────────────────────────────
         group.MapPost("/custom-tasks",           CreateCustomTask);
         group.MapGet("/custom-tasks",            GetCustomTasks);
@@ -140,6 +144,85 @@ public static class PatientDashboardEndpoints
             .ToListAsync();
 
         return Results.Ok(new { log_date = today.ToString("yyyy-MM-dd"), tasks = logs });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  STEP COUNT
+    // ═══════════════════════════════════════════════════════════
+
+    private record LogStepsRequest(
+        [property: JsonPropertyName("step_count")] int StepCount,
+        [property: JsonPropertyName("goal_steps")] int? GoalSteps);
+
+    // POST /api/patient/steps — upsert today's step count
+    private static async Task<IResult> LogSteps(
+        LogStepsRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        if (request.StepCount < 0 || request.StepCount > 100000)
+            return Results.BadRequest(new { error = "step_count must be 0–100,000." });
+
+        var patientId  = GetPatientId(ctx);
+        var hospitalId = GetHospitalId(ctx);
+        var today      = Today();
+
+        var existing = await db.PatientStepLogs
+            .FirstOrDefaultAsync(sl => sl.PatientId == patientId && sl.LogDate == today);
+
+        int goal = request.GoalSteps is > 0 and <= 100000 ? request.GoalSteps.Value : 10000;
+
+        if (existing != null)
+        {
+            existing.StepCount = request.StepCount;
+            if (request.GoalSteps.HasValue) existing.GoalSteps = goal;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            db.PatientStepLogs.Add(new PatientStepLog
+            {
+                HospitalId = hospitalId,
+                PatientId  = patientId,
+                LogDate    = today,
+                StepCount  = request.StepCount,
+                GoalSteps  = goal,
+                UpdatedAt  = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+        var updatedGoal = existing?.GoalSteps ?? goal;
+        return Results.Ok(new
+        {
+            log_date     = today.ToString("yyyy-MM-dd"),
+            step_count   = request.StepCount,
+            goal_steps   = updatedGoal,
+            progress_pct = (int)Math.Round((double)request.StepCount / updatedGoal * 100),
+        });
+    }
+
+    // GET /api/patient/steps/today — 204 if no steps logged today
+    private static async Task<IResult> GetTodaySteps(
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+        var today     = Today();
+
+        var log = await db.PatientStepLogs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sl => sl.PatientId == patientId && sl.LogDate == today);
+
+        if (log is null) return Results.NoContent();
+
+        return Results.Ok(new
+        {
+            log_date     = log.LogDate.ToString("yyyy-MM-dd"),
+            step_count   = log.StepCount,
+            goal_steps   = log.GoalSteps,
+            progress_pct = (int)Math.Round((double)log.StepCount / log.GoalSteps * 100),
+        });
     }
 
     // ═══════════════════════════════════════════════════════════

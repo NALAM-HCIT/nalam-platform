@@ -160,6 +160,13 @@ export interface TodayCareTasksResponse {
   tasks: CareTaskLog[];
 }
 
+export interface StepLog {
+  log_date: string;
+  step_count: number;
+  goal_steps: number;
+  progress_pct: number;
+}
+
 export interface CustomTask {
   id: string;
   title: string;
@@ -191,6 +198,19 @@ export async function logCareTaskComplete(
   status: 'completed' | 'snoozed' | 'skipped' = 'completed',
 ): Promise<void> {
   await api.post('/patient/care-tasks/complete', { task_id, task_title, status });
+}
+
+// ── Step Count ───────────────────────────────────────────────────────────────
+
+export async function getTodaySteps(): Promise<StepLog | null> {
+  const res = await api.get('/patient/steps/today');
+  if (res.status === 204 || !res.data) return null;
+  return res.data;
+}
+
+export async function logSteps(step_count: number, goal_steps?: number): Promise<StepLog> {
+  const res = await api.post('/patient/steps', { step_count, goal_steps });
+  return res.data;
 }
 
 // ── Custom Tasks ─────────────────────────────────────────────────────────────

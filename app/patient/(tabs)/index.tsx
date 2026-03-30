@@ -18,6 +18,7 @@ import {
   getCustomTasks,
   getTodayCareTasks,
   logCareTaskComplete,
+  getTodaySteps, logSteps, StepLog,
 } from '@/services/patientDashboardService';
 import { scheduleWaterReminders, configureNotificationHandler } from '@/services/waterReminders';
 import {
@@ -205,6 +206,8 @@ export default function PatientDashboard() {
 
   const [todayMoodData, setTodayMoodData]   = useState<TodayMood | null>(null);
   const [waterData, setWaterData]           = useState<WaterSettings | null>(null);
+  const [stepData, setStepData]             = useState<StepLog | null>(null);
+  const [stepLogLoading, setStepLogLoading] = useState(false);
   const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null);
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
@@ -249,6 +252,7 @@ export default function PatientDashboard() {
     patientService.getNotifications().then(setNotifications).catch(() => {});
     getTodayMood().then(setTodayMoodData).catch(() => {});
     getWaterSettings().then(setWaterData).catch(() => {});
+    getTodaySteps().then(setStepData).catch(() => {});
     getTodayPhysio().then(setPhysioToday).catch(() => {});
     getLatestVitals().then(setLatestVitals).catch(() => {});
     getHealthTips().then(setApiTips).catch(() => {});
@@ -260,10 +264,10 @@ export default function PatientDashboard() {
     loadDashboard();
   }, [loadCarePlan, loadDashboard]);
 
-  // Re-fetch vitals whenever the tab comes back into focus
-  // (e.g. after the user saves from log-vitals screen and returns)
+  // Re-fetch vitals + steps whenever the tab comes back into focus
   useFocusEffect(useCallback(() => {
     getLatestVitals().then(setLatestVitals).catch(() => {});
+    getTodaySteps().then(setStepData).catch(() => {});
   }, []));
 
   const [mood, setMood] = useState<string | null>(null);
@@ -330,7 +334,7 @@ export default function PatientDashboard() {
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-surface" edges={['top']}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#1A73E8" />}>
         {/* ── Dynamic Header ── */}
         <LinearGradient
@@ -349,7 +353,7 @@ export default function PatientDashboard() {
               <Pressable onPress={() => setShowNotifications(true)} className="w-10 h-10 rounded-full bg-white/60 items-center justify-center border border-white/50 active:opacity-70">
                 <Bell size={18} color="#0B1B3D" />
                 {unreadCount > 0 && (
-                  <View className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center border-2 border-white"><Text className="text-white text-[9px] font-bold">{unreadCount}</Text></View>
+                  <View className="absolute -top-1 -right-1 w-5 h-5 bg-danger-500 rounded-full items-center justify-center border-2 border-white"><Text className="text-white text-[9px] font-bold">{unreadCount}</Text></View>
                 )}
               </Pressable>
               <Pressable onPress={() => router.push('/patient/(tabs)/profile' as any)} className="w-10 h-10 rounded-full items-center justify-center active:opacity-70" style={{ backgroundColor: '#0B1B3D' }}>
@@ -376,13 +380,13 @@ export default function PatientDashboard() {
             <View className="flex-1">
               <Text className="text-base font-extrabold text-midnight mb-1">{motivMsg.message}</Text>
               <View className="flex-row items-center gap-2 mt-2">
-                <View className="px-2.5 py-1 bg-blue-50 rounded-full flex-row items-center gap-1">
+                <View className="px-2.5 py-1 rounded-full flex-row items-center gap-1" style={{ backgroundColor: '#EEF4FF' }}>
                   <Check size={10} color="#1A73E8" />
-                  <Text className="text-[10px] font-bold text-blue-700">{completedTasks}/{totalTasks} Tasks</Text>
+                  <Text className="text-[10px] font-bold text-primary">{completedTasks}/{totalTasks} Tasks</Text>
                 </View>
-                <View className="px-2.5 py-1 bg-amber-50 rounded-full flex-row items-center gap-1">
-                  <Flame size={10} color="#D97706" />
-                  <Text className="text-[10px] font-bold text-amber-700">7d Streak</Text>
+                <View className="px-2.5 py-1 rounded-full flex-row items-center gap-1" style={{ backgroundColor: '#FFF7ED' }}>
+                  <Flame size={10} color="#F59E0B" />
+                  <Text className="text-[10px] font-bold text-warning-600">7d Streak</Text>
                 </View>
               </View>
             </View>
@@ -546,28 +550,27 @@ export default function PatientDashboard() {
           <View className="bg-white rounded-[24px] p-5 border border-slate-100" style={Shadows.card}>
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-xl items-center justify-center bg-sky-50">
-                  <Droplets size={16} color="#0EA5E9" />
+                <View className="w-8 h-8 rounded-xl items-center justify-center bg-tertiary-fixed">
+                  <Droplets size={16} color="#38BDF8" />
                 </View>
                 <Text className="text-[15px] font-extrabold text-midnight">Hydration</Text>
               </View>
               <Pressable onPress={() => router.push('/patient/care-schedule' as any)} className="active:opacity-60">
-                <Text className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: '#0EA5E9' }}>Goal: {waterData?.daily_goal_ml ?? 2000}ml</Text>
+                <Text className="text-[11px] font-bold tracking-[1.5px] uppercase text-tertiary">Goal: {waterData?.daily_goal_ml ?? 2000}ml</Text>
               </Pressable>
             </View>
 
             <View className="flex-row items-center gap-5 mt-1">
               {/* Bottle Visualization */}
               <View className="items-center">
-                <View className="w-14 h-28 border-[3px] border-sky-100 rounded-t-lg rounded-b-xl overflow-hidden justify-end bg-slate-50 relative">
-                  <View 
-                    className="w-full bg-sky-400 absolute bottom-0 left-0 right-0" 
-                    style={{ height: `${Math.min(waterData?.progress_pct ?? 0, 100)}%` }} 
+                <View className="w-14 h-28 border-[3px] border-tertiary-container rounded-t-lg rounded-b-xl overflow-hidden justify-end bg-surface-variant relative">
+                  <View
+                    className="w-full absolute bottom-0 left-0 right-0 bg-tertiary"
+                    style={{ height: `${Math.min(waterData?.progress_pct ?? 0, 100)}%` }}
                   />
-                  {/* Glass highlights */}
                   <View className="absolute top-2 bottom-2 left-2 w-1.5 bg-white/40 rounded-full" />
                 </View>
-                <Text className="text-[10px] font-bold text-sky-500 mt-2">{waterData?.progress_pct ?? 0}%</Text>
+                <Text className="text-[10px] font-bold text-tertiary mt-2">{waterData?.progress_pct ?? 0}%</Text>
               </View>
 
               <View className="flex-1 justify-center">
@@ -575,9 +578,9 @@ export default function PatientDashboard() {
                 
                 {/* 100% Celebration Text */}
                 {(waterData?.progress_pct ?? 0) >= 100 ? (
-                  <View className="flex-row items-center gap-1 mb-3 bg-emerald-50 self-start px-2 py-1 rounded-md">
-                    <Check size={12} color="#059669" />
-                    <Text className="text-[10px] font-bold text-emerald-700">Goal Reached!</Text>
+                  <View className="flex-row items-center gap-1 mb-3 self-start px-2 py-1 rounded-md" style={{ backgroundColor: '#DCFCE7' }}>
+                    <Check size={12} color="#16A34A" />
+                    <Text className="text-[10px] font-bold text-success-700">Goal Reached!</Text>
                   </View>
                 ) : (
                   <Text className="text-xs text-slate-500 mb-3 font-medium">Keep drinking to reach your daily goal.</Text>
@@ -599,17 +602,86 @@ export default function PatientDashboard() {
                           setWaterLogLoading(false);
                         }
                       }}
-                      className="flex-1 py-2.5 rounded-xl items-center active:opacity-70 bg-sky-50 border border-sky-100"
+                      className="flex-1 py-2.5 rounded-xl items-center active:opacity-70 bg-tertiary-fixed border border-tertiary-container"
                     >
                       {waterLogLoading ? (
-                        <ActivityIndicator size="small" color="#0EA5E9" />
+                        <ActivityIndicator size="small" color="#38BDF8" />
                       ) : (
-                        <Text className="text-[11px] font-extrabold text-sky-600">+{ml}</Text>
+                        <Text className="text-[11px] font-extrabold text-tertiary">+{ml}</Text>
                       )}
                     </Pressable>
                   ))}
                 </View>
               </View>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Step Count ── */}
+        <View className="px-5 mb-5">
+          <View className="bg-white rounded-[24px] p-5 border border-outline-variant" style={Shadows.card}>
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center gap-2">
+                <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#FFF7ED' }}>
+                  <Footprints size={16} color="#F59E0B" />
+                </View>
+                <Text className="text-[15px] font-extrabold text-midnight">Daily Steps</Text>
+              </View>
+              <Text className="text-[11px] font-bold text-warning-500">Goal: {(stepData?.goal_steps ?? 10000).toLocaleString()}</Text>
+            </View>
+
+            <View className="flex-row items-end gap-4 mb-4">
+              <Text className="text-3xl font-black text-midnight">
+                {(stepData?.step_count ?? 0).toLocaleString()}
+                <Text className="text-sm font-bold text-slate-400"> steps</Text>
+              </Text>
+              {(stepData?.progress_pct ?? 0) >= 100 && (
+                <View className="flex-row items-center gap-1 mb-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#DCFCE7' }}>
+                  <Check size={10} color="#16A34A" />
+                  <Text className="text-[10px] font-bold text-success-700">Goal Reached!</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Progress bar */}
+            <View className="h-3 rounded-full bg-surface-variant mb-4 overflow-hidden">
+              <View
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.min(stepData?.progress_pct ?? 0, 100)}%`,
+                  backgroundColor: (stepData?.progress_pct ?? 0) >= 100 ? '#22C55E' : '#F59E0B',
+                }}
+              />
+            </View>
+
+            {/* Quick add buttons */}
+            <View className="flex-row gap-2">
+              {[500, 1000, 2000, 5000].map((amount) => (
+                <Pressable
+                  key={amount}
+                  disabled={stepLogLoading}
+                  onPress={async () => {
+                    setStepLogLoading(true);
+                    try {
+                      const current = stepData?.step_count ?? 0;
+                      const result = await logSteps(current + amount);
+                      setStepData(result);
+                    } catch {
+                      CustomAlert.alert('Error', 'Could not update step count.');
+                    } finally {
+                      setStepLogLoading(false);
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-xl items-center active:opacity-70"
+                  style={{ backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FED7AA' }}
+                >
+                  {stepLogLoading ? (
+                    <ActivityIndicator size="small" color="#F59E0B" />
+                  ) : (
+                    <Text className="text-[11px] font-extrabold text-warning-600">+{amount >= 1000 ? `${amount / 1000}k` : amount}</Text>
+                  )}
+                </Pressable>
+              ))}
             </View>
           </View>
         </View>
@@ -636,7 +708,7 @@ export default function PatientDashboard() {
                   <View className="w-[47%] bg-rose-50 rounded-2xl p-3 border border-rose-100">
                     <View className="flex-row justify-between items-start mb-2">
                       <Activity size={14} color="#E11D48" />
-                      <View className="flex-row items-center gap-0.5"><ArrowDownRight size={10} color="#059669" /><Text className="text-[9px] font-bold text-emerald-600">Normal</Text></View>
+                      <View className="flex-row items-center gap-0.5"><ArrowDownRight size={10} color="#16A34A" /><Text className="text-[9px] font-bold text-success-700">Normal</Text></View>
                     </View>
                     <Text className="text-lg font-black text-rose-950">{latestVitals.bp}</Text>
                     <Text className="text-[10px] font-bold text-rose-600/80 mt-0.5">Blood Pressure</Text>
@@ -715,9 +787,9 @@ export default function PatientDashboard() {
         <View className="mb-8">
           <View className="px-5 mb-3 flex-row items-center justify-between">
             <Text className="text-[16px] font-extrabold text-midnight">Daily Insights</Text>
-            <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full">
-              <Star size={10} color="#D97706" fill="#D97706" />
-              <Text className="text-[9px] font-bold text-amber-700 uppercase tracking-widest">New</Text>
+            <View className="flex-row items-center gap-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
+              <Star size={10} color="#F59E0B" fill="#F59E0B" />
+              <Text className="text-[9px] font-bold text-warning-600 uppercase tracking-widest">New</Text>
             </View>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-5 pr-5">

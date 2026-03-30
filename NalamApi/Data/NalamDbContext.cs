@@ -40,6 +40,7 @@ public class NalamDbContext : DbContext
     // ── Patient Dashboard ───────────────────────────────────────
     public DbSet<PatientCareTaskLog> PatientCareTaskLogs => Set<PatientCareTaskLog>();
     public DbSet<PatientCustomTask> PatientCustomTasks => Set<PatientCustomTask>();
+    public DbSet<PatientStepLog> PatientStepLogs => Set<PatientStepLog>();
     public DbSet<PatientMoodLog> PatientMoodLogs => Set<PatientMoodLog>();
     public DbSet<PatientWaterSetting> PatientWaterSettings => Set<PatientWaterSetting>();
     public DbSet<PatientWaterLog> PatientWaterLogs => Set<PatientWaterLog>();
@@ -122,6 +123,9 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<PatientCustomTask>()
             .HasQueryFilter(ct => !_currentHospitalId.HasValue || ct.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientStepLog>()
+            .HasQueryFilter(sl => !_currentHospitalId.HasValue || sl.HospitalId == _currentHospitalId.Value);
 
         modelBuilder.Entity<PatientMoodLog>()
             .HasQueryFilter(m => !_currentHospitalId.HasValue || m.HospitalId == _currentHospitalId.Value);
@@ -365,6 +369,20 @@ public class NalamDbContext : DbContext
         modelBuilder.Entity<PatientCareTaskLog>()
             .HasIndex(ct => new { ct.HospitalId, ct.PatientId, ct.LogDate })
             .HasDatabaseName("ix_care_task_patient_date");
+
+        // ── PatientStepLog ────────────────────────────────────────
+        modelBuilder.Entity<PatientStepLog>()
+            .HasOne(sl => sl.Hospital).WithMany()
+            .HasForeignKey(sl => sl.HospitalId).OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientStepLog>()
+            .HasOne(sl => sl.Patient).WithMany()
+            .HasForeignKey(sl => sl.PatientId).OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientStepLog>()
+            .HasIndex(sl => new { sl.HospitalId, sl.PatientId, sl.LogDate })
+            .IsUnique()
+            .HasDatabaseName("uq_step_log_patient_day");
 
         // ── PatientCustomTask ─────────────────────────────────────
         modelBuilder.Entity<PatientCustomTask>()

@@ -436,6 +436,28 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"⚠️  Schema safety check warning (patient_custom_tasks): {ex.Message}");
     }
 
+    // Safety net: patient step logs
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS patient_step_logs (
+                id          uuid    NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                hospital_id uuid    NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+                patient_id  uuid    NOT NULL REFERENCES patients(id)  ON DELETE CASCADE,
+                log_date    date    NOT NULL DEFAULT CURRENT_DATE,
+                step_count  integer NOT NULL DEFAULT 0,
+                goal_steps  integer NOT NULL DEFAULT 10000,
+                updated_at  timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT uq_step_log_patient_day UNIQUE (hospital_id, patient_id, log_date)
+            );
+        ");
+        Console.WriteLine("✅ Schema safety check passed (patient_step_logs table ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (patient_step_logs): {ex.Message}");
+    }
+
     // Safety net: patient dashboard tables
     try
     {
