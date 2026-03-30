@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { Shadows, Colors } from '@/constants/theme';
 import { api, isAuthError } from '@/services/api';
+import { adminService } from '@/services/adminService';
 import {
   User, Shield, Bell, LogOut, ChevronRight, Camera, Phone, Mail,
   Calendar, HelpCircle, Globe, Moon, Fingerprint, Lock,
@@ -50,7 +51,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Administration',
     items: [
-      { icon: Users, label: 'User Management', subtitle: '45 active accounts', color: '#8B5CF6', actionId: 'user_management' },
+      { icon: Users, label: 'User Management', subtitle: 'Manage hospital staff', color: '#8B5CF6', actionId: 'user_management' },
       { icon: Settings, label: 'System Configuration', subtitle: 'Hospital settings', color: '#64748B', actionId: 'system_config' },
       { icon: BarChart3, label: 'Audit Logs', subtitle: 'Activity tracking', color: Colors.primary, actionId: 'audit_logs' },
       { icon: Shield, label: 'Access Control', subtitle: 'Roles & permissions', color: '#059669', actionId: 'access_control' },
@@ -85,15 +86,15 @@ const MENU_SECTIONS: MenuSection[] = [
 /* ───── Sub-components ───── */
 
 const QuickStatCard = React.memo(function QuickStatCard({
-  stat, onPress,
-}: { stat: typeof QUICK_STATS[0]; onPress: () => void }) {
+  stat, value, onPress,
+}: { stat: typeof QUICK_STATS[0]; value: string; onPress: () => void }) {
   const Icon = stat.icon;
   return (
     <Pressable onPress={onPress} className="flex-1 bg-white rounded-2xl p-3 items-center active:opacity-80" style={Shadows.card}>
       <View className="w-9 h-9 rounded-xl items-center justify-center mb-1.5" style={{ backgroundColor: stat.color + '15' }}>
         <Icon size={16} color={stat.color} />
       </View>
-      <Text className="text-lg font-extrabold text-midnight">{stat.value}</Text>
+      <Text className="text-lg font-extrabold text-midnight">{value}</Text>
       <Text className="text-[10px] text-slate-400 font-medium">{stat.label}</Text>
     </Pressable>
   );
@@ -129,6 +130,7 @@ export default function AdminProfileScreen() {
   const { userName, phone, role, logout } = useAuthStore();
   
   const [adminInfo, setAdminInfo] = useState(ADMIN_INFO);
+  const [userCount, setUserCount] = useState(0);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -146,7 +148,10 @@ export default function AdminProfileScreen() {
     }
   }, [phone]);
 
-  React.useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  React.useEffect(() => {
+    fetchProfile();
+    adminService.getUserCount().then(setUserCount).catch(() => {});
+  }, [fetchProfile]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -196,7 +201,7 @@ export default function AdminProfileScreen() {
         CustomAlert.alert('Session Info', 'Current Session: 4.2 hours\n\nLogin Time: 8:30 AM\nLast Activity: Just now\nDevice: iPhone 15 Pro\nIP: 192.168.1.xxx');
         break;
       case 'Users':
-        CustomAlert.alert('Users Added', 'This Month: 12\n\nDoctors: 3\nReceptionists: 4\nPharmacists: 2\nAdmins: 1\nOther Staff: 2');
+        CustomAlert.alert('Staff Users', `Total active staff accounts: ${userCount}`);
         break;
       case 'Alerts':
         CustomAlert.alert('System Alerts', '3 active alerts:\n\n1. Server disk space at 85%\n2. 2 failed login attempts (Dr. Rajesh)\n3. Backup pending — last: 23 hours ago');
@@ -227,10 +232,7 @@ export default function AdminProfileScreen() {
         break;
 
       case 'audit_logs':
-        CustomAlert.alert('Audit Logs', 'Recent Activity:\n\n1. User created: Dr. Meena (Mar 20)\n2. Config change: OPD hours (Mar 19)\n3. Password reset: Receptionist-03 (Mar 19)\n4. Role change: Pharmacist-05 (Mar 18)\n5. System backup completed (Mar 18)', [
-          { text: 'OK' },
-          { text: 'Export Logs', onPress: () => CustomAlert.alert('Export', 'Audit logs exported to admin@arunpriya.com.\nFormat: CSV\nPeriod: Last 30 days') },
-        ]);
+        router.push('/admin/audit-log' as any);
         break;
 
       case 'access_control':
@@ -394,7 +396,12 @@ export default function AdminProfileScreen() {
         {/* Quick Stats */}
         <View className="flex-row mx-6 mt-4 gap-2.5">
           {QUICK_STATS.map((stat, idx) => (
-            <QuickStatCard key={idx} stat={stat} onPress={() => handleStatPress(stat.label)} />
+            <QuickStatCard
+              key={idx}
+              stat={stat}
+              value={stat.label === 'Users' ? String(userCount) : stat.value}
+              onPress={() => handleStatPress(stat.label)}
+            />
           ))}
         </View>
 

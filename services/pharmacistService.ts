@@ -2,6 +2,15 @@ import { api } from './api';
 
 // ─── Types ──────────────────────────────────────────
 
+export interface LowStockItem {
+    id: string;
+    name: string;
+    genericName: string | null;
+    category: string;
+    dosageForm: string;
+    stockQuantity: number;
+}
+
 export interface PharmacyDashboardStats {
     date: string;
     stats: {
@@ -35,6 +44,28 @@ export interface PrescriptionItem {
     appointmentStatus: string;
     updatedAt: string;
     prescriptionItems: RxLineItem[];
+}
+
+export interface PharmacistProfile {
+    id: string;
+    fullName: string;
+    mobileNumber: string;
+    email: string | null;
+    department: string;
+    employeeId: string;
+    joinDate: string;
+}
+
+export interface UpdatePharmacistProfileRequest {
+    email?: string;
+    department?: string;
+}
+
+export interface PharmacistStats {
+    dispensedToday: number;
+    pendingToday: number;
+    rejectedToday: number;
+    lowStockCount: number;
 }
 
 // ─── Service ────────────────────────────────────────
@@ -75,5 +106,36 @@ export const pharmacistService = {
         await api.patch(`/pharmacy/prescriptions/${appointmentId}/reject`, null, {
             params: reason ? { reason } : undefined
         });
+    },
+
+    /**
+     * GET /api/pharmacy/low-stock — medicines with stock < 10 (hospital-scoped)
+     */
+    getLowStock: async (): Promise<LowStockItem[]> => {
+        const res = await api.get('/pharmacy/low-stock');
+        return res.data;
+    },
+
+    /**
+     * GET /api/pharmacy/profile — logged-in pharmacist's profile
+     */
+    getProfile: async (): Promise<PharmacistProfile> => {
+        const res = await api.get('/pharmacy/profile');
+        return res.data;
+    },
+
+    /**
+     * PATCH /api/pharmacy/profile — update email / department
+     */
+    updateProfile: async (data: UpdatePharmacistProfileRequest): Promise<void> => {
+        await api.patch('/pharmacy/profile', data);
+    },
+
+    /**
+     * GET /api/pharmacy/stats — today's dispensing counts + low-stock count
+     */
+    getStats: async (): Promise<PharmacistStats> => {
+        const res = await api.get('/pharmacy/stats');
+        return res.data;
     },
 };

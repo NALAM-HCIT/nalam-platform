@@ -1,6 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Switch, Modal, Animated, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, Switch, Modal, Animated, RefreshControl, Dimensions, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -8,12 +8,20 @@ import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { patientService, CarePlan, PatientNotification } from '@/services/patientService';
 import {
+  getTodayMood, logMood, TodayMood,
+  getWaterSettings, logWaterIntake, WaterSettings,
+  getTodayPhysio, TodayPhysio,
+  getLatestVitals, LatestVitals,
+  getHealthTips, HealthTip,
+} from '@/services/patientDashboardService';
+import { scheduleWaterReminders, configureNotificationHandler } from '@/services/waterReminders';
+import {
   Bell, Check, Droplets, Pill, CalendarPlus, Package, FileText,
   BriefcaseMedical, Sun, Moon, Sunrise, Sunset, Heart, Activity,
   Apple, Dumbbell, X, Clock, AlertTriangle, Flame, TrendingUp,
   Zap, ChevronRight, Sparkles, Wind, Gauge, Footprints,
   CircleAlert, SkipForward, Timer, Lightbulb, Award, Watch, Info,
-  Smile, Frown, Meh, ThumbsUp, HeartPulse,
+  Smile, Frown, Meh, ThumbsUp, HeartPulse, Thermometer,
 } from 'lucide-react-native';
 
 // ─── Types ───
@@ -146,13 +154,13 @@ function buildTasksFromCarePlan(data: CarePlan): CareTask[] {
   return tasks;
 }
 
-// ─── Health Tips ───
-const healthTips = [
-  { tip: 'Eating meals at the same time daily helps regulate blood sugar levels.', icon: Apple, color: '#22C55E' },
-  { tip: 'Deep breathing for 5 minutes can lower your blood pressure by 5-10 points.', icon: Wind, color: '#0EA5E9' },
-  { tip: 'Walking 30 minutes after meals improves glucose metabolism by up to 30%.', icon: Footprints, color: '#8B5CF6' },
-  { tip: 'Staying hydrated helps your kidneys process medications more effectively.', icon: Droplets, color: '#38BDF8' },
-  { tip: 'Taking medications at the same time daily improves their effectiveness.', icon: Clock, color: '#1A73E8' },
+// ─── Health Tips — fallback used if API has no data ───
+const FALLBACK_TIPS = [
+  { title: 'Stay Hydrated', body: 'Drink at least 8 glasses of water daily to support kidney function and energy levels.', icon: Droplets, color: '#0EA5E9' },
+  { title: 'Move Every Hour', body: 'Stand up and walk for 2–3 minutes every hour to keep your circulation active.', icon: Footprints, color: '#8B5CF6' },
+  { title: 'Consistent Meals', body: 'Eating meals at the same time daily helps regulate your blood sugar levels.', icon: Apple, color: '#22C55E' },
+  { title: 'Breathe Deeply', body: '5 minutes of deep breathing can lower your blood pressure by 5–10 points.', icon: Wind, color: '#38BDF8' },
+  { title: 'Take Medications on Time', body: 'Taking medications at the same time daily improves their effectiveness.', icon: Clock, color: '#1A73E8' },
 ];
 
 // ─── Notification Config ───
@@ -352,6 +360,14 @@ export default function PatientDashboard() {
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  // ── Live dashboard state ──
+  const [todayMoodData, setTodayMoodData]   = useState<TodayMood | null>(null);
+  const [waterData, setWaterData]           = useState<WaterSettings | null>(null);
+  const [physioToday, setPhysioToday]       = useState<TodayPhysio | null>(null);
+  const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
+  const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
+  const [waterLogLoading, setWaterLogLoading] = useState(false);
+
   const loadCarePlan = useCallback(() => {
     patientService.getCarePlan()
       .then((data) => setTasks(buildTasksFromCarePlan(data)))
@@ -364,13 +380,31 @@ export default function PatientDashboard() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { loadCarePlan(); loadNotifications(); }, [loadCarePlan, loadNotifications]);
+  const loadDashboard = useCallback(() => {
+    getTodayMood().then(setTodayMoodData).catch(() => {});
+    getWaterSettings().then(setWaterData).catch(() => {});
+    getTodayPhysio().then(setPhysioToday).catch(() => {});
+    getLatestVitals().then(setLatestVitals).catch(() => {});
+    getHealthTips(undefined, 5).then(setApiTips).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    configureNotificationHandler();
+    loadCarePlan();
+    loadNotifications();
+    loadDashboard();
+  }, [loadCarePlan, loadNotifications, loadDashboard]);
   const [showNudge, setShowNudge] = useState(true);
   const [activeCategory, setActiveCategory] = useState<TaskCategory | null>(null);
   const taskScrollRef = useRef<ScrollView>(null);
-  const tipIndex = useState(Math.floor(Math.random() * healthTips.length))[0];
+  const tipIndex = useState(Math.floor(Math.random() * FALLBACK_TIPS.length))[0];
   const [streak] = useState(7);
   const [mood, setMood] = useState<string | null>(null);
+
+  // Sync mood widget with today's API data
+  useEffect(() => {
+    if (todayMoodData?.mood_label) setMood(todayMoodData.mood_label);
+  }, [todayMoodData]);
 
   // ─── Computed Stats ───
   const totalTasks = tasks.length;
@@ -575,15 +609,24 @@ export default function PatientDashboard() {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([
+    Promise.allSettled([
       patientService.getCarePlan().then((data) => setTasks(buildTasksFromCarePlan(data))),
       patientService.getNotifications().then((data) => setNotifications(data)),
-    ]).catch(() => {}).finally(() => setRefreshing(false));
+      getTodayMood().then(setTodayMoodData),
+      getWaterSettings().then(setWaterData),
+      getTodayPhysio().then(setPhysioToday),
+      getLatestVitals().then(setLatestVitals),
+      getHealthTips(undefined, 5).then(setApiTips),
+    ]).finally(() => setRefreshing(false));
   }, []);
 
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-  const currentTip = healthTips[tipIndex];
+  // Use live API tips when available, fall back to local list
+  const activeTips = apiTips.length > 0
+    ? apiTips.map(t => ({ title: t.title, body: t.body, icon: Lightbulb, color: '#1A73E8' }))
+    : FALLBACK_TIPS;
+  const currentTip = activeTips[tipIndex % activeTips.length];
   const TipIcon = currentTip.icon;
 
   return (
@@ -674,8 +717,14 @@ export default function PatientDashboard() {
                 return (
                   <Pressable
                     key={m.key}
-                    onPress={() => {
+                    onPress={async () => {
                       setMood(m.key);
+                      // Map UI key to API score
+                      const scoreMap: Record<string, number> = { great: 5, good: 4, okay: 3, unwell: 2, pain: 1 };
+                      const labelMap: Record<string, string> = { great: 'great', good: 'good', okay: 'okay', unwell: 'bad', pain: 'terrible' };
+                      try {
+                        await logMood({ mood_score: scoreMap[m.key] ?? 3, mood_label: labelMap[m.key] ?? 'okay' });
+                      } catch { /* non-blocking */ }
                       if (m.key === 'unwell' || m.key === 'pain') {
                         CustomAlert.alert(
                           'We\'re sorry to hear that',
@@ -950,22 +999,151 @@ export default function PatientDashboard() {
           </View>
         </View>
 
+        {/* ── Water Intake ── */}
+        <View className="px-5 mb-3">
+          <View className="bg-white rounded-2xl p-4" style={Shadows.card}>
+            <View className="flex-row items-center justify-between mb-2">
+              <View className="flex-row items-center gap-2">
+                <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#F0F9FF' }}>
+                  <Droplets size={16} color="#0EA5E9" />
+                </View>
+                <Text className="font-extrabold text-midnight text-[13px]">Water Intake</Text>
+              </View>
+              <Pressable
+                onPress={() => router.push('/patient/care-schedule' as any)}
+                className="active:opacity-60"
+              >
+                <Text className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: '#0EA5E9' }}>Settings</Text>
+              </Pressable>
+            </View>
+
+            {/* Progress bar */}
+            {(() => {
+              const total = waterData?.today_total_ml ?? 0;
+              const goal  = waterData?.daily_goal_ml  ?? 2000;
+              const pct   = waterData?.progress_pct   ?? 0;
+              return (
+                <>
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-xs text-slate-500">{total} ml consumed</Text>
+                    <Text className="text-xs font-bold text-midnight">{pct}% of {goal} ml</Text>
+                  </View>
+                  <View className="h-3 bg-slate-100 rounded-full overflow-hidden mb-3">
+                    <View
+                      className="h-3 rounded-full"
+                      style={{ width: `${Math.min(100, pct)}%`, backgroundColor: pct >= 100 ? '#22C55E' : '#0EA5E9' }}
+                    />
+                  </View>
+                </>
+              );
+            })()}
+
+            {/* Quick-log buttons */}
+            <View className="flex-row gap-2">
+              {[200, 300, 500].map(ml => (
+                <Pressable
+                  key={ml}
+                  disabled={waterLogLoading}
+                  onPress={async () => {
+                    setWaterLogLoading(true);
+                    try {
+                      const result = await logWaterIntake(ml);
+                      setWaterData(prev => prev
+                        ? { ...prev, today_total_ml: result.today_total_ml, progress_pct: result.progress_pct }
+                        : prev
+                      );
+                    } catch {
+                      CustomAlert.alert('Error', 'Could not log water intake. Please try again.');
+                    } finally {
+                      setWaterLogLoading(false);
+                    }
+                  }}
+                  className="flex-1 py-2 rounded-xl items-center active:opacity-70"
+                  style={{ backgroundColor: '#F0F9FF', borderWidth: 1, borderColor: '#BAE6FD' }}
+                >
+                  {waterLogLoading ? (
+                    <ActivityIndicator size="small" color="#0EA5E9" />
+                  ) : (
+                    <Text className="text-xs font-bold" style={{ color: '#0EA5E9' }}>+{ml} ml</Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* ── Physiotherapy ── */}
+        <View className="px-5 mb-3">
+          <View className="bg-white rounded-2xl p-4" style={Shadows.card}>
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2">
+                <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#F3EEFF' }}>
+                  <Dumbbell size={16} color="#8B5CF6" />
+                </View>
+                <Text className="font-extrabold text-midnight text-[13px]">Physiotherapy</Text>
+              </View>
+              <Pressable
+                onPress={() => router.push('/patient/physio-report' as any)}
+                className="active:opacity-60"
+              >
+                <Text className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: '#8B5CF6' }}>View Report</Text>
+              </Pressable>
+            </View>
+
+            {physioToday && physioToday.total_sessions > 0 ? (
+              <View className="flex-row items-center gap-4 mb-3">
+                <View className="items-center flex-1 bg-slate-50 rounded-xl py-2">
+                  <Text className="text-xl font-extrabold text-midnight">{physioToday.total_sessions}</Text>
+                  <Text className="text-[10px] text-slate-400">Session{physioToday.total_sessions !== 1 ? 's' : ''}</Text>
+                </View>
+                <View className="items-center flex-1 bg-slate-50 rounded-xl py-2">
+                  <Text className="text-xl font-extrabold text-midnight">{physioToday.total_min}</Text>
+                  <Text className="text-[10px] text-slate-400">Minutes</Text>
+                </View>
+              </View>
+            ) : (
+              <Text className="text-xs text-slate-400 mb-3">No sessions logged today yet.</Text>
+            )}
+
+            <Pressable
+              onPress={() => CustomAlert.alert(
+                'Log Physiotherapy',
+                'What activity did you perform?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Log Activity', onPress: () => router.push('/patient/physio-report' as any) },
+                ]
+              )}
+              className="flex-row items-center justify-center gap-2 py-2.5 rounded-xl active:opacity-70"
+              style={{ backgroundColor: '#F3EEFF', borderWidth: 1, borderColor: '#DDD6FE' }}
+            >
+              <Dumbbell size={14} color="#8B5CF6" />
+              <Text className="text-xs font-bold" style={{ color: '#8B5CF6' }}>Log Activity</Text>
+            </Pressable>
+          </View>
+        </View>
+
         {/* ── Daily Health Tip ── */}
         <View className="px-5 mb-3">
           <Pressable
-            onPress={() => CustomAlert.alert('Daily Health Tip', currentTip.tip + '\n\nSource: WHO Wellness Guidelines\n\nTap "More Tips" to see our complete health tip library.', [
-              { text: 'OK' },
-              { text: 'More Tips', onPress: () => CustomAlert.alert('Health Tips Library', healthTips.map((t, i) => `${i + 1}. ${t.tip}`).join('\n\n')) },
-            ])}
+            onPress={() => CustomAlert.alert(
+              currentTip.title,
+              currentTip.body,
+              [
+                { text: 'OK' },
+                { text: 'More Tips', onPress: () => CustomAlert.alert('Health Tips', activeTips.map((t, i) => `${i + 1}. ${t.title}\n${t.body}`).join('\n\n')) },
+              ]
+            )}
             className="bg-white rounded-xl px-3.5 py-3 flex-row items-center gap-2.5 active:opacity-80"
             style={Shadows.card}
           >
             <View className="w-8 h-8 rounded-lg items-center justify-center" style={{ backgroundColor: `${currentTip.color}15` }}>
-              <Lightbulb size={14} color={currentTip.color} />
+              <TipIcon size={14} color={currentTip.color} />
             </View>
             <View className="flex-1">
               <Text className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Health Tip</Text>
-              <Text className="text-[11px] text-slate-600 font-medium leading-[14px]" numberOfLines={2}>{currentTip.tip}</Text>
+              <Text className="text-xs font-bold text-midnight mb-0.5" numberOfLines={1}>{currentTip.title}</Text>
+              <Text className="text-[11px] text-slate-500 font-medium leading-[14px]" numberOfLines={2}>{currentTip.body}</Text>
             </View>
             <ChevronRight size={12} color="#CBD5E1" />
           </Pressable>
@@ -975,133 +1153,96 @@ export default function PatientDashboard() {
         <View className="px-5 mb-3">
           <View className="bg-white rounded-2xl p-4" style={Shadows.card}>
             {/* Vitals Header */}
-            <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-[15px] font-extrabold text-midnight">Vitals</Text>
-              <View className="flex-row items-center gap-2">
-                <Text className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase">Remote Share</Text>
-                <Switch
-                  value={shareLive}
-                  onValueChange={(val) => {
-                    setShareLive(val);
-                    CustomAlert.alert(val ? 'Remote Sharing On' : 'Remote Sharing Off', val
-                      ? 'Your vitals are now visible to your care team in real-time.'
-                      : 'Remote sharing has been paused. Your doctor will see the last synced readings.');
-                  }}
-                  trackColor={{ false: '#E2E8F0', true: '#1A73E8' }}
-                  thumbColor="#FFFFFF"
-                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-                />
-              </View>
-            </View>
-
-            {/* Connect Watch Button (shown when watch disconnected) */}
-            {!watchConnected && (
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-[15px] font-extrabold text-midnight">My Vitals</Text>
               <Pressable
-                onPress={handleConnectWatch}
-                className="flex-row items-center justify-center gap-2 mb-3 py-2.5 px-4 rounded-full active:opacity-80"
-                style={{ backgroundColor: '#FFF1F0', borderWidth: 1, borderColor: '#FECACA' }}
+                onPress={() => router.push('/patient/log-vitals' as any)}
+                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-70"
+                style={{ backgroundColor: '#EEF4FF' }}
               >
-                <Watch size={15} color="#EF4444" />
-                <Text className="text-xs font-bold" style={{ color: '#DC2626' }}>Connect Watch for Vitals</Text>
+                <HeartPulse size={12} color="#1A73E8" />
+                <Text className="text-[11px] font-bold" style={{ color: '#1A73E8' }}>+ Log</Text>
               </Pressable>
-            )}
-
-            {/* Live Syncing indicator */}
-            <View className="flex-row items-center gap-1.5 mb-2">
-              <View className="w-2 h-2 rounded-full bg-emerald-500" />
-              <Text className="text-[10px] font-bold tracking-[2px] text-emerald-500 uppercase">Live Syncing</Text>
             </View>
 
-            {/* Info Banner */}
-            {!watchConnected && (
-              <View className="flex-row items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 mb-3">
-                <Info size={12} color="#94A3B8" />
-                <Text className="text-[10px] text-slate-400 font-medium flex-1">
-                  Connect watch for Heart Rate & SpO2. Steps tracked via phone.
-                </Text>
+            {latestVitals ? (
+              <>
+                {/* Live indicator + timestamp */}
+                <View className="flex-row items-center justify-between mb-3">
+                  <View className="flex-row items-center gap-1.5">
+                    <View className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <Text className="text-[10px] font-bold tracking-[2px] text-emerald-500 uppercase">Live Data</Text>
+                  </View>
+                  <Text className="text-[10px] text-slate-400">
+                    {new Date(latestVitals.recorded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </Text>
+                </View>
+
+                {/* Vitals grid */}
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {latestVitals.bp && (
+                    <View className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: '#FEF2F2' }}>
+                      <Activity size={13} color="#EF4444" />
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#0B1B3D' }}>{latestVitals.bp}</Text>
+                        <Text style={{ fontSize: 8, color: '#EF4444', fontWeight: '700' }}>mmHg · BP</Text>
+                      </View>
+                    </View>
+                  )}
+                  {latestVitals.heart_rate && (
+                    <View className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: '#EEF4FF' }}>
+                      <Heart size={13} color="#1A73E8" />
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#0B1B3D' }}>{latestVitals.heart_rate}</Text>
+                        <Text style={{ fontSize: 8, color: '#1A73E8', fontWeight: '700' }}>BPM · HR</Text>
+                      </View>
+                    </View>
+                  )}
+                  {latestVitals.spo2 && (
+                    <View className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: '#F0F9FF' }}>
+                      <Wind size={13} color="#38BDF8" />
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#0B1B3D' }}>{latestVitals.spo2}%</Text>
+                        <Text style={{ fontSize: 8, color: '#38BDF8', fontWeight: '700' }}>SpO₂</Text>
+                      </View>
+                    </View>
+                  )}
+                  {latestVitals.temperature_c && (
+                    <View className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: '#FFFBEB' }}>
+                      <Thermometer size={13} color="#F59E0B" />
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#0B1B3D' }}>{Number(latestVitals.temperature_c).toFixed(1)}°C</Text>
+                        <Text style={{ fontSize: 8, color: '#F59E0B', fontWeight: '700' }}>Temp</Text>
+                      </View>
+                    </View>
+                  )}
+                  {latestVitals.weight_kg && (
+                    <View className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: '#EEFBF4' }}>
+                      <Gauge size={13} color="#22C55E" />
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#0B1B3D' }}>{Number(latestVitals.weight_kg).toFixed(1)} kg</Text>
+                        <Text style={{ fontSize: 8, color: '#22C55E', fontWeight: '700' }}>Weight</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </>
+            ) : (
+              <View className="items-center py-5">
+                <HeartPulse size={32} color="#E2E8F0" />
+                <Text className="text-slate-400 text-sm mt-2 font-medium">No vitals recorded yet</Text>
+                <Text className="text-slate-300 text-xs mt-1">Tap "+ Log" to record your first reading</Text>
               </View>
             )}
 
-            {/* Vital Gauges Row */}
-            <View className="flex-row">
-              {/* Heart Rate — Disabled when watch disconnected */}
-              {watchConnected ? (
-                <VitalGauge value="72" unit="BPM" label="Heart Rate" color="#1A73E8" progress={0.6} onPress={() => handleVitalTap('Heart Rate')} />
-              ) : (
-                <Pressable onPress={() => handleTapToPair('Heart Rate')} className="items-center flex-1 active:opacity-70">
-                  <View style={{ width: 68, height: 68, alignItems: 'center', justifyContent: 'center' }}>
-                    <View style={{ position: 'absolute', width: 68, height: 68, borderRadius: 34, borderWidth: 5, borderColor: '#E2E8F0', opacity: 0.3 }} />
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#CBD5E1' }}>--</Text>
-                    <Text style={{ fontSize: 7, fontWeight: '700', color: '#CBD5E1', marginTop: -2 }}>BPM</Text>
-                  </View>
-                  <Text className="text-[10px] text-slate-400 mt-1 font-medium">Heart Rate</Text>
-                  <Text className="text-[8px] font-bold mt-0.5" style={{ color: '#1A73E8' }}>Tap to pair</Text>
-                </Pressable>
-              )}
-
-              {/* SpO2 */}
-              {watchConnected ? (
-                <VitalGauge value="98" unit="%" label="SpO2" color="#38BDF8" progress={0.98} onPress={() => handleVitalTap('SpO2')} />
-              ) : (
-                <Pressable onPress={() => handleTapToPair('SpO2')} className="items-center flex-1 active:opacity-70">
-                  <View style={{ width: 68, height: 68, alignItems: 'center', justifyContent: 'center' }}>
-                    <View style={{ position: 'absolute', width: 68, height: 68, borderRadius: 34, borderWidth: 5, borderColor: '#E2E8F0', opacity: 0.3 }} />
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#CBD5E1' }}>--</Text>
-                    <Text style={{ fontSize: 7, fontWeight: '700', color: '#CBD5E1', marginTop: -2 }}>%</Text>
-                  </View>
-                  <Text className="text-[10px] text-slate-400 mt-1 font-medium">SpO2</Text>
-                  <Text className="text-[8px] font-bold mt-0.5" style={{ color: '#1A73E8' }}>Tap to pair</Text>
-                </Pressable>
-              )}
-
-              {/* Activity — Always active (phone-tracked) */}
-              <Pressable onPress={() => handleVitalTap('Activity')} className="items-center flex-1 active:opacity-70">
-                <View style={{ width: 68, height: 68, alignItems: 'center', justifyContent: 'center' }}>
-                  <Svg width={68} height={68} style={{ position: 'absolute' }}>
-                    <Circle cx={34} cy={34} r={29.5} stroke="#F59E0B18" strokeWidth={5} fill="none" />
-                    <Circle cx={34} cy={34} r={29.5} stroke="#F59E0B" strokeWidth={5} fill="none"
-                      strokeDasharray={`${2 * Math.PI * 29.5 * 0.64} ${2 * Math.PI * 29.5 * 0.36}`}
-                      strokeLinecap="round" rotation={-90} origin="34, 34" />
-                  </Svg>
-                  <View className="items-center">
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#0B1B3D' }}>6.4k</Text>
-                    <Text style={{ fontSize: 7, fontWeight: '700', color: '#F59E0B', marginTop: -2 }}>STEPS</Text>
-                  </View>
-                </View>
-                <Text className="text-[10px] text-slate-500 mt-1 font-medium">Activity</Text>
-              </Pressable>
-            </View>
-
-            {/* ── Smart Nudge: Step Goal ── */}
-            {showNudge && (
-              <Pressable
-                onPress={handleStepNudge}
-                className="mt-4 flex-row items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 active:opacity-80"
-              >
-                <View className="w-8 h-8 rounded-full bg-amber-100 items-center justify-center">
-                  <Footprints size={16} color="#F59E0B" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs font-bold text-amber-700">3,600 steps to go!</Text>
-                  <Text className="text-[10px] text-amber-600 mt-0.5">A 20-min evening walk can help you hit your goal</Text>
-                </View>
-                <Pressable onPress={() => setShowNudge(false)} className="p-1 active:opacity-60">
-                  <X size={14} color="#D97706" />
-                </Pressable>
-              </Pressable>
-            )}
-
-            {/* View Trends Link */}
+            {/* View 30-Day Trends */}
             <Pressable
-              onPress={() => router.push('/patient/(tabs)/records' as any)}
-              className="mt-3 flex-row items-center justify-center gap-1.5 active:opacity-60"
+              onPress={() => router.push('/patient/vitals-trend' as any)}
+              className="mt-2 flex-row items-center justify-center gap-1.5 active:opacity-60"
             >
               <TrendingUp size={12} color="#1A73E8" />
               <Text className="text-[11px] font-bold" style={{ color: '#1A73E8' }}>View 30-Day Trends</Text>
             </Pressable>
-
-            {/* Last Synced Footer */}
-            <Text className="text-[10px] text-slate-300 text-center mt-2 font-medium">Last synced: Just now</Text>
           </View>
         </View>
 

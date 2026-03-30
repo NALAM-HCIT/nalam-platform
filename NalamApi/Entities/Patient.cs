@@ -100,4 +100,11 @@ public class Patient
 
     public ICollection<Appointment> Appointments { get; set; } = [];
     public ICollection<OtpVerification> OtpVerifications { get; set; } = [];
+
+    // ── Patient Dashboard ────────────────────────────
+    public ICollection<PatientMoodLog> MoodLogs { get; set; } = [];
+    public PatientWaterSetting? WaterSetting { get; set; }
+    public ICollection<PatientWaterLog> WaterLogs { get; set; } = [];
+    public ICollection<PatientPhysioLog> PhysioLogs { get; set; } = [];
+    public ICollection<PatientVital> Vitals { get; set; } = [];
 }

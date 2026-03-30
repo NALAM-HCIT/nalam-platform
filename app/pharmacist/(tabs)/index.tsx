@@ -5,10 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
-import { pharmacistService, PharmacyDashboardStats, PrescriptionItem } from '@/services/pharmacistService';
+import { pharmacistService, PharmacyDashboardStats, PrescriptionItem, LowStockItem } from '@/services/pharmacistService';
 import { isAuthError } from '@/services/api';
 import {
-  Bell, Clock, CheckCircle, Package, X,
+  Clock, CheckCircle,
   ChevronRight, Building2, FileText, AlertTriangle, Pill,
 } from 'lucide-react-native';
 
@@ -18,15 +18,18 @@ export default function PharmacistDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<PharmacyDashboardStats | null>(null);
   const [prescriptions, setPrescriptions] = useState<PrescriptionItem[]>([]);
+  const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
 
   const loadDashboard = async () => {
     try {
-      const [dashStats, rxQueue] = await Promise.all([
+      const [dashStats, rxQueue, stockAlerts] = await Promise.all([
         pharmacistService.getDashboard(),
         pharmacistService.getPrescriptions('pending'),
+        pharmacistService.getLowStock(),
       ]);
       setStats(dashStats);
       setPrescriptions(rxQueue);
+      setLowStock(stockAlerts);
     } catch (err) {
       if (!isAuthError(err)) {
         console.error(err);
@@ -156,6 +159,43 @@ export default function PharmacistDashboard() {
             <Text className="text-2xl font-extrabold text-midnight">{stats?.stats.total ?? 0}</Text>
           </View>
         </View>
+
+        {/* Low Stock Alert */}
+        {lowStock.length > 0 && (
+          <View className="px-6 mt-5">
+            <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <View className="flex-row items-center gap-2 mb-3">
+                <AlertTriangle size={16} color="#D97706" />
+                <Text className="text-sm font-bold text-amber-800">
+                  Low Stock — {lowStock.length} item{lowStock.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              {lowStock.map((item, idx) => (
+                <View
+                  key={item.id}
+                  className="flex-row items-center justify-between py-2"
+                  style={idx < lowStock.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#FDE68A' } : undefined}
+                >
+                  <View className="flex-1 mr-3">
+                    <Text className="text-xs font-semibold text-amber-900" numberOfLines={1}>{item.name}</Text>
+                    <Text className="text-[10px] text-amber-600">{item.category} · {item.dosageForm}</Text>
+                  </View>
+                  <View
+                    className="px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: item.stockQuantity === 0 ? '#FEE2E2' : '#FEF3C7' }}
+                  >
+                    <Text
+                      className="text-[10px] font-bold"
+                      style={{ color: item.stockQuantity === 0 ? '#DC2626' : '#D97706' }}
+                    >
+                      {item.stockQuantity === 0 ? 'OUT' : `${item.stockQuantity} left`}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Pending Prescriptions */}
         <View className="px-6 mt-6">

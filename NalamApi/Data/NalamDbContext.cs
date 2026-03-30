@@ -37,6 +37,14 @@ public class NalamDbContext : DbContext
     public DbSet<HospitalMessage> Messages => Set<HospitalMessage>();
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
 
+    // ── Patient Dashboard ───────────────────────────────────────
+    public DbSet<PatientMoodLog> PatientMoodLogs => Set<PatientMoodLog>();
+    public DbSet<PatientWaterSetting> PatientWaterSettings => Set<PatientWaterSetting>();
+    public DbSet<PatientWaterLog> PatientWaterLogs => Set<PatientWaterLog>();
+    public DbSet<PatientPhysioLog> PatientPhysioLogs => Set<PatientPhysioLog>();
+    public DbSet<PatientVital> PatientVitals => Set<PatientVital>();
+    public DbSet<HealthTip> HealthTips => Set<HealthTip>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -106,6 +114,27 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<HospitalMessage>()
             .HasQueryFilter(msg => !_currentHospitalId.HasValue || msg.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientMoodLog>()
+            .HasQueryFilter(m => !_currentHospitalId.HasValue || m.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientWaterSetting>()
+            .HasQueryFilter(ws => !_currentHospitalId.HasValue || ws.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientWaterLog>()
+            .HasQueryFilter(wl => !_currentHospitalId.HasValue || wl.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientPhysioLog>()
+            .HasQueryFilter(pl => !_currentHospitalId.HasValue || pl.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientVital>()
+            .HasQueryFilter(v => !_currentHospitalId.HasValue || v.HospitalId == _currentHospitalId.Value);
+
+        // HealthTip: show hospital-specific tips AND global tips (hospital_id IS NULL)
+        modelBuilder.Entity<HealthTip>()
+            .HasQueryFilter(ht => !_currentHospitalId.HasValue
+                                  || ht.HospitalId == null
+                                  || ht.HospitalId == _currentHospitalId.Value);
 
         modelBuilder.Entity<AuditLogHistory>()
             .HasIndex(a => new { a.HospitalId, a.CreatedAt })
@@ -306,5 +335,114 @@ public class NalamDbContext : DbContext
         modelBuilder.Entity<PrescriptionItem>()
             .HasIndex(pi => pi.AppointmentId)
             .HasDatabaseName("ix_prescription_items_appointment");
+
+        // ── PatientMoodLog ────────────────────────────────────────
+        modelBuilder.Entity<PatientMoodLog>()
+            .HasOne(m => m.Hospital)
+            .WithMany()
+            .HasForeignKey(m => m.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientMoodLog>()
+            .HasOne(m => m.Patient)
+            .WithMany(p => p.MoodLogs)
+            .HasForeignKey(m => m.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientMoodLog>()
+            .HasIndex(m => new { m.HospitalId, m.PatientId, m.LogDate })
+            .IsUnique()
+            .HasDatabaseName("uq_mood_patient_day");
+
+        modelBuilder.Entity<PatientMoodLog>()
+            .HasIndex(m => new { m.HospitalId, m.PatientId, m.LogDate })
+            .HasDatabaseName("ix_mood_patient_date");
+
+        // ── PatientWaterSetting ───────────────────────────────────
+        modelBuilder.Entity<PatientWaterSetting>()
+            .HasOne(ws => ws.Hospital)
+            .WithMany()
+            .HasForeignKey(ws => ws.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientWaterSetting>()
+            .HasOne(ws => ws.Patient)
+            .WithOne(p => p.WaterSetting)
+            .HasForeignKey<PatientWaterSetting>(ws => ws.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientWaterSetting>()
+            .HasIndex(ws => new { ws.HospitalId, ws.PatientId })
+            .IsUnique()
+            .HasDatabaseName("uq_water_settings_patient");
+
+        // ── PatientWaterLog ───────────────────────────────────────
+        modelBuilder.Entity<PatientWaterLog>()
+            .HasOne(wl => wl.Hospital)
+            .WithMany()
+            .HasForeignKey(wl => wl.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientWaterLog>()
+            .HasOne(wl => wl.Patient)
+            .WithMany(p => p.WaterLogs)
+            .HasForeignKey(wl => wl.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientWaterLog>()
+            .HasIndex(wl => new { wl.HospitalId, wl.PatientId, wl.LogDate })
+            .HasDatabaseName("ix_water_logs_patient_date");
+
+        // ── PatientPhysioLog ──────────────────────────────────────
+        modelBuilder.Entity<PatientPhysioLog>()
+            .HasOne(pl => pl.Hospital)
+            .WithMany()
+            .HasForeignKey(pl => pl.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientPhysioLog>()
+            .HasOne(pl => pl.Patient)
+            .WithMany(p => p.PhysioLogs)
+            .HasForeignKey(pl => pl.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientPhysioLog>()
+            .HasIndex(pl => new { pl.HospitalId, pl.PatientId, pl.LogDate })
+            .HasDatabaseName("ix_physio_patient_date");
+
+        // ── PatientVital ──────────────────────────────────────────
+        modelBuilder.Entity<PatientVital>()
+            .HasOne(v => v.Hospital)
+            .WithMany()
+            .HasForeignKey(v => v.HospitalId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientVital>()
+            .HasOne(v => v.Patient)
+            .WithMany(p => p.Vitals)
+            .HasForeignKey(v => v.PatientId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PatientVital>()
+            .HasOne(v => v.RecordedBy)
+            .WithMany()
+            .HasForeignKey(v => v.RecordedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<PatientVital>()
+            .HasIndex(v => new { v.HospitalId, v.PatientId, v.LogDate, v.RecordedAt })
+            .HasDatabaseName("ix_vitals_patient_date");
+
+        // ── HealthTip ─────────────────────────────────────────────
+        modelBuilder.Entity<HealthTip>()
+            .HasOne(ht => ht.Hospital)
+            .WithMany()
+            .HasForeignKey(ht => ht.HospitalId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<HealthTip>()
+            .HasIndex(ht => new { ht.HospitalId, ht.IsActive, ht.Category })
+            .HasDatabaseName("ix_health_tips_active");
     }
 }

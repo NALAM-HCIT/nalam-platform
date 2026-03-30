@@ -19,6 +19,10 @@ public static class PharmacistEndpoints
 
         group.MapGet("/dashboard", GetDashboard);
         group.MapGet("/prescriptions", GetPrescriptions);
+        group.MapGet("/low-stock", GetLowStock);
+        group.MapGet("/profile", GetProfile);
+        group.MapPatch("/profile", UpdateProfile);
+        group.MapGet("/stats", GetStats);
         group.MapPatch("/prescriptions/{appointmentId}/dispense", DispensePrescription);
         group.MapPatch("/prescriptions/{appointmentId}/reject", RejectPrescription);
     }
@@ -139,6 +143,100 @@ public static class PharmacistEndpoints
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  GET /api/pharmacy/low-stock
+    //  Medicines with stock_quantity < 10 (active, hospital-scoped)
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetLowStock(NalamDbContext db, HttpContext ctx)
+    {
+        var items = await db.Medicines
+            .AsNoTracking()
+            .Where(m => m.IsActive && m.StockQuantity < 10)
+            .OrderBy(m => m.StockQuantity)
+            .Take(20)
+            .Select(m => new
+            {
+                m.Id,
+                m.Name,
+                m.GenericName,
+                m.Category,
+                m.DosageForm,
+                m.StockQuantity,
+            })
+            .ToListAsync();
+
+        return Results.Ok(items);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/pharmacy/profile
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetProfile(NalamDbContext db, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return Results.NotFound();
+
+        return Results.Ok(new
+        {
+            id = user.Id,
+            fullName = user.FullName,
+            mobileNumber = user.MobileNumber,
+            email = user.Email,
+            department = user.Department ?? "Pharmacy",
+            employeeId = user.EmployeeId ?? "N/A",
+            joinDate = user.CreatedAt.ToString("MMM dd, yyyy"),
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PATCH /api/pharmacy/profile
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> UpdateProfile(
+        UpdatePharmacistProfileRequest request, NalamDbContext db, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return Results.NotFound();
+
+        if (request.Email != null) user.Email = request.Email.Trim();
+        if (request.Department != null) user.Department = request.Department.Trim();
+
+        await db.SaveChangesAsync();
+        return Results.Ok(new { message = "Profile updated." });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  GET /api/pharmacy/stats
+    //  Today's dispensing stats + low-stock count
+    // ═══════════════════════════════════════════════════════════
+
+    private static async Task<IResult> GetStats(NalamDbContext db, HttpContext ctx)
+    {
+        var hospitalId = GetHospitalId(ctx);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var prescriptions = await db.Appointments.AsNoTracking()
+            .Where(a => a.HospitalId == hospitalId && a.ScheduleDate == today && a.PrescriptionStatus != null)
+            .Select(a => a.PrescriptionStatus)
+            .ToListAsync();
+
+        var lowStockCount = await db.Medicines.AsNoTracking()
+            .Where(m => m.IsActive && m.StockQuantity < 10)
+            .CountAsync();
+
+        return Results.Ok(new
+        {
+            dispensedToday = prescriptions.Count(s => s == "dispensed"),
+            pendingToday   = prescriptions.Count(s => s == "pending"),
+            rejectedToday  = prescriptions.Count(s => s == "rejected"),
+            lowStockCount,
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  PATCH /api/pharmacy/prescriptions/{appointmentId}/dispense
     // ═══════════════════════════════════════════════════════════
 
@@ -152,6 +250,7 @@ public static class PharmacistEndpoints
 
         var appointment = await db.Appointments
             .Include(a => a.Patient)
+            .Include(a => a.PrescriptionItems)
             .FirstOrDefaultAsync(a => a.Id == appointmentId);
 
         if (appointment == null)
@@ -162,6 +261,28 @@ public static class PharmacistEndpoints
 
         appointment.PrescriptionStatus = "dispensed";
         appointment.UpdatedAt = DateTime.UtcNow;
+
+        // Decrement stock for each prescribed medicine
+        var medicineIds = appointment.PrescriptionItems
+            .Where(pi => pi.MedicineId.HasValue)
+            .Select(pi => pi.MedicineId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (medicineIds.Count > 0)
+        {
+            var medicines = await db.Medicines
+                .Where(m => medicineIds.Contains(m.Id))
+                .ToListAsync();
+
+            foreach (var item in appointment.PrescriptionItems.Where(pi => pi.MedicineId.HasValue))
+            {
+                var med = medicines.FirstOrDefault(m => m.Id == item.MedicineId!.Value);
+                if (med != null)
+                    med.StockQuantity = Math.Max(0, med.StockQuantity - item.Quantity);
+            }
+        }
+
         await db.SaveChangesAsync();
 
         await auditService.LogAsync(
@@ -209,3 +330,5 @@ public static class PharmacistEndpoints
         return Results.Ok(new { message = "Prescription rejected.", appointmentId, prescriptionStatus = "rejected" });
     }
 }
+
+public record UpdatePharmacistProfileRequest(string? Email, string? Department);

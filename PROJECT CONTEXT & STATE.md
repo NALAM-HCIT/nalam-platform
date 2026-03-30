@@ -10,7 +10,8 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   - Repo: https://github.com/Sureshb11/nalamapp-webportal
 * Mobile App: React Native / Expo (Patient & Doctor interaction).
 * Backend API: ASP.NET Core 10.0 (Minimal APIs) - Hosted on Railway.
-  - Live URL: https://nalam-api-production.up.railway.app/api
+  - Live URL: https://api.teamdvs.in/api  (custom domain → Railway; railway.app blocked by Indian ISPs)
+  - Railway internal URL: https://nalam-api-production.up.railway.app/api (do not use in app)
   - Repo: https://github.com/NALAM-HCIT/nalam-platform
 * Database: PostgreSQL - Managed by Supabase (Free Tier).
 * Storage: Cloudinary (for Hospital Logos, Licenses, and Medical Records).
@@ -25,6 +26,7 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
 * RULE 5: Infrastructure - Keep code compatible with Docker for Railway deployment.
 * RULE 6: Defense-in-Depth - 4-layer tenant isolation: JWT Claims → TenantMiddleware → EF Core Global Query Filters → PostgreSQL RLS.
 * RULE 7: Never accept hospital_id from request body — always extract from JWT (except patient-register which is pre-auth).
+* RULE 9: API URL — ALWAYS use https://api.teamdvs.in/api. NEVER use the railway.app URL directly — it is blocked by Indian mobile carriers. The teamdvs.in domain is a CNAME to Railway.
 * RULE 8: Auth Flow Split:
   - PATIENTS: Self-signup allowed. Any person can enter mobile number → if new, provide name → auto-create patient user → OTP login.
   - CARE PROVIDERS (Doctor, Pharmacist, Receptionist, Admin): Must be pre-created by hospital admin via Admin > Users. Cannot self-register.
@@ -347,6 +349,97 @@ PROJECT CONTEXT & STATE (READ BEFORE GENERATING CODE)
   * ── Frontend ──
   * [x] active-consultation.tsx: Replaced free-text medicine fields (medicineName/dosage/frequency/duration) with live medicine search — debounced GET /api/medicines?search= → dropdown results → tap adds to rxItems chip list (with remove); dosage instructions input per item
   * [x] consultation-summary.tsx: Parses rxItems from JSON route param; shows structured medication cards (name + dosage + qty); calls prescriptionItemService.finalize() — saves notes + items in one DB call (replaces old status-only PATCH)
+
+* [x] Phase 35: Structured Prescription Items — Pharmacist UI (2026-03-28) - COMPLETED
+  * ── Service ──
+  * [x] services/pharmacistService.ts: Added RxLineItem interface (id, medicineId, medicineName, dosageInstructions, quantity)
+  * [x] services/pharmacistService.ts: Added prescriptionItems: RxLineItem[] to PrescriptionItem interface
+  * ── Frontend ──
+  * [x] pharmacist/(tabs)/inventory.tsx: Added med count badge (N meds) in prescription list card row
+  * [x] pharmacist/(tabs)/inventory.tsx: Detail modal replaced free-text "Prescription Notes" amber block with structured medication cards (medicineName, dosageInstructions, quantity); falls back to prescriptionNotes text, then "No medications prescribed"
+  * [x] pharmacist/(tabs)/orders.tsx: Detail modal replaced free-text notes with same structured medication card pattern
+
+* [x] Phase 36: Structured Prescription Items — Patient Post-Consultation View (2026-03-28) - COMPLETED
+  * ── Backend ──
+  * [x] PatientEndpoints.cs: GetPrescriptionDetail now .Include(a => a.PrescriptionItems); added prescriptionItems[] array to response (id, medicineName, dosageInstructions, quantity)
+  * ── Service ──
+  * [x] services/patientService.ts: Added PrescriptionLineItem interface (id, medicineName, dosageInstructions, quantity)
+  * [x] services/patientService.ts: Added prescriptionItems: PrescriptionLineItem[] to PrescriptionDetail interface
+  * ── Frontend ──
+  * [x] patient/post-consultation.tsx: Replaced free-text prescription section with structured medication cards; item count badge in header; falls back to prescriptionNotes, then "No medications prescribed"
+  * [x] patient/appointment-details.tsx: Added "View Prescription" FileText button for completed appointments; navigates to /patient/post-consultation with appointmentId param
+
+* [x] Phase 37: Doctor New-Message Compose Screen + Digital Prescription Structured Items (2026-03-28) - COMPLETED
+  * ── Frontend ──
+  * [x] app/doctor/new-message.tsx (NEW): Compose screen — loads all staff from messagesService.getThreads(); merges threads + contacts into deduplicated Map<userId>; threads take precedence; searchable by name/role/department with autofocus; "Existing" badge for contacts with prior thread; tap navigates to /doctor/message-thread with userId + name params
+  * [x] doctor/(tabs)/messages.tsx: Compose (SquarePen) icon in header already wired to /doctor/new-message
+  * [x] patient/digital-prescription.tsx: Replaced "Prescription Notes" amber free-text block with structured medication cards using PrescriptionLineItem; falls back to prescriptionNotes for legacy data
+
+* [x] Phase 38: Admin Medicine Catalog Management Screen (2026-03-28) - COMPLETED
+  * ── Backend ──
+  * [x] MedicineEndpoints.cs: GET /api/medicines — added bool includeInactive = false query param; filter changed to Where(m => includeInactive || m.IsActive); added m.IsActive to SELECT projection
+  * ── Service ──
+  * [x] services/doctorPortalService.ts: Added MedicineAdminItem interface (extends MedicineCatalogItem with isActive: boolean)
+  * [x] services/doctorPortalService.ts: Added medicineService.listAll() — GET /api/medicines?includeInactive=true&pageSize=100
+  * [x] services/doctorPortalService.ts: Added medicineService.add() — POST /api/medicines
+  * [x] services/doctorPortalService.ts: Added medicineService.update() — PUT /api/medicines/{id}
+  * ── Frontend ──
+  * [x] app/admin/manage-medicines.tsx (NEW): Full CRUD screen — header with total + inactive count + Add button; search bar (name/generic/category); each card: pill icon (grayed if inactive), name, generic, category chip, dosage form, price, stock; inline Activate/Deactivate toggle per card; tap card → pre-filled edit modal; Add/Edit modal: 13 category chips, 10 dosage-form chips, strength/manufacturer/price/stock fields
+  * [x] app/admin/(tabs)/index.tsx: Added Pill icon import; added "Medicines" quick action ({ icon: Pill, label: 'Medicines', color: '#059669', bg: '#ECFDF5', actionId: 'manage-medicines' }); added case 'manage-medicines' → router.push('/admin/manage-medicines') in handleQuickAction
+
+* [x] Phase 39: Care Schedule — Live Prescription Data (2026-03-28) - COMPLETED
+  * ── Frontend ──
+  * [x] app/patient/care-schedule.tsx: Removed 14-item hardcoded seedTasks array
+  * [x] care-schedule.tsx: Added useEffect — calls patientService.getPrescriptions(), filters non-cancelled, takes up to 2 most recent; calls getPrescriptionDetail() for each to get prescriptionItems; maps each item to medicine CareTask (title = medicineName, subtitle = dosageInstructions); time-of-day inferred from dosageInstructions text (evening/night/dinner → 8:00 PM; afternoon/lunch/noon → 1:00 PM; default → 8:00 AM)
+  * [x] care-schedule.tsx: Added 3 permanent DEFAULT_TASKS (Daily Water Intake / hydration, Evening Walk 20min / physio, Log Blood Pressure / vitals) always appended after medicine tasks
+  * [x] care-schedule.tsx: Added ActivityIndicator loading state while API data loads; falls back to DEFAULT_TASKS on API failure
+  * [x] care-schedule.tsx: Removed unused formatDosage() helper; replaced Dimensions import with ActivityIndicator
+
+* [x] Phase 40: Pharmacist Stock Decrement on Dispense + Low Stock Alert (2026-03-28) - COMPLETED
+  * ── Backend ──
+  * [x] PharmacistEndpoints.cs: DispensePrescription now .Include(a => a.PrescriptionItems); loads referenced Medicine records; decrements StockQuantity = Math.Max(0, StockQuantity - item.Quantity) per item; bulk-saved in single SaveChangesAsync()
+  * [x] PharmacistEndpoints.cs: Added GET /api/pharmacy/low-stock — returns medicines with IsActive && StockQuantity < 10, ordered ascending, top 20
+  * ── Service ──
+  * [x] services/pharmacistService.ts: Added LowStockItem interface (id, name, genericName, category, dosageForm, stockQuantity) + getLowStock() → GET /api/pharmacy/low-stock
+  * ── Frontend ──
+  * [x] pharmacist/(tabs)/index.tsx: lowStock: LowStockItem[] state loaded in parallel with dashboard + prescriptions in loadDashboard()
+  * [x] index.tsx: Amber "Low Stock Alert" card rendered between quick stats and pending queue when lowStock.length > 0; items at 0 show red "OUT" badge, others show amber "N left" badge
+
+* [x] Phase 41: Pharmacist Profile & Stats — Live API (2026-03-28) - COMPLETED
+  * ── Backend ──
+  * [x] PharmacistEndpoints.cs: Added GET /api/pharmacy/profile — returns id, fullName, mobileNumber, email, department, employeeId, joinDate
+  * [x] PharmacistEndpoints.cs: Added PATCH /api/pharmacy/profile — updates email, department (UpdatePharmacistProfileRequest record)
+  * [x] PharmacistEndpoints.cs: Added GET /api/pharmacy/stats — returns dispensedToday, pendingToday, rejectedToday, lowStockCount
+  * ── Service ──
+  * [x] services/pharmacistService.ts: Added PharmacistProfile, UpdatePharmacistProfileRequest, PharmacistStats interfaces + getProfile(), updateProfile(), getStats() methods
+  * ── Frontend ──
+  * [x] pharmacist/(tabs)/profile.tsx: Full rewrite — removed PHARMACIST_INFO and QUICK_STATS hardcoded constants; fetches getProfile() + getStats() in parallel on mount; profile card shows real name/employeeId/department/joinDate/email/mobile; quick stats (Dispensed/Pending/Rejected/Low Stock) show live counts; Inventory Alerts menu subtitle + badge reflect real lowStockCount
+
+* [x] Phase 42: Pharmacist & Receptionist Edit-Profile — Live API (2026-03-28) - COMPLETED
+  * ── Frontend ──
+  * [x] pharmacist/edit-profile.tsx: Rewritten — loads real profile on mount via getProfile(); fullName + phone pre-filled as read-only (lock icon, grey bg); email + department editable; on save calls updateProfile({ email, department }); ActivityIndicator loading/saving states; no more hardcoded email/department defaults
+  * [x] receptionist/edit-profile.tsx: Same pattern — loads getProfile() on mount; fullName + phone read-only; email + department editable; calls receptionistService.updateProfile() on save; proper loading + error handling
+
+* [x] Phase 44: APK Size Reduction + Custom API Domain (2026-03-29) - COMPLETED
+  * ── APK Size: 380 MB → 74 MB ──
+  * [x] app.config.ts: Replaced withAbiFilters plugin with withSlimAndroid — arm64-v8a only + packagingOptions.jniLibs.excludes for x86/x86_64/armeabi-v7a ABIs
+  * [x] app.config.ts: 13 unused Agora extension .so files excluded (lip-sync, spatial audio, face capture, beauty, segmentation, AEC, noise suppression, etc.); only core RTC + video encoder kept
+  * [x] app.config.ts (eas build-properties): enableProguardInReleaseBuilds: false, enableShrinkResourcesInReleaseBuilds: false (R8 minification disabled — saves ~2 MB but broke networking)
+  * [x] android/gradle.properties: enableMinifyInReleaseBuilds=false, enableShrinkResourcesInReleaseBuilds=false (belt-and-suspenders)
+  * [x] android/app/proguard-rules.pro: Added OkHttp, Okio, RN networking, Hermes, Agora, Razorpay keep rules
+  * ── Custom Domain (ISP Block Fix) ──
+  * [x] Root cause: railway.app domain blocked by Indian mobile carriers (Jio/Airtel) — verified via network diagnostic (Google: 200 OK, Railway: FAIL)
+  * [x] Custom domain api.teamdvs.in added to Railway; CNAME: api.teamdvs.in → nalam-api-production.up.railway.app; SSL via Let's Encrypt auto-provisioned
+  * [x] services/api.ts: Fallback BASE_URL changed from railway.app to https://api.teamdvs.in/api
+  * [x] eas.json: EXPO_PUBLIC_API_URL updated to https://api.teamdvs.in/api in preview + production profiles
+
+* [x] Phase 43: Admin Audit Log Screen (2026-03-28) - COMPLETED
+  * ── Service ──
+  * [x] services/adminService.ts (NEW): AuditLogItem, ActivityResponse interfaces; getActivity(page, pageSize, category?) → GET /api/admin/activity; getUserCount() → GET /api/admin/users (returns array length)
+  * ── Frontend ──
+  * [x] app/admin/audit-log.tsx (NEW): Paginated audit log screen — category filter chips (All/Admin/Appt/Reception/Pharmacy/Auth); each row shows category icon (color-coded), action text, user name, severity icon (info/warning/error), relative timestamp, category badge, details snippet; infinite scroll via onEndReached; refresh button; empty state per category
+  * [x] app/admin/_layout.tsx: Registered audit-log stack screen
+  * [x] admin/(tabs)/profile.tsx: "Audit Logs" menu item now navigates to /admin/audit-log (replaced fake CustomAlert); "Users" quick stat shows real staff count from getUserCount(); userCount state added + fetched on mount
 
 * [x] Phase 33: Doctor Messaging + Pharmacy Prescription Widget (2026-03-28) - COMPLETED
   * ── Backend ──

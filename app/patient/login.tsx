@@ -44,7 +44,8 @@ export default function PatientLoginScreen() {
         CustomAlert.alert('Error', data.message || 'Something went wrong.');
       }
     } catch (err: any) {
-      CustomAlert.alert('Error', err.response?.data?.message || 'Failed to connect. Please try again.');
+      const detail = err.response?.data?.message || err.message || 'No message';
+      CustomAlert.alert('Debug Error', `${detail}\nCode: ${err.code ?? 'none'}\nURL: ${err.config?.baseURL ?? 'unknown'}`);
     } finally {
       setLoading(false);
     }

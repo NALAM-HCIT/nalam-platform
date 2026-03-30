@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nalam — Hospital App Publishing Strategy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #1a1a2e; }
+
+  .header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 40px 24px 32px; text-align: center; }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .header p { font-size: 14px; opacity: 0.7; }
+  .badge { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 14px; font-size: 12px; margin-top: 12px; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  .section { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .section h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+  .section .subtitle { font-size: 13px; color: #666; margin-bottom: 20px; }
+
+  /* Flow diagrams */
+  .flow { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 16px 0; }
+  .flow-row { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .flow-box { background: #f0f4ff; border: 2px solid #4361ee; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; color: #1a1a2e; text-align: center; min-width: 140px; }
+  .flow-box.green { background: #f0fdf4; border-color: #22c55e; }
+  .flow-box.red { background: #fef2f2; border-color: #ef4444; }
+  .flow-box.gray { background: #f8f8f8; border-color: #aaa; color: #555; }
+  .flow-box.highlight { background: #1a1a2e; border-color: #1a1a2e; color: white; }
+  .flow-arrow { font-size: 22px; color: #4361ee; line-height: 1; padding: 2px 0; }
+  .flow-arrow.down { transform: rotate(90deg); }
+
+  /* Comparison table */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .compare-table th { background: #1a1a2e; color: white; padding: 12px 10px; text-align: left; }
+  .compare-table th:first-child { border-radius: 8px 0 0 0; }
+  .compare-table th:last-child { border-radius: 0 8px 0 0; }
+  .compare-table td { padding: 11px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:nth-child(even) td { background: #fafafa; }
+  .yes { color: #22c55e; font-weight: 700; }
+  .no { color: #ef4444; font-weight: 700; }
+  .neutral { color: #f59e0b; font-weight: 700; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  @media(max-width: 480px) { .cards { grid-template-columns: 1fr; } }
+  .card { border-radius: 12px; padding: 18px; }
+  .card.blue { background: #eff6ff; border: 1.5px solid #93c5fd; }
+  .card.green { background: #f0fdf4; border: 1.5px solid #86efac; }
+  .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+  .card ul { padding-left: 16px; font-size: 13px; line-height: 1.9; color: #444; }
+
+  /* Deciding question */
+  .deciding { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; border-radius: 16px; padding: 28px 24px; margin-bottom: 20px; }
+  .deciding h2 { font-size: 18px; margin-bottom: 16px; }
+  .deciding-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  @media(max-width: 480px) { .deciding-options { grid-template-columns: 1fr; } }
+  .deciding-card { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
+  .deciding-card .label { font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.6; margin-bottom: 6px; }
+  .deciding-card .quote { font-size: 13px; line-height: 1.6; font-style: italic; }
+  .deciding-verdict { margin-top: 18px; background: rgba(255,255,255,0.08); border-left: 4px solid #4cc9f0; border-radius: 0 8px 8px 0; padding: 14px 16px; font-size: 13px; line-height: 1.7; }
+
+  /* Cost table */
+  .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  .cost-table th { background: #f8f8f8; padding: 10px; text-align: left; font-weight: 700; border-bottom: 2px solid #e5e5e5; }
+  .cost-table td { padding: 10px; border-bottom: 1px solid #f0f0f0; }
+  .cost-table tr:last-child td { border-bottom: none; font-weight: 700; background: #fafafa; }
+
+  /* Recommendation */
+  .recommendation { background: #f0fdf4; border: 2px solid #22c55e; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+  .recommendation h2 { color: #15803d; font-size: 18px; margin-bottom: 16px; }
+  .phase { background: white; border-radius: 10px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #22c55e; }
+  .phase:last-child { margin-bottom: 0; border-left-color: #4361ee; }
+  .phase .phase-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
+  .phase h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .phase p { font-size: 13px; color: #555; line-height: 1.6; }
+
+  /* Status */
+  .status-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+  .status-item { display: flex; align-items: center; gap: 12px; background: #fafafa; border-radius: 10px; padding: 12px 14px; }
+  .status-icon { font-size: 20px; flex-shrink: 0; }
+  .status-text { font-size: 13px; font-weight: 600; }
+  .status-sub { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* Summary table */
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .summary-table th { background: #1a1a2e; color: white; padding: 12px 10px; text-align: center; }
+  .summary-table th:first-child { text-align: left; border-radius: 8px 0 0 0; }
+  .summary-table th:last-child { border-radius: 0 8px 0 0; background: #22c55e; }
+  .summary-table td { padding: 11px 10px; border-bottom: 1px solid #f0f0f0; text-align: center; }
+  .summary-table td:first-child { text-align: left; font-weight: 600; }
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .tag.android { background: #dcfce7; color: #166534; }
+  .tag.ios { background: #dbeafe; color: #1e40af; }
+  .tag.both { background: #f3e8ff; color: #6b21a8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Nalam — Hospital App Publishing Strategy</h1>
+  <p>Single App vs Per-Hospital Apps</p>
+  <div class="badge">Management Review · 29 March 2026</div>
+</div>
+
+<div class="container">
+
+  <!-- The Question -->
+  <div class="section">
+    <h2>The Question</h2>
+    <p class="subtitle">When we onboard 100 hospitals, how should we publish the app?</p>
+    <div class="cards">
+      <div class="card blue">
+        <h3>🅰 Option A — One App</h3>
+        <ul>
+          <li>One "Nalam Health" app</li>
+          <li>Patient selects hospital inside app</li>
+          <li>One Play Store listing</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>🅱 Option B — Per Hospital</h3>
+        <ul>
+          <li>Each hospital gets their own app</li>
+          <li>Their name & logo on Play Store</li>
+          <li>100 Play Store listings</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flow A -->
+  <div class="section">
+    <h2>🅰 Option A — How It Works</h2>
+    <p class="subtitle">One shared app for all hospitals</p>
+    <div class="flow">
+      <div class="flow-box highlight">Patient opens Play Store</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">Searches "Nalam Health"</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">Downloads one generic app</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box red">Selects hospital inside the app</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box green">Logs in to their hospital</div>
+    </div>
+  </div>
+
+  <!-- Flow B -->
+  <div class="section">
+    <h2>🅱 Option B — How It Works</h2>
+    <p class="subtitle">Each hospital has their own branded app</p>
+    <div class="flow">
+      <div class="flow-box highlight">Patient opens Play Store</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">Searches "Arun Priya Hospital"</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box green">Finds their hospital's own app</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box green">Downloads & logs in directly</div>
+    </div>
+    <br>
+    <div class="flow">
+      <div class="flow-box highlight">We add a new hospital</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">Add hospital config + logo (5 min)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box">Run automated build script (30 min)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box green">Upload to Play Store → Live in 1-2 days</div>
+    </div>
+  </div>
+
+  <!-- Backend Flow -->
+  <div class="section">
+    <h2>⚙️ Backend — Same for Both Options</h2>
+    <p class="subtitle">One API, one database regardless of which option we choose</p>
+    <div class="flow">
+      <div class="flow-row">
+        <div class="flow-box green">Arun Priya App</div>
+        <div class="flow-box green">City Hospital App</div>
+        <div class="flow-box green">100 Hospital Apps</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box highlight">Single API — api.teamdvs.in</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box highlight">Single Database (Supabase)</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-row">
+        <div class="flow-box green">Arun Priya data ✓</div>
+        <div class="flow-box green">City Hospital data ✓</div>
+        <div class="flow-box green">Fully isolated ✓</div>
+      </div>
+    </div>
+    <p style="font-size:13px; color:#555; margin-top:16px; text-align:center;">
+      Each hospital's data is completely separated. A doctor from Arun Priya can never see City Hospital's patients.
+    </p>
+  </div>
+
+  <!-- Comparison Table -->
+  <div class="section">
+    <h2>📊 Direct Comparison</h2>
+    <p class="subtitle">Feature by feature</p>
+    <table class="compare-table">
+      <tr>
+        <th>Feature</th>
+        <th>🅰 One App</th>
+        <th>🅱 Per Hospital</th>
+      </tr>
+      <tr>
+        <td>Hospital name on Play Store</td>
+        <td><span class="no">✗ No</span></td>
+        <td><span class="yes">✓ Yes</span></td>
+      </tr>
+      <tr>
+        <td>Hospital logo as app icon</td>
+        <td><span class="no">✗ No</span></td>
+        <td><span class="yes">✓ Yes</span></td>
+      </tr>
+      <tr>
+        <td>Patient finds app by hospital name</td>
+        <td><span class="no">✗ No</span></td>
+        <td><span class="yes">✓ Yes</span></td>
+      </tr>
+      <tr>
+        <td>Works on iPhone (iOS)</td>
+        <td><span class="yes">✓ Yes</span></td>
+        <td><span class="no">✗ Apple blocks it</span></td>
+      </tr>
+      <tr>
+        <td>Adding a new hospital</td>
+        <td><span class="yes">✓ Instant</span></td>
+        <td><span class="neutral">⏱ 30 min + 1-2 days</span></td>
+      </tr>
+      <tr>
+        <td>Releasing an update</td>
+        <td><span class="yes">✓ One update</span></td>
+        <td><span class="neutral">⏱ Update 100 apps (automated)</span></td>
+      </tr>
+      <tr>
+        <td>Backend & Database</td>
+        <td><span class="yes">✓ Single</span></td>
+        <td><span class="yes">✓ Single (same)</span></td>
+      </tr>
+      <tr>
+        <td>Monthly server cost</td>
+        <td><span class="yes">✓ Same</span></td>
+        <td><span class="yes">✓ Same</span></td>
+      </tr>
+      <tr>
+        <td>Hospital feels it's THEIR app</td>
+        <td><span class="no">✗ No</span></td>
+        <td><span class="yes">✓ Yes</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Deciding Question -->
+  <div class="deciding">
+    <h2>🎯 The Deciding Question</h2>
+    <p style="font-size:14px; opacity:0.8; margin-bottom:4px;">When a hospital pays monthly subscription, what are they paying for?</p>
+
+    <div class="deciding-options">
+      <div class="deciding-card">
+        <div class="label">OPTION A TELLS PATIENTS:</div>
+        <div class="quote">"Download the 'Nalam Health' app from Play Store, then select our hospital."</div>
+      </div>
+      <div class="deciding-card">
+        <div class="label">OPTION B TELLS PATIENTS:</div>
+        <div class="quote">"Search 'Arun Priya Hospital' on Play Store and download our app."</div>
+      </div>
+    </div>
+
+    <div class="deciding-verdict">
+      <strong>Option B is simpler for patients and more prestigious for the hospital.</strong><br><br>
+      In the healthcare B2B market, hospitals are brand-conscious. A patient seeing <em>"Arun Priya Hospital"</em> on their phone homescreen builds trust. A patient seeing <em>"Nalam Health"</em> and selecting inside feels like a shared platform — not their hospital's own app.<br><br>
+      <strong>Hospitals paying a monthly subscription expect their brand — not ours.</strong>
+    </div>
+  </div>
+
+  <!-- iOS Reality -->
+  <div class="section">
+    <h2>📱 iPhone (iOS) Reality</h2>
+    <p class="subtitle">Apple does not allow 100 separately branded apps from one account</p>
+    <table class="compare-table">
+      <tr>
+        <th>Platform</th>
+        <th>🅰 One App</th>
+        <th>🅱 Per Hospital</th>
+        <th>India Market Share</th>
+      </tr>
+      <tr>
+        <td><strong>Android</strong></td>
+        <td><span class="yes">✓ Works</span></td>
+        <td><span class="yes">✓ Works</span></td>
+        <td><strong>95%</strong></td>
+      </tr>
+      <tr>
+        <td><strong>iPhone</strong></td>
+        <td><span class="yes">✓ Works</span></td>
+        <td><span class="no">✗ Apple rejects</span></td>
+        <td>5%</td>
+      </tr>
+    </table>
+    <p style="font-size:13px; color:#555; margin-top:14px; padding: 12px; background:#fef9ec; border-radius:8px; border-left:3px solid #f59e0b;">
+      ⚠️ iPhone is not a priority for India right now. We handle iOS with Option A (one generic app) when the need arises. Android-first is the correct strategy.
+    </p>
+  </div>
+
+  <!-- Cost -->
+  <div class="section">
+    <h2>💰 Cost Comparison (100 Hospitals)</h2>
+    <table class="cost-table">
+      <tr>
+        <th>Cost Item</th>
+        <th>🅰 One App</th>
+        <th>🅱 Per Hospital</th>
+      </tr>
+      <tr>
+        <td>Google Play Store account</td>
+        <td>₹2,000 one-time</td>
+        <td>₹2,000 one-time</td>
+      </tr>
+      <tr>
+        <td>Apple App Store account</td>
+        <td>₹8,000/year</td>
+        <td>₹8,000 × 100 = ₹8L/year</td>
+      </tr>
+      <tr>
+        <td>Build effort per release</td>
+        <td>Negligible</td>
+        <td>~3 hours (automated script)</td>
+      </tr>
+      <tr>
+        <td>API Server (Railway)</td>
+        <td>~₹2,500/month</td>
+        <td>~₹2,500/month</td>
+      </tr>
+      <tr>
+        <td>Database (Supabase)</td>
+        <td>~₹2,000/month</td>
+        <td>~₹2,000/month</td>
+      </tr>
+      <tr>
+        <td><strong>Key insight</strong></td>
+        <td colspan="2" style="color:#15803d; font-weight:600;">Backend & database cost is IDENTICAL in both options. Only publishing differs.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Recommendation -->
+  <div class="recommendation">
+    <h2>✅ Recommendation</h2>
+
+    <div class="phase">
+      <div class="phase-label">PHASE 1 — NOW (0 to 50 hospitals)</div>
+      <h3>Android: Option B — Per-Hospital Branded Apps <span class="tag android">Android</span></h3>
+      <p>Each hospital gets their name and logo on Play Store. Automated build system — adding a new hospital takes 30 minutes. One codebase maintained by our team. Strongest selling point when pitching to new hospitals.</p>
+    </div>
+
+    <div class="phase">
+      <div class="phase-label">PHASE 2 — LATER (50+ hospitals or when iOS is needed)</div>
+      <h3>iPhone: Option A — One "Nalam Health" App <span class="tag ios">iOS</span></h3>
+      <p>Hospitals accept the generic name for iPhone given Apple's restrictions. India is 95% Android so this affects very few patients.</p>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section">
+    <h2>📋 Final Summary</h2>
+    <table class="summary-table">
+      <tr>
+        <th>Factor</th>
+        <th>🅰 One App</th>
+        <th>🅱 Per Hospital</th>
+        <th>✅ Recommended</th>
+      </tr>
+      <tr>
+        <td>Hospital branding on Play Store</td>
+        <td><span class="no">✗</span></td>
+        <td><span class="yes">✓</span></td>
+        <td><strong>Option B</strong></td>
+      </tr>
+      <tr>
+        <td>Easiest to manage</td>
+        <td><span class="yes">✓</span></td>
+        <td><span class="no">✗</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Best for selling to hospitals</td>
+        <td><span class="no">✗</span></td>
+        <td><span class="yes">✓</span></td>
+        <td><strong>Option B</strong></td>
+      </tr>
+      <tr>
+        <td>Works on iPhone</td>
+        <td><span class="yes">✓</span></td>
+        <td><span class="no">✗</span></td>
+        <td>Option A for iOS</td>
+      </tr>
+      <tr>
+        <td>Same backend & database</td>
+        <td><span class="yes">✓</span></td>
+        <td><span class="yes">✓</span></td>
+        <td>—</td>
+      </tr>
+    </table>
+    <p style="font-size:14px; font-weight:700; color:#15803d; margin-top:16px; padding:14px; background:#f0fdf4; border-radius:10px; text-align:center;">
+      Decision: Option B for Android &nbsp;·&nbsp; Option A for iPhone (when needed)
+    </p>
+  </div>
+
+  <!-- Current Status -->
+  <div class="section">
+    <h2>📌 Current Status</h2>
+    <div class="status-grid">
+      <div class="status-item">
+        <div class="status-icon">✅</div>
+        <div>
+          <div class="status-text">Backend API live</div>
+          <div class="status-sub">api.teamdvs.in — serving all hospitals</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="status-icon">✅</div>
+        <div>
+          <div class="status-text">Database with full hospital data isolation</div>
+          <div class="status-sub">Supabase — hospital_id on every table</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="status-icon">✅</div>
+        <div>
+          <div class="status-text">First hospital app built — Arun Priya Hospital</div>
+          <div class="status-sub">74 MB APK · Android · Ready for Play Store</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="status-icon">🔲</div>
+        <div>
+          <div class="status-text">Automated build system for new hospitals</div>
+          <div class="status-sub">Ready to build — adding hospital #2 in 30 minutes</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="status-icon">🔲</div>
+        <div>
+          <div class="status-text">iPhone app</div>
+          <div class="status-sub">Future phase — India is 95% Android</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center; font-size:12px; color:#aaa; margin-top:20px;">
+    Prepared by Team DVS Development &nbsp;·&nbsp; Nalam — Multi-Hospital Telemedicine SaaS &nbsp;·&nbsp; 2026
+  </p>
+
+</div>
+</body>
+</html>

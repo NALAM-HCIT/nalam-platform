@@ -1,6 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Dimensions } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows } from '@/constants/theme';
@@ -9,6 +9,7 @@ import {
   Heart, Droplets, Sunrise, Sun, Moon, AlertTriangle, Timer,
   ChevronRight,
 } from 'lucide-react-native';
+import { patientService } from '@/services/patientService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type TaskCategory = 'medicine' | 'physio' | 'diet' | 'vitals' | 'hydration';
@@ -59,22 +60,51 @@ const periodConfig: Record<TimeOfDay, {
   evening:   { icon: Moon,    label: 'Evening',    color: '#6366F1', bg: '#EEF2FF', timeRange: '5:00 PM - 9:00 PM' },
 };
 
-// ─── Seed Tasks ──────────────────────────────────────────────────────────────
-const seedTasks: CareTask[] = [
-  { id: 't1',  title: 'Amlodipine 5mg',           category: 'medicine',  time: '8:00 AM',  timeOfDay: 'morning',   status: 'completed', dosage: { m:1, a:0, e:1 }, completedAt: '8:02 AM' },
-  { id: 't2',  title: 'Metformin 500mg',           category: 'medicine',  time: '8:30 AM',  timeOfDay: 'morning',   status: 'completed', dosage: { m:1, a:1, e:0 }, completedAt: '8:35 AM' },
-  { id: 't3',  title: 'Log Blood Pressure',        category: 'vitals',    time: '9:00 AM',  timeOfDay: 'morning',   status: 'completed', subtitle: 'Systolic & Diastolic', completedAt: '9:05 AM' },
-  { id: 't4',  title: 'Shoulder Stretches 15min',  category: 'physio',    time: '10:00 AM', timeOfDay: 'morning',   status: 'completed', subtitle: 'Rotator cuff routine', completedAt: '10:18 AM' },
-  { id: 't5',  title: 'Water Check',               category: 'hydration', time: '11:00 AM', timeOfDay: 'morning',   status: 'completed', subtitle: '250ml target', completedAt: '11:00 AM' },
-  { id: 't6',  title: 'Low-Sodium Lunch',          category: 'diet',      time: '12:30 PM', timeOfDay: 'afternoon', status: 'completed', subtitle: 'Heart-healthy meal', completedAt: '12:45 PM' },
-  { id: 't7',  title: 'Metformin 500mg',           category: 'medicine',  time: '1:00 PM',  timeOfDay: 'afternoon', status: 'overdue',   dosage: { m:1, a:1, e:0 }, subtitle: 'Post-lunch dose' },
-  { id: 't8',  title: 'Water Check',               category: 'hydration', time: '3:00 PM',  timeOfDay: 'afternoon', status: 'pending',   subtitle: '250ml target' },
-  { id: 't9',  title: 'Breathing Exercises 10min', category: 'physio',    time: '4:00 PM',  timeOfDay: 'afternoon', status: 'pending',   subtitle: 'Deep breathing drill' },
-  { id: 't10', title: 'Evening Walk 20min',        category: 'physio',    time: '6:00 PM',  timeOfDay: 'evening',   status: 'pending',   subtitle: 'Moderate pace walk' },
-  { id: 't11', title: 'Log Blood Sugar',           category: 'vitals',    time: '7:00 PM',  timeOfDay: 'evening',   status: 'pending',   subtitle: 'Pre-dinner reading' },
-  { id: 't12', title: 'Light Dinner',              category: 'diet',      time: '7:30 PM',  timeOfDay: 'evening',   status: 'pending',   subtitle: 'Low-carb meal' },
-  { id: 't13', title: 'Amlodipine 5mg',            category: 'medicine',  time: '8:00 PM',  timeOfDay: 'evening',   status: 'pending',   dosage: { m:1, a:0, e:1 }, subtitle: 'Evening dose' },
-  { id: 't14', title: 'Wind Down & Sleep Prep',    category: 'physio',    time: '9:00 PM',  timeOfDay: 'evening',   status: 'pending',   subtitle: 'Relaxation routine' },
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function inferTimeOfDay(instructions: string | null): TimeOfDay {
+  if (!instructions) return 'morning';
+  const lower = instructions.toLowerCase();
+  if (lower.includes('evening') || lower.includes('night') || lower.includes('bedtime') || lower.includes('dinner')) return 'evening';
+  if (lower.includes('afternoon') || lower.includes('lunch') || lower.includes('noon')) return 'afternoon';
+  return 'morning';
+}
+
+function timeOfDayToTime(tod: TimeOfDay): string {
+  if (tod === 'afternoon') return '1:00 PM';
+  if (tod === 'evening') return '8:00 PM';
+  return '8:00 AM';
+}
+
+// Default wellbeing tasks always shown
+const DEFAULT_TASKS: CareTask[] = [
+  {
+    id: 'hydra-default',
+    title: 'Daily Water Intake',
+    subtitle: 'Drink 8 glasses of water',
+    category: 'hydration',
+    time: '11:00 AM',
+    timeOfDay: 'morning',
+    status: 'pending',
+  },
+  {
+    id: 'walk-default',
+    title: 'Evening Walk 20min',
+    subtitle: 'Moderate pace walk',
+    category: 'physio',
+    time: '6:00 PM',
+    timeOfDay: 'evening',
+    status: 'pending',
+  },
+  {
+    id: 'vitals-default',
+    title: 'Log Blood Pressure',
+    subtitle: 'Systolic & Diastolic',
+    category: 'vitals',
+    time: '9:00 AM',
+    timeOfDay: 'morning',
+    status: 'pending',
+  },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -89,14 +119,6 @@ function buildCalendarDays(today: Date): { date: Date; label: string; day: numbe
   return days;
 }
 
-function formatDosage(dosage: DosageSchedule): string {
-  const parts: string[] = [];
-  if (dosage.m) parts.push(`Morning: ${dosage.m} tab`);
-  if (dosage.a) parts.push(`Afternoon: ${dosage.a} tab`);
-  if (dosage.e) parts.push(`Evening: ${dosage.e} tab`);
-  return parts.join('  ·  ');
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function CareScheduleScreen() {
   const router = useRouter();
@@ -105,7 +127,44 @@ export default function CareScheduleScreen() {
 
   const [selectedDate, setSelectedDate] = useState<number>(3); // index into calendarDays, today
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
-  const [tasks, setTasks] = useState<CareTask[]>(seedTasks);
+  const [tasks, setTasks] = useState<CareTask[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const prescriptions = await patientService.getPrescriptions();
+        // Take up to 2 most recent active prescriptions
+        const active = prescriptions
+          .filter((p) => p.prescriptionStatus !== 'cancelled')
+          .slice(0, 2);
+
+        const medicineTasks: CareTask[] = [];
+        for (const rx of active) {
+          const detail = await patientService.getPrescriptionDetail(rx.id);
+          detail.prescriptionItems.forEach((item) => {
+            const tod = inferTimeOfDay(item.dosageInstructions);
+            medicineTasks.push({
+              id: `rx-${rx.id}-${item.id}`,
+              title: item.medicineName,
+              subtitle: item.dosageInstructions ?? undefined,
+              category: 'medicine',
+              time: timeOfDayToTime(tod),
+              timeOfDay: tod,
+              status: 'pending',
+            });
+          });
+        }
+
+        setTasks([...medicineTasks, ...DEFAULT_TASKS]);
+      } catch {
+        // Fall back to just defaults if API fails
+        setTasks(DEFAULT_TASKS);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   // ── Filtered tasks ──
   const filteredTasks = useMemo(() => {
@@ -282,7 +341,12 @@ export default function CareScheduleScreen() {
       </View>
 
       {/* ── Timeline ── */}
-      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#1A73E8" />
+        </View>
+      ) : null}
+      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }} style={loading ? { display: 'none' } : undefined}>
         {(['morning', 'afternoon', 'evening'] as TimeOfDay[]).map((period) => {
           const periodTasks = groupedByPeriod[period];
           if (periodTasks.length === 0) return null;

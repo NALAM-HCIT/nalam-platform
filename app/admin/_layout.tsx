@@ -10,6 +10,7 @@ export default function AdminLayout() {
       <Stack.Screen name="create-user" />
       <Stack.Screen name="manage-doctors" />
       <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="audit-log" />
     </Stack>
   );
 }

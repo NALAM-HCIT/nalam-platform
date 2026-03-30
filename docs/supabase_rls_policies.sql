@@ -56,3 +56,56 @@ CREATE POLICY "OTP Tenant Isolation" ON "otp_verifications"
 -- NOTE FOR SUPABASE: By default, the 'postgres' role bypasses RLS.
 -- This is fine because the API uses its own connection/role, or EF Core
 -- Global Query Filters already handle protection if using the postgres role.
+
+
+-- ==============================================================================
+-- PATIENT DASHBOARD TABLES — RLS POLICIES (added Phase 4)
+-- All five tables enforce hospital-level isolation via the same session variable.
+-- health_tips uses two policies: SELECT allows global tips (hospital_id IS NULL),
+-- while write operations are restricted to hospital-specific rows only.
+-- ==============================================================================
+
+ALTER TABLE patient_mood_logs      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_water_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_water_logs     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_physio_logs    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE patient_vitals         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE health_tips            ENABLE ROW LEVEL SECURITY;
+
+-- 8. Mood Logs
+CREATE POLICY "MoodLogs Tenant Isolation" ON patient_mood_logs
+    AS PERMISSIVE FOR ALL
+    USING (hospital_id = (current_setting('app.current_hospital_id', true))::uuid);
+
+-- 9. Water Settings
+CREATE POLICY "WaterSettings Tenant Isolation" ON patient_water_settings
+    AS PERMISSIVE FOR ALL
+    USING (hospital_id = (current_setting('app.current_hospital_id', true))::uuid);
+
+-- 10. Water Logs
+CREATE POLICY "WaterLogs Tenant Isolation" ON patient_water_logs
+    AS PERMISSIVE FOR ALL
+    USING (hospital_id = (current_setting('app.current_hospital_id', true))::uuid);
+
+-- 11. Physio Logs
+CREATE POLICY "PhysioLogs Tenant Isolation" ON patient_physio_logs
+    AS PERMISSIVE FOR ALL
+    USING (hospital_id = (current_setting('app.current_hospital_id', true))::uuid);
+
+-- 12. Patient Vitals
+CREATE POLICY "PatientVitals Tenant Isolation" ON patient_vitals
+    AS PERMISSIVE FOR ALL
+    USING (hospital_id = (current_setting('app.current_hospital_id', true))::uuid);
+
+-- 13. Health Tips — SELECT allows global tips; mutations restricted to hospital scope
+CREATE POLICY "HealthTips Read" ON health_tips
+    AS PERMISSIVE FOR SELECT
+    USING (
+        hospital_id IS NULL
+        OR hospital_id = (current_setting('app.current_hospital_id', true))::uuid
+    );
+
+CREATE POLICY "HealthTips Write" ON health_tips
+    AS PERMISSIVE FOR ALL
+    USING (hospital_id = (current_setting('app.current_hospital_id', true))::uuid)
+    WITH CHECK (hospital_id = (current_setting('app.current_hospital_id', true))::uuid);

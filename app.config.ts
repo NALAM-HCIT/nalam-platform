@@ -1,10 +1,76 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
+import { withAppBuildGradle } from 'expo/config-plugins';
+
+/**
+ * Custom plugin: slims down the Android APK at prebuild time.
+ *
+ * 1. ndk.abiFilters "arm64-v8a"  — tells CMake to only compile for arm64
+ * 2. packagingOptions.jniLibs.excludes — drops x86/x86_64/armeabi-v7a pre-built
+ *    .so files from AAR dependencies (Agora, etc.) that ndk.abiFilters cannot reach.
+ * 3. Strips unused Agora extension .so files (lip-sync, spatial audio, face capture,
+ *    beauty filters, etc.) — only core RTC + video encoder are needed.
+ *
+ * Combined savings: ~280 MB off the APK.
+ */
+function withSlimAndroid(config: ExpoConfig): ExpoConfig {
+  return withAppBuildGradle(config, (mod) => {
+    let contents = mod.modResults.contents;
+
+    // 1. Inject ndk abiFilters if not already present
+    if (!contents.includes('abiFilters')) {
+      contents = contents.replace(
+        /(defaultConfig\s*\{)/,
+        `$1\n            ndk {\n                abiFilters "arm64-v8a"\n            }`
+      );
+    }
+
+    // 2. Inject packagingOptions excludes for non-arm64 ABIs + unused Agora extensions
+    if (!contents.includes('lib/x86/')) {
+      const excludesBlock = `
+    packagingOptions {
+        jniLibs {
+            // Drop non-arm64 ABIs (saves ~236 MB — x86/x86_64 are emulator-only,
+            // armeabi-v7a is pre-2016 devices)
+            excludes += ["lib/x86/**", "lib/x86_64/**", "lib/armeabi-v7a/**"]
+            // Drop unused Agora extensions (saves ~40 MB on arm64).
+            // Keep only: core RTC SDK, fdkaac, soundtouch, video_encoder, screen_capture
+            excludes += [
+                "lib/*/libagora_lip_sync_extension.so",
+                "lib/*/libagora_clear_vision_extension.so",
+                "lib/*/libagora_spatial_audio_extension.so",
+                "lib/*/libagora_ai_noise_suppression_extension.so",
+                "lib/*/libagora_ai_noise_suppression_ll_extension.so",
+                "lib/*/libagora_segmentation_extension.so",
+                "lib/*/libagora_face_capture_extension.so",
+                "lib/*/libagora_face_detection_extension.so",
+                "lib/*/libagora_ai_echo_cancellation_extension.so",
+                "lib/*/libagora_ai_echo_cancellation_ll_extension.so",
+                "lib/*/libagora_audio_beauty_extension.so",
+                "lib/*/libagora_content_inspect_extension.so",
+                "lib/*/libagora_video_quality_analyzer_extension.so",
+                "lib/*/libagora_video_av1_encoder_extension.so",
+                "lib/*/libagora-ffmpeg.so",
+            ]
+        }
+    }`;
+
+      // Replace existing packagingOptions block with our merged version
+      contents = contents.replace(
+        /packagingOptions\s*\{[^}]*jniLibs\s*\{[^}]*\}[^}]*\}/s,
+        excludesBlock.trim()
+      );
+    }
+
+    mod.modResults.contents = contents;
+    return mod;
+  });
+}
 
 const hospitalName = process.env.EXPO_PUBLIC_HOSPITAL_NAME || 'Nalam Health';
 const appSlug = process.env.EXPO_PUBLIC_APP_SLUG || 'nalam-app';
 const bundleId = process.env.EXPO_PUBLIC_BUNDLE_ID || 'com.nalam.app';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext): ExpoConfig => withSlimAndroid({
   ...config,
   name: hospitalName,
   slug: appSlug,
@@ -38,7 +104,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     },
     adaptiveIcon: {
-      foregroundImage: './assets/logo_arunpriya.png',
+      foregroundImage: './assets/icon_adaptive.png',
       backgroundColor: '#FFFFFF',
     },
     permissions: [
@@ -59,6 +125,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-router',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          enableProguardInReleaseBuilds: false,
+          enableShrinkResourcesInReleaseBuilds: false,
+        },
+      },
+    ],
   ],
   extra: {
     eas: {
@@ -71,4 +146,4 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   sdkVersion: '55.0.0',
   platforms: ['ios', 'android', 'web'],
   owner: 'sureshb11',
-});
+} as ExpoConfig);

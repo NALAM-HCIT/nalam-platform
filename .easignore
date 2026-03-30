@@ -1,0 +1,34 @@
+# EAS Build ignore file
+# This overrides .gitignore for EAS builds.
+# .env files are NOT excluded here so they are available during EAS builds.
+
+node_modules/
+.expo/
+dist/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Android & iOS (EAS builds from source, doesn't need prebuilt native dirs)
+android/
+ios/
+*.apk
+*.aab
+
+# .NET Core
+**/bin/
+**/obj/
+*.userprefs
+*.user
+*.suo
+*.docstates
+
+# Next.js
+nalamapp-webportal/.next/
+nalamapp-webportal/out/
+nalamapp-webportal/build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
