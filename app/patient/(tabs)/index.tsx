@@ -771,7 +771,7 @@ export default function PatientDashboard() {
               const overdueTask = tasks.find(t => t.status === 'overdue');
               const nextPending = tasks.find(t => t.status === 'pending');
               const actionTask = overdueTask || nextPending;
-              const allDone = completedTasks === totalTasks;
+              const allDone = totalTasks > 0 && completedTasks === totalTasks;
               const NextIcon = actionTask ? categoryConfig[actionTask.category].icon : Check;
               const nextColor = overdueTask ? '#F59E0B' : actionTask ? categoryConfig[actionTask.category].color : '#22C55E';
 
