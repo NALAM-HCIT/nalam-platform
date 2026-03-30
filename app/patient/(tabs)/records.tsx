@@ -1,10 +1,13 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
 import { patientService, ConsultationItem } from '@/services/patientService';
+import { uploadService } from '@/services/uploadService';
+import { useAuthStore } from '@/stores/authStore';
 import {
   Share2, Info, Filter, Heart, Droplets, Wind, Weight, Activity,
   TrendingUp, TrendingDown, ChevronRight, FileText, Download,
@@ -501,9 +504,11 @@ const generateBars = (count: number, min: number, max: number) =>
 
 export default function HealthScreen() {
   const router = useRouter();
+  const { userId } = useAuthStore();
   const [period, setPeriod] = useState<TimePeriod>('30 Days');
   const [recordsTab, setRecordsTab] = useState<'prescribed' | 'uploads'>('prescribed');
   const [liveConsultations, setLiveConsultations] = useState<ConsultationItem[]>([]);
+  const [docUploading, setDocUploading] = useState(false);
 
   useEffect(() => {
     patientService.getConsultationHistory(1, 10)
@@ -589,22 +594,53 @@ export default function HealthScreen() {
     );
   }, []);
 
+  const pickAndUploadDocument = useCallback(async (source: 'camera' | 'gallery', label: string) => {
+    const perm = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!perm.granted) {
+      CustomAlert.alert('Permission Required', `Please allow ${source === 'camera' ? 'camera' : 'photo library'} access.`);
+      return;
+    }
+
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: false })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    setDocUploading(true);
+    try {
+      await uploadService.uploadMedicalDocument(
+        userId ?? 'guest',
+        result.assets[0].uri,
+        `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`,
+      );
+      CustomAlert.alert('Uploaded', `${label} uploaded successfully to your health records.`);
+    } catch {
+      CustomAlert.alert('Upload Failed', 'Could not upload document. Please try again.');
+    } finally {
+      setDocUploading(false);
+    }
+  }, [userId]);
+
   const handleUploadResult = useCallback((testName: string) => {
     CustomAlert.alert(
-      'Upload Result',
-      `Upload result for: ${testName}`,
+      `Upload: ${testName}`,
+      'Choose a source',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: () => CustomAlert.alert('Camera', 'Camera would open to capture the lab report.\n\nSupported formats: PDF, JPG, PNG\nMax size: 10 MB') },
-        { text: 'Choose File', onPress: () => CustomAlert.alert('File Picker', 'File picker would open to select a document.\n\nSupported formats: PDF, JPG, PNG\nMax size: 10 MB') },
+        { text: 'Take Photo', onPress: () => pickAndUploadDocument('camera', testName) },
+        { text: 'Choose from Gallery', onPress: () => pickAndUploadDocument('gallery', testName) },
       ],
     );
-  }, []);
+  }, [pickAndUploadDocument]);
 
   const handleViewResult = useCallback((testName: string) => {
     CustomAlert.alert(
       testName,
-      'Opening document viewer...\n\n(In production, this would open the PDF/image viewer with the lab report)',
+      'This report is stored in your Supabase health records.',
       [
         { text: 'OK' },
         { text: 'Share with Doctor', onPress: () => CustomAlert.alert('Shared', `${testName} report shared with your doctor.`) },
@@ -615,15 +651,15 @@ export default function HealthScreen() {
   const handleUploadNew = useCallback(() => {
     CustomAlert.alert(
       'Upload Document',
-      'What type of document are you uploading?',
+      'What type of document?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Lab Report', onPress: () => CustomAlert.alert('Upload Lab Report', 'Select source:\n\n- Camera (take photo of report)\n- Files (select PDF/image)\n\n(File picker would open in production)') },
-        { text: 'Prescription', onPress: () => CustomAlert.alert('Upload Prescription', 'Select source:\n\n- Camera (take photo of prescription)\n- Files (select PDF/image)\n\n(File picker would open in production)') },
-        { text: 'Other Document', onPress: () => CustomAlert.alert('Upload Document', 'Select source:\n\n- Camera\n- Files\n\nYou can add a label after uploading.') },
+        { text: 'Lab Report', onPress: () => pickAndUploadDocument('gallery', 'Lab Report') },
+        { text: 'Prescription', onPress: () => pickAndUploadDocument('gallery', 'Prescription') },
+        { text: 'Other', onPress: () => pickAndUploadDocument('gallery', 'Medical Document') },
       ],
     );
-  }, []);
+  }, [pickAndUploadDocument]);
 
   const handleConsultationTap = useCallback((item: ConsultationItem) => {
     CustomAlert.alert(
@@ -746,9 +782,11 @@ export default function HealthScreen() {
               <FolderOpen size={18} color="#0B1B3D" />
               <Text className="text-lg font-semibold tracking-tight text-midnight">Medical Records</Text>
             </View>
-            <Pressable onPress={handleUploadNew} className="flex-row items-center gap-1 px-3 py-1.5 bg-primary/10 rounded-full active:opacity-70">
-              <Plus size={12} color={Colors.primary} />
-              <Text className="text-[11px] font-bold text-primary">Upload</Text>
+            <Pressable onPress={handleUploadNew} disabled={docUploading} className="flex-row items-center gap-1 px-3 py-1.5 bg-primary/10 rounded-full active:opacity-70">
+              {docUploading
+                ? <ActivityIndicator size={12} color={Colors.primary} />
+                : <Plus size={12} color={Colors.primary} />}
+              <Text className="text-[11px] font-bold text-primary">{docUploading ? 'Uploading…' : 'Upload'}</Text>
             </Pressable>
           </View>
         </View>

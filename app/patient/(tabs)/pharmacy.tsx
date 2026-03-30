@@ -9,10 +9,12 @@ import {
   ShoppingCart, Pill, FileText, Camera, Search, X,
   Package, ChevronRight,
   Syringe, Wind, BriefcaseMedical, Heart, Droplets, Brain,
-  Plus, CheckCircle, Trash2,
+  Plus, CheckCircle, Trash2, Truck,
 } from 'lucide-react-native';
 import { pharmacyService, Medicine } from '@/services/pharmacyService';
 import { patientService, PatientPrescription } from '@/services/patientService';
+import { uploadService } from '@/services/uploadService';
+import { useAuthStore } from '@/stores/authStore';
 
 const categories = [
   { id: '1', name: 'Tablets', icon: Pill, color: '#1A73E8' },
@@ -27,6 +29,7 @@ const categories = [
 
 export default function PharmacyScreen() {
   const router = useRouter();
+  const { userId } = useAuthStore();
   const [lastPrescription, setLastPrescription] = useState<PatientPrescription | null>(null);
   const [searchText, setSearchText] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -69,36 +72,36 @@ export default function PharmacyScreen() {
     setActiveCategory((prev) => prev === name ? null : name);
   }, []);
 
-  const simulateUpload = useCallback((uri: string) => {
+  const uploadPrescription = useCallback(async (uri: string) => {
     setIsUploading(true);
     setUploadProgress(0);
     progressAnim.setValue(0);
+    // Show local image immediately for fast UX
+    setRxImages((prev) => [...prev, uri]);
 
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 25 + 10;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        setUploadProgress(100);
-        Animated.timing(progressAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: false,
-        }).start(() => {
-          setIsUploading(false);
-          setRxImages((prev) => [...prev, uri]);
-        });
-      } else {
-        setUploadProgress(Math.round(progress));
-        Animated.timing(progressAnim, {
-          toValue: progress / 100,
-          duration: 300,
-          useNativeDriver: false,
-        }).start();
-      }
-    }, 400);
-  }, [progressAnim]);
+    try {
+      const { url } = await uploadService.uploadMedicalDocument(
+        userId ?? 'guest',
+        uri,
+        'prescription.jpg',
+        ({ progress }) => {
+          setUploadProgress(progress);
+          Animated.timing(progressAnim, {
+            toValue: progress / 100,
+            duration: 200,
+            useNativeDriver: false,
+          }).start();
+        },
+      );
+      // Replace local URI with Supabase public URL
+      setRxImages((prev) => prev.map((img) => (img === uri ? url : img)));
+    } catch {
+      CustomAlert.alert('Upload Failed', 'Could not upload prescription. It is saved locally for now.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  }, [userId, progressAnim]);
 
   const handlePickImage = useCallback(async (source: 'camera' | 'gallery') => {
     const permResult = source === 'camera'
@@ -115,9 +118,9 @@ export default function PharmacyScreen() {
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, allowsEditing: true });
 
     if (!result.canceled && result.assets[0]) {
-      simulateUpload(result.assets[0].uri);
+      uploadPrescription(result.assets[0].uri);
     }
-  }, [simulateUpload]);
+  }, [uploadPrescription]);
 
   const handleUploadPress = useCallback(() => {
     CustomAlert.alert('Upload Prescription', 'Choose how to upload your prescription', [

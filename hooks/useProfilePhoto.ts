@@ -43,7 +43,7 @@ export function useProfilePhoto(existingImageUrl?: string | null) {
       return;
     }
 
-    // Upload to Firebase
+    // Upload to Supabase Storage
     setUploading(true);
     setUploadProgress(0);
 
