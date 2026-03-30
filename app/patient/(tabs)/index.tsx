@@ -401,9 +401,15 @@ export default function PatientDashboard() {
   const [streak] = useState(7);
   const [mood, setMood] = useState<string | null>(null);
 
-  // Sync mood widget with today's API data
+  // Sync mood widget with today's API data.
+  // API stores labels as 'bad'/'terrible' but UI keys are 'unwell'/'pain' — reverse-map.
   useEffect(() => {
-    if (todayMoodData?.mood_label) setMood(todayMoodData.mood_label);
+    if (todayMoodData?.mood_label) {
+      const labelToKey: Record<string, string> = {
+        great: 'great', good: 'good', okay: 'okay', bad: 'unwell', terrible: 'pain',
+      };
+      setMood(labelToKey[todayMoodData.mood_label] ?? todayMoodData.mood_label);
+    }
   }, [todayMoodData]);
 
   // ─── Computed Stats ───
@@ -723,7 +729,8 @@ export default function PatientDashboard() {
                       const scoreMap: Record<string, number> = { great: 5, good: 4, okay: 3, unwell: 2, pain: 1 };
                       const labelMap: Record<string, string> = { great: 'great', good: 'good', okay: 'okay', unwell: 'bad', pain: 'terrible' };
                       try {
-                        await logMood({ mood_score: scoreMap[m.key] ?? 3, mood_label: labelMap[m.key] ?? 'okay' });
+                        const saved = await logMood({ mood_score: scoreMap[m.key] ?? 3, mood_label: labelMap[m.key] ?? 'okay' });
+                        setTodayMoodData(saved);  // update state immediately so refresh doesn't reset it
                       } catch { /* non-blocking */ }
                       if (m.key === 'unwell' || m.key === 'pain') {
                         CustomAlert.alert(

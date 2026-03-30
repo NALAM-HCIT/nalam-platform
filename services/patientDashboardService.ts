@@ -190,15 +190,12 @@ export async function logMood(data: {
 
 /**
  * Returns null if the patient hasn't logged a mood today (204 No Content).
+ * Note: Axios resolves on all 2xx — check res.status directly instead of catch.
  */
 export async function getTodayMood(): Promise<TodayMood | null> {
-  try {
-    const res = await api.get('/patient/mood/today');
-    return res.data;
-  } catch (err: any) {
-    if (err?.response?.status === 204) return null;
-    throw err;
-  }
+  const res = await api.get('/patient/mood/today');
+  if (res.status === 204 || !res.data) return null;
+  return res.data;
 }
 
 // ── Water ────────────────────────────────────────────────────────────────────
@@ -248,15 +245,12 @@ export async function logVitals(data: LogVitalsRequest): Promise<{ id: string; r
 
 /**
  * Returns null if no vitals have been recorded yet (204 No Content).
+ * Note: Axios resolves on all 2xx — check res.status directly instead of catch.
  */
 export async function getLatestVitals(): Promise<LatestVitals | null> {
-  try {
-    const res = await api.get('/patient/vitals/latest');
-    return res.data;
-  } catch (err: any) {
-    if (err?.response?.status === 204) return null;
-    throw err;
-  }
+  const res = await api.get('/patient/vitals/latest');
+  if (res.status === 204 || !res.data) return null;
+  return res.data;
 }
 
 export async function getVitalsTrend(): Promise<VitalsTrendResponse> {

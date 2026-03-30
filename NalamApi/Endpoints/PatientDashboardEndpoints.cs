@@ -168,40 +168,47 @@ public static class PatientDashboardEndpoints
         var patientId  = GetPatientId(ctx);
         var hospitalId = GetHospitalId(ctx);
         var today      = Today();
+        var label      = request.MoodLabel.ToLower();
+        var now        = DateTime.UtcNow;
 
         var existing = await db.PatientMoodLogs
             .FirstOrDefaultAsync(m => m.PatientId == patientId && m.LogDate == today);
 
+        Guid savedId;
         if (existing != null)
         {
             existing.MoodScore = request.MoodScore;
-            existing.MoodLabel = request.MoodLabel.ToLower();
+            existing.MoodLabel = label;
             existing.MoodNote  = sanitizedNote;
-            existing.LoggedAt  = DateTime.UtcNow;
+            existing.LoggedAt  = now;
+            savedId = existing.Id;
         }
         else
         {
-            db.PatientMoodLogs.Add(new PatientMoodLog
+            var newLog = new PatientMoodLog
             {
                 HospitalId = hospitalId,
                 PatientId  = patientId,
                 LogDate    = today,
                 MoodScore  = request.MoodScore,
-                MoodLabel  = request.MoodLabel.ToLower(),
+                MoodLabel  = label,
                 MoodNote   = sanitizedNote,
-                LoggedAt   = DateTime.UtcNow
-            });
+                LoggedAt   = now
+            };
+            db.PatientMoodLogs.Add(newLog);
+            savedId = newLog.Id;
         }
 
         await db.SaveChangesAsync();
 
         return Results.Ok(new
         {
+            id         = savedId,
             log_date   = today.ToString("yyyy-MM-dd"),
             mood_score = request.MoodScore,
-            mood_label = request.MoodLabel.ToLower(),
+            mood_label = label,
             mood_note  = sanitizedNote,
-            logged_at  = DateTime.UtcNow
+            logged_at  = now
         });
     }
 
