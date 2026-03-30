@@ -4,6 +4,7 @@ import { View, Text, ScrollView, Pressable, Image, Switch, Modal, Animated, Refr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -258,6 +259,12 @@ export default function PatientDashboard() {
     loadCarePlan();
     loadDashboard();
   }, [loadCarePlan, loadDashboard]);
+
+  // Re-fetch vitals whenever the tab comes back into focus
+  // (e.g. after the user saves from log-vitals screen and returns)
+  useFocusEffect(useCallback(() => {
+    getLatestVitals().then(setLatestVitals).catch(() => {});
+  }, []));
 
   const [mood, setMood] = useState<string | null>(null);
   useEffect(() => {
