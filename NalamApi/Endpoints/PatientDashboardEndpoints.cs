@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using NalamApi.Data;
+using NalamApi.DTOs.Patient;
 using NalamApi.Entities;
 
 namespace NalamApi.Endpoints;
@@ -59,6 +60,11 @@ public static class PatientDashboardEndpoints
         group.MapPost("/wearables/request",    RequestWearablePairing);
         group.MapGet("/wearables/vitals",      GetWearableVitals);
         group.MapPost("/wearables/disconnect", DisconnectWearable);
+
+        // ── Patient Documents ─────────────────────────────────────
+        group.MapGet("/documents",              GetDocuments);
+        group.MapPost("/documents",             SaveDocument);
+        group.MapDelete("/documents/{id:guid}", DeleteDocument);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -1181,5 +1187,74 @@ public static class PatientDashboardEndpoints
         await db.SaveChangesAsync();
 
         return Results.Ok(new { message = "Device disconnected." });
+    }
+
+    // ── Patient Documents ─────────────────────────────────────────────────────
+
+    // GET /api/patient/documents
+    private static async Task<IResult> GetDocuments(NalamDbContext db, HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+        var docs = await db.PatientDocuments
+            .Where(d => d.PatientId == patientId)
+            .OrderByDescending(d => d.UploadedAt)
+            .Select(d => new {
+                id          = d.Id,
+                name        = d.Name,
+                document_type = d.DocumentType,
+                storage_url = d.StorageUrl,
+                storage_path = d.StoragePath,
+                uploaded_at = d.UploadedAt,
+            })
+            .ToListAsync();
+        return Results.Ok(docs);
+    }
+
+    // POST /api/patient/documents
+    private static async Task<IResult> SaveDocument(
+        SaveDocumentRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId  = GetPatientId(ctx);
+        var hospitalId = GetHospitalId(ctx);
+
+        var doc = new PatientDocument
+        {
+            PatientId    = patientId,
+            HospitalId   = hospitalId,
+            Name         = request.Name.Trim(),
+            DocumentType = request.DocumentType ?? "other",
+            StorageUrl   = request.StorageUrl.Trim(),
+            StoragePath  = request.StoragePath?.Trim(),
+        };
+
+        db.PatientDocuments.Add(doc);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new {
+            id           = doc.Id,
+            name         = doc.Name,
+            document_type = doc.DocumentType,
+            storage_url  = doc.StorageUrl,
+            storage_path = doc.StoragePath,
+            uploaded_at  = doc.UploadedAt,
+        });
+    }
+
+    // DELETE /api/patient/documents/{id}
+    private static async Task<IResult> DeleteDocument(
+        Guid id,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        var patientId = GetPatientId(ctx);
+        var doc = await db.PatientDocuments
+            .FirstOrDefaultAsync(d => d.Id == id && d.PatientId == patientId);
+        if (doc == null) return Results.NotFound();
+
+        db.PatientDocuments.Remove(doc);
+        await db.SaveChangesAsync();
+        return Results.Ok(new { message = "Document deleted.", storage_path = doc.StoragePath });
     }
 }

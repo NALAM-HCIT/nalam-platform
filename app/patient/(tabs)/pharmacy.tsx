@@ -14,6 +14,7 @@ import {
 import { pharmacyService, Medicine } from '@/services/pharmacyService';
 import { patientService, PatientPrescription } from '@/services/patientService';
 import { uploadService } from '@/services/uploadService';
+import { getDocuments, saveDocument, deleteDocument } from '@/services/patientDashboardService';
 import { useAuthStore } from '@/stores/authStore';
 
 const categories = [
@@ -49,12 +50,13 @@ export default function PharmacyScreen() {
       .then((list) => setLastPrescription(list[0] ?? null))
       .catch(() => {});
 
-    if (userId) {
-      uploadService.listFiles(`medical-documents/${userId}`)
-        .then((files) => setRxImages(files.map(f => f.url)))
-        .catch(() => {});
-    }
-  }, [userId]);
+    getDocuments()
+      .then((docs) => {
+        const rxDocs = docs.filter(d => d.document_type === 'prescription');
+        setRxImages(rxDocs.map(d => d.storage_url));
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch medicines whenever search or category changes (debounced)
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function PharmacyScreen() {
     setRxImages((prev) => [...prev, uri]);
 
     try {
-      const { url } = await uploadService.uploadMedicalDocument(
+      const { url, path } = await uploadService.uploadMedicalDocument(
         userId ?? 'guest',
         uri,
         'prescription.jpg',
@@ -99,6 +101,8 @@ export default function PharmacyScreen() {
           }).start();
         },
       );
+      // Save metadata to backend
+      await saveDocument({ name: 'Prescription', storage_url: url, storage_path: path, document_type: 'prescription' });
       // Replace local URI with Supabase public URL
       setRxImages((prev) => prev.map((img) => (img === uri ? url : img)));
     } catch (err: any) {

@@ -363,3 +363,34 @@ export async function getWearableVitals(): Promise<WearableVitalData | null> {
 export async function disconnectWearable(): Promise<void> {
   await api.post('/patient/wearables/disconnect', {});
 }
+
+// ─── Patient Documents ───────────────────────────────────────────────────────
+
+export interface PatientDocument {
+  id: string;
+  name: string;
+  document_type: string;
+  storage_url: string;
+  storage_path: string | null;
+  uploaded_at: string;
+}
+
+export async function getDocuments(): Promise<PatientDocument[]> {
+  const res = await api.get('/patient/documents');
+  return res.data ?? [];
+}
+
+export async function saveDocument(data: {
+  name: string;
+  storage_url: string;
+  storage_path?: string;
+  document_type?: string;
+}): Promise<PatientDocument> {
+  const res = await api.post('/patient/documents', data);
+  return res.data;
+}
+
+export async function deleteDocument(id: string): Promise<{ storage_path: string | null }> {
+  const res = await api.delete(`/patient/documents/${id}`);
+  return res.data;
+}

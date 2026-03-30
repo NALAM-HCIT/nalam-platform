@@ -584,6 +584,30 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"⚠️  Schema safety check warning (patient dashboard): {ex.Message}");
     }
 
+    // Safety net: patient_documents table
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS patient_documents (
+                id            uuid         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                hospital_id   uuid         NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
+                patient_id    uuid         NOT NULL REFERENCES patients(id)  ON DELETE CASCADE,
+                name          varchar(200) NOT NULL,
+                document_type varchar(50)  NOT NULL DEFAULT 'other',
+                storage_url   varchar(1000) NOT NULL,
+                storage_path  varchar(500) NULL,
+                uploaded_at   timestamptz  NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ix_patient_documents_patient
+                ON patient_documents (patient_id, uploaded_at DESC);
+        ");
+        Console.WriteLine("✅ Schema safety check passed (patient_documents table ensured).");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️  Schema safety check warning (patient_documents): {ex.Message}");
+    }
+
     // Safety net: seed global health tips if none exist
     try
     {

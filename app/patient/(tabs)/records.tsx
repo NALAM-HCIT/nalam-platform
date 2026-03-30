@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Shadows, Colors } from '@/constants/theme';
 import { patientService, ConsultationItem } from '@/services/patientService';
 import { uploadService } from '@/services/uploadService';
+import { getDocuments, saveDocument, deleteDocument, PatientDocument as ApiDocument } from '@/services/patientDashboardService';
 import { useAuthStore } from '@/stores/authStore';
 import {
   Share2, Info, Filter, Heart, Droplets, Wind, Weight, Activity,
@@ -503,25 +504,20 @@ export default function HealthScreen() {
   const [recordsTab, setRecordsTab] = useState<'prescribed' | 'uploads'>('prescribed');
   const [liveConsultations, setLiveConsultations] = useState<ConsultationItem[]>([]);
   const [docUploading, setDocUploading] = useState(false);
-  const [myUploads, setMyUploads] = useState<{ name: string; url: string; date: string }[]>([]);
+  const [myUploads, setMyUploads] = useState<ApiDocument[]>([]);
   const [uploadsLoading, setUploadsLoading] = useState(false);
 
   const loadMyUploads = useCallback(async () => {
-    if (!userId) return;
     setUploadsLoading(true);
     try {
-      const files = await uploadService.listFiles(`medical-documents/${userId}`);
-      setMyUploads(files.map(f => ({
-        name: decodeURIComponent(f.name.replace(/^\d+\./, '').replace(/-/g, ' ')),
-        url: f.url,
-        date: new Date(parseInt(f.name.split('.')[0]) || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      })));
+      const docs = await getDocuments();
+      setMyUploads(docs);
     } catch {
-      // silently fail — uploads may be empty
+      // silently fail
     } finally {
       setUploadsLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     patientService.getConsultationHistory(1, 10)
@@ -626,11 +622,15 @@ export default function HealthScreen() {
 
     setDocUploading(true);
     try {
-      await uploadService.uploadMedicalDocument(
+      const fileName = `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+      const { url, path } = await uploadService.uploadMedicalDocument(
         userId ?? 'guest',
         result.assets[0].uri,
-        `${label.replace(/\s+/g, '-').toLowerCase()}.jpg`,
+        fileName,
       );
+      const docType = label.toLowerCase().includes('prescription') ? 'prescription'
+        : label.toLowerCase().includes('lab') ? 'lab_report' : 'other';
+      await saveDocument({ name: label, storage_url: url, storage_path: path, document_type: docType });
       CustomAlert.alert('Uploaded', `${label} uploaded successfully to your health records.`);
       loadMyUploads();
     } catch (err: any) {
@@ -926,10 +926,10 @@ export default function HealthScreen() {
                 <Text className="text-sm font-bold text-slate-400 mt-2">No documents yet</Text>
                 <Text className="text-[11px] text-slate-400 mt-1 text-center">Upload lab reports, prescriptions, or other documents</Text>
               </View>
-            ) : myUploads.map((upload, idx) => (
+            ) : myUploads.map((upload) => (
               <Pressable
-                key={idx}
-                onPress={() => CustomAlert.alert(upload.name, `Uploaded: ${upload.date}`, [
+                key={upload.id}
+                onPress={() => CustomAlert.alert(upload.name, `Type: ${upload.document_type.replace('_', ' ')}\nUploaded: ${new Date(upload.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`, [
                   { text: 'Close' },
                   {
                     text: 'Delete', style: 'destructive',
@@ -939,9 +939,11 @@ export default function HealthScreen() {
                         text: 'Delete', style: 'destructive',
                         onPress: async () => {
                           try {
-                            const path = `medical-documents/${userId}/${upload.url.split('/').pop()}`;
-                            await uploadService.deleteFile(path);
-                            setMyUploads(prev => prev.filter((_, i) => i !== idx));
+                            const result = await deleteDocument(upload.id);
+                            if (result.storage_path) {
+                              await uploadService.deleteFile(result.storage_path).catch(() => {});
+                            }
+                            setMyUploads(prev => prev.filter(d => d.id !== upload.id));
                           } catch {
                             CustomAlert.alert('Error', 'Could not delete document.');
                           }
@@ -959,7 +961,9 @@ export default function HealthScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-midnight" numberOfLines={1}>{upload.name}</Text>
-                    <Text className="text-[11px] text-slate-400 mt-0.5">{upload.date}</Text>
+                    <Text className="text-[11px] text-slate-400 mt-0.5">
+                      {upload.document_type.replace('_', ' ')} · {new Date(upload.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Text>
                   </View>
                   <ChevronRight size={14} color="#CBD5E1" />
                 </View>

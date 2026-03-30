@@ -49,6 +49,7 @@ public class NalamDbContext : DbContext
     public DbSet<PatientWearableDevice> PatientWearableDevices => Set<PatientWearableDevice>();
     public DbSet<WearableVital> WearableVitals => Set<WearableVital>();
     public DbSet<HealthTip> HealthTips => Set<HealthTip>();
+    public DbSet<PatientDocument> PatientDocuments => Set<PatientDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -149,6 +150,9 @@ public class NalamDbContext : DbContext
 
         modelBuilder.Entity<WearableVital>()
             .HasQueryFilter(wv => !_currentHospitalId.HasValue || wv.Patient.HospitalId == _currentHospitalId.Value);
+
+        modelBuilder.Entity<PatientDocument>()
+            .HasQueryFilter(pd => !_currentHospitalId.HasValue || pd.HospitalId == _currentHospitalId.Value);
 
         // HealthTip: show hospital-specific tips AND global tips (hospital_id IS NULL)
         modelBuilder.Entity<HealthTip>()

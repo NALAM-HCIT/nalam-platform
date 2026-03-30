@@ -39,3 +39,10 @@ public record UpdatePatientProfileRequest(
     string? InsuranceProvider = null,
     string? InsurancePolicyNumber = null
 );
+
+public record SaveDocumentRequest(
+    string Name,
+    string StorageUrl,
+    string? StoragePath = null,
+    string? DocumentType = "other"   // lab_report | prescription | other
+);
