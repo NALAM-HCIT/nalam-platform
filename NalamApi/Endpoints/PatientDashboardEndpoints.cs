@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using NalamApi.Data;
 using NalamApi.Entities;
@@ -58,7 +59,10 @@ public static class PatientDashboardEndpoints
 
     // POST /api/patient/mood
     // Logs today's feeling. If the patient already logged one today, overwrites it.
-    private record LogMoodRequest(short MoodScore, string MoodLabel, string? MoodNote);
+    private record LogMoodRequest(
+        [property: JsonPropertyName("mood_score")] short MoodScore,
+        [property: JsonPropertyName("mood_label")] string MoodLabel,
+        [property: JsonPropertyName("mood_note")]  string? MoodNote);
 
     private static async Task<IResult> LogMood(
         LogMoodRequest request,
@@ -193,11 +197,11 @@ public static class PatientDashboardEndpoints
     // PUT /api/patient/water/settings
     // Upserts the patient's water goal and reminder preferences.
     private record UpdateWaterSettingsRequest(
-        int?   DailyGoalMl,
-        bool?  ReminderEnabled,
-        short? ReminderIntervalH,
-        string? ReminderStartTime,
-        string? ReminderEndTime);
+        [property: JsonPropertyName("daily_goal_ml")]       int?    DailyGoalMl,
+        [property: JsonPropertyName("reminder_enabled")]    bool?   ReminderEnabled,
+        [property: JsonPropertyName("reminder_interval_h")] short?  ReminderIntervalH,
+        [property: JsonPropertyName("reminder_start_time")] string? ReminderStartTime,
+        [property: JsonPropertyName("reminder_end_time")]   string? ReminderEndTime);
 
     private static async Task<IResult> UpdateWaterSettings(
         UpdateWaterSettingsRequest request,
@@ -260,7 +264,8 @@ public static class PatientDashboardEndpoints
 
     // POST /api/patient/water/log
     // Adds one water intake entry. Returns updated today_total_ml and progress.
-    private record LogWaterRequest(int AmountMl);
+    private record LogWaterRequest(
+        [property: JsonPropertyName("amount_ml")] int AmountMl);
 
     private static async Task<IResult> LogWaterIntake(
         LogWaterRequest request,
@@ -351,12 +356,12 @@ public static class PatientDashboardEndpoints
     // POST /api/patient/physio
     // Logs one physiotherapy activity session.
     private record LogPhysioRequest(
-        string  ActivityName,
-        short   DurationMin,
-        short?  Sets,
-        short?  Reps,
-        short?  PainLevel,
-        string? Notes);
+        [property: JsonPropertyName("activity_name")] string  ActivityName,
+        [property: JsonPropertyName("duration_min")]  short   DurationMin,
+        [property: JsonPropertyName("sets")]          short?  Sets,
+        [property: JsonPropertyName("reps")]          short?  Reps,
+        [property: JsonPropertyName("pain_level")]    short?  PainLevel,
+        [property: JsonPropertyName("notes")]         string? Notes);
 
     private static async Task<IResult> LogPhysio(
         LogPhysioRequest request,
@@ -532,15 +537,15 @@ public static class PatientDashboardEndpoints
     // POST /api/patient/vitals
     // Self-reports one vitals reading. All fields optional — log what you have.
     private record LogVitalsRequest(
-        short?   BpSystolic,
-        short?   BpDiastolic,
-        short?   HeartRate,
-        decimal? TemperatureC,
-        short?   Spo2,
-        short?   RespiratoryRate,
-        decimal? WeightKg,
-        decimal? HeightCm,
-        decimal? BloodGlucose);
+        [property: JsonPropertyName("bp_systolic")]      short?   BpSystolic,
+        [property: JsonPropertyName("bp_diastolic")]     short?   BpDiastolic,
+        [property: JsonPropertyName("heart_rate")]       short?   HeartRate,
+        [property: JsonPropertyName("temperature_c")]    decimal? TemperatureC,
+        [property: JsonPropertyName("spo2")]             short?   Spo2,
+        [property: JsonPropertyName("respiratory_rate")] short?   RespiratoryRate,
+        [property: JsonPropertyName("weight_kg")]        decimal? WeightKg,
+        [property: JsonPropertyName("height_cm")]        decimal? HeightCm,
+        [property: JsonPropertyName("blood_glucose")]    decimal? BloodGlucose);
 
     private static async Task<IResult> LogVitals(
         LogVitalsRequest request,
