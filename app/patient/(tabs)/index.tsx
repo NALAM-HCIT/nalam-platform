@@ -1,6 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Switch, Modal, RefreshControl, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, Pressable, Image, Switch, Modal, RefreshControl, Dimensions, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -219,6 +219,19 @@ export default function PatientDashboard() {
   const [showCareModal, setShowCareModal] = useState<'unwell' | 'pain' | null>(null);
   const [painScale, setPainScale] = useState(5);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const careSlide = useRef(new Animated.Value(600)).current;
+
+  useEffect(() => {
+    if (showCareModal) {
+      careSlide.setValue(600);
+      Animated.spring(careSlide, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 0,
+        speed: 20,
+      }).start();
+    }
+  }, [showCareModal]);
 
   const loadCarePlan = useCallback(() => {
     Promise.allSettled([
@@ -1263,9 +1276,9 @@ export default function PatientDashboard() {
       </Modal>
 
       {/* ── Care Modal: Unwell ── */}
-      <Modal visible={showCareModal === 'unwell'} animationType="slide" transparent>
+      <Modal visible={showCareModal === 'unwell'} animationType="none" transparent>
         <View className="flex-1 bg-black/40 justify-end">
-          <View className="bg-white rounded-t-[36px] px-6 pt-4 pb-10" style={Shadows.presence}>
+          <Animated.View className="bg-white rounded-t-[36px] px-6 pt-4 pb-10" style={[Shadows.presence, { transform: [{ translateY: careSlide }] }]}>
             {/* Handle */}
             <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
 
@@ -1330,14 +1343,14 @@ export default function PatientDashboard() {
                 <Text className="text-slate-400 text-sm">I'll be okay, close this</Text>
               </Pressable>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
       {/* ── Care Modal: In Pain ── */}
-      <Modal visible={showCareModal === 'pain'} animationType="slide" transparent>
+      <Modal visible={showCareModal === 'pain'} animationType="none" transparent>
         <View className="flex-1 bg-black/40 justify-end">
-          <View className="bg-white rounded-t-[36px] px-6 pt-4 pb-10" style={Shadows.presence}>
+          <Animated.View className="bg-white rounded-t-[36px] px-6 pt-4 pb-10" style={[Shadows.presence, { transform: [{ translateY: careSlide }] }]}>
             {/* Handle */}
             <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
 
@@ -1416,7 +1429,7 @@ export default function PatientDashboard() {
                 <Text className="text-slate-400 text-sm">I'll manage for now</Text>
               </Pressable>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
