@@ -259,7 +259,7 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
           </View>
           <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">What are you feeling?</Text>
           <View className="flex-row flex-wrap gap-2 mb-6">
-            {['🤒 Fever', '🤕 Headache', '🤢 Nausea', '😮‍💨 Breathless', '😴 Fatigue', '🤧 Cold', '💧 Dehydrated', '😵 Dizzy'].map((s) => {
+            {['🤒 Fever', '🤕 Headache', '🤢 Nausea', '💨 Breathless', '😴 Fatigue', '🤧 Cold', '💧 Dehydrated', '😵 Dizzy'].map((s) => {
               const on = symptoms.includes(s);
               return (
                 <Pressable key={s} onPress={() => toggleSymptom(s)} className="px-3 py-2 rounded-full border active:opacity-70"
