@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import { HospitalConfig } from '@/config/hospital';
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -160,7 +161,7 @@ export default function ReceptionistDashboard() {
                 <Building2 size={20} color="#FFFFFF" />
               </View>
               <View>
-                <Text className="text-xl font-bold tracking-tight text-midnight">Arun Priya Hospital</Text>
+                <Text className="text-xl font-bold tracking-tight text-midnight">{HospitalConfig.name}</Text>
                 <Text className="text-xs font-medium text-slate-500">Receptionist Portal</Text>
               </View>
             </View>

@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import { HospitalConfig } from '@/config/hospital';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -283,7 +284,7 @@ export default function AdminDashboard() {
                 <Building2 size={20} color="#FFFFFF" />
               </View>
               <View>
-                <Text className="text-lg font-bold tracking-tight text-midnight">Arun Priya Hospital</Text>
+                <Text className="text-lg font-bold tracking-tight text-midnight">{HospitalConfig.name}</Text>
                 <Text className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Admin Portal</Text>
               </View>
             </View>

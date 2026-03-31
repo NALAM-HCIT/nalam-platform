@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import { HospitalConfig } from '@/config/hospital';
 import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -111,7 +112,7 @@ export default function AdminLoginScreen() {
   const handlePrivacy = () => {
     CustomAlert.alert(
       'Privacy Policy',
-      'Arun Priya Multispeciality Hospital is committed to protecting your privacy.\n\nYour login activity, session data, and administrative actions are logged for security and compliance purposes.\n\nFor full privacy policy, visit our website or contact the Data Protection Officer.',
+      `${HospitalConfig.name} is committed to protecting your privacy.\n\nYour login activity, session data, and administrative actions are logged for security and compliance purposes.\n\nFor full privacy policy, visit our website or contact the Data Protection Officer.`,
       [
         { text: 'Close', style: 'cancel' },
         {

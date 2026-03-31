@@ -3,6 +3,7 @@ import { View, Text, Pressable, Image, Modal, ActivityIndicator } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Shadows } from '@/constants/theme';
+import { HospitalConfig } from '@/config/hospital';
 import {
   Mic, MicOff, Video as VideoIcon, VideoOff, Phone, MessageSquare,
   Heart, Wind, AlertTriangle, Clock, X,
@@ -166,7 +167,7 @@ export default function VideoConsultationScreen() {
           {/* Watermark */}
           <View className="absolute top-6 right-6 opacity-30">
             <Text className="text-white font-extrabold text-lg tracking-tight">
-              Arun Priya Multispeciality Hospital
+              {HospitalConfig.name}
             </Text>
           </View>
 

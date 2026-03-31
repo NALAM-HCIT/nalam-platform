@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import { HospitalConfig } from '@/config/hospital';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -224,7 +225,7 @@ export default function AdminProfileScreen() {
 
       case 'system_config':
         CustomAlert.alert('System Configuration', 'Hospital Settings:', [
-          { text: 'Hospital Info', onPress: () => CustomAlert.alert('Hospital Info', 'Name: Arun Priya Multispeciality Hospital\nAddress: Anna Nagar, Chennai\nPhone: +91 44 2345 6789\nEmail: info@arunpriya.com\n\nBeds: 200 | OPD Rooms: 25\nOperating Theatres: 6\nICU Beds: 30') },
+          { text: 'Hospital Info', onPress: () => CustomAlert.alert('Hospital Info', `Name: ${HospitalConfig.name}\nAddress: Anna Nagar, Chennai\nPhone: +91 44 2345 6789\nEmail: info@arunpriya.com\n\nBeds: 200 | OPD Rooms: 25\nOperating Theatres: 6\nICU Beds: 30`) },
           { text: 'Working Hours', onPress: () => CustomAlert.alert('Working Hours', 'OPD: 8:00 AM - 8:00 PM\nEmergency: 24/7\nPharmacy: 8:00 AM - 10:00 PM\nLab: 7:00 AM - 9:00 PM\nAdmin: 9:00 AM - 6:00 PM') },
           { text: 'Fee Structure', onPress: () => CustomAlert.alert('Fees', 'Consultation: Rs. 500 - Rs. 2,000\nEmergency: Rs. 1,500\nLab Tests: As per panel\nPharmacy: MRP - 10% discount\n\nLast updated: Mar 15, 2026') },
           { text: 'Close', style: 'cancel' },

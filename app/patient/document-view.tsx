@@ -6,6 +6,7 @@ import { Shadows } from '@/constants/theme';
 import {
   ArrowLeft, Download, Share2, Maximize, FileText, ZoomIn, ZoomOut, Hospital,
 } from 'lucide-react-native';
+import { HospitalConfig } from '@/config/hospital';
 
 const testResults = [
   { test: 'Hemoglobin (Hb)', result: '14.2 g/dL', range: '12.0 - 15.5' },
@@ -83,8 +84,7 @@ export default function DocumentViewScreen() {
                   <Hospital size={16} color="#FFFFFF" />
                 </View>
                 <Text className="text-lg font-bold tracking-tight text-[#0B1B3D]">
-                  Arun Priya Multispeciality{' '}
-                  <Text className="text-[#1A73E8]">Hospital</Text>
+                  {HospitalConfig.name}
                 </Text>
               </View>
               <View className="items-end">

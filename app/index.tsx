@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { GlassCard } from '@/components';
 import { User, BriefcaseMedical, HelpCircle } from 'lucide-react-native';
+import { HospitalConfig } from '@/config/hospital';
 
 export default function SplashRoleScreen() {
   const router = useRouter();
@@ -29,22 +30,13 @@ export default function SplashRoleScreen() {
         <View className="items-center mb-6">
           <View className="w-36 h-36 mb-5 items-center justify-center">
             <Image
-              source={require('../assets/logo_arunpriya.png')}
+              source={HospitalConfig.logo}
               className="w-full h-full"
               resizeMode="contain"
             />
           </View>
-          <Text
-            className="text-2xl font-extrabold text-center tracking-widest uppercase leading-8"
-            style={{ color: '#1A73E8' }}
-          >
-            ARUN PRIYA
-          </Text>
-          <Text
-            className="text-base font-bold text-center tracking-widest uppercase"
-            style={{ color: '#1A73E8' }}
-          >
-            MULTISPECIALITY HOSPITAL
+          <Text className="text-2xl font-extrabold text-center tracking-widest uppercase leading-8" style={{ color: '#1A73E8' }}>
+            {HospitalConfig.name.toUpperCase()}
           </Text>
         </View>
 

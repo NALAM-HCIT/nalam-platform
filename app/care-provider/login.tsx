@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Shadows } from '@/constants/theme';
 import { ArrowLeft, Stethoscope, Pill, Activity, HeartPulse, ChevronDown, ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { api, HOSPITAL_ID } from '@/services/api';
+import { HospitalConfig } from '@/config/hospital';
 
 export default function CareProviderLoginScreen() {
   const router = useRouter();
@@ -80,8 +81,8 @@ export default function CareProviderLoginScreen() {
 
             <View className="px-6">
               <Text className="text-white text-[26px] font-bold leading-tight">
-                Welcome to Arun Priya{'\n'}
-                <Text className="text-[#7EB3FF] font-extrabold">Multispeciality Hospital</Text>
+                Welcome to{'\n'}
+                <Text className="text-[#7EB3FF] font-extrabold">{HospitalConfig.name}</Text>
               </Text>
               <Text className="text-white/50 text-xs font-semibold uppercase tracking-[3px] mt-2">
                 Care Provider Access
@@ -171,7 +172,7 @@ export default function CareProviderLoginScreen() {
 
             <View className="flex-row justify-between items-start mt-8">
               <Text className="text-[9px] text-slate-400 uppercase tracking-wide leading-4">
-                {'© 2024 Arun Priya Multispeciality.\nInstitutional Policy Applied.'}
+                {`© 2024 ${HospitalConfig.name}.\nInstitutional Policy Applied.`}
               </Text>
               <View className="flex-row gap-3">
                 <Text className="text-[9px] text-slate-400 uppercase tracking-wide">IT Support</Text>

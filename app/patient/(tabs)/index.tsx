@@ -24,6 +24,7 @@ import {
 } from '@/services/patientDashboardService';
 import { configureNotificationHandler } from '@/services/waterReminders';
 import { Pedometer } from 'expo-sensors';
+import { HospitalConfig } from '@/config/hospital';
 import {
   Bell, Check, Droplets, Pill, CalendarPlus, Package, FileText,
   BriefcaseMedical, Sun, Moon, Sunrise, Heart, Activity,
@@ -402,9 +403,9 @@ export default function PatientDashboard() {
           <View className="flex-row items-center justify-between mb-4">
             {/* Logo + name block */}
             <View className="flex-row items-center gap-3 flex-1 mr-3">
-              <Image source={require('../../../assets/logo_arunpriya.png')} style={{ width: 64, height: 64 }} resizeMode="contain" />
+              <Image source={HospitalConfig.logo} style={{ width: 64, height: 64 }} resizeMode="contain" />
               <View className="flex-1">
-                <Text className="text-[15px] font-extrabold text-midnight leading-[19px]" numberOfLines={2}>Arun Priya{'\n'}Multispeciality Hospital</Text>
+                <Text className="text-[15px] font-extrabold text-midnight leading-[19px]" numberOfLines={2}>{HospitalConfig.name}</Text>
                 <View className="mt-1.5 self-start flex-row items-center gap-1 px-2.5 py-[3px] rounded-full" style={{ backgroundColor: '#1A73E8' }}>
                   <View className="w-1.5 h-1.5 rounded-full bg-white/70" />
                   <Text style={{ fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 1 }}>PATIENT PORTAL</Text>

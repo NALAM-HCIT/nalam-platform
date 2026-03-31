@@ -1,4 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
+import { HospitalConfig } from '@/config/hospital';
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, Linking, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -426,7 +427,7 @@ export default function DoctorProfileScreen() {
       case 'about':
         CustomAlert.alert(
           'About Nalam',
-          'Nalam — Doctor Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\nDeveloped for Arun Priya Hospital\n\nModules: Patient, Doctor, Pharmacist, Receptionist, Admin\n\n© 2026 Nalam Healthcare Pvt. Ltd.',
+          `Nalam — Doctor Portal\n\nVersion: 1.0.0\nBuild: 2026.03.21\n\nDeveloped for ${HospitalConfig.name}\n\nModules: Patient, Doctor, Pharmacist, Receptionist, Admin\n\n© 2026 Nalam Healthcare Pvt. Ltd.`,
           [
             { text: 'OK' },
             { text: 'Terms', onPress: () => CustomAlert.alert('Terms & Conditions', 'By using the Nalam Doctor Portal, you agree to all hospital policies regarding data access and patient confidentiality.') },
