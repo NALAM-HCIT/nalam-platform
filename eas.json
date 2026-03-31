@@ -18,6 +18,7 @@
         "EXPO_PUBLIC_HOSPITAL_NAME": "Arun Priya Hospital",
         "EXPO_PUBLIC_HOSPITAL_TAGLINE": "Multispeciality Hospital",
         "EXPO_PUBLIC_HOSPITAL_ID": "890706cd-5f75-4ac2-91f7-210b8db44c91",
+        "EXPO_PUBLIC_HOSPITAL_LOGO": "arunpriya",
         "EXPO_PUBLIC_API_URL": "https://api.teamdvs.in/api",
         "EXPO_PUBLIC_SUPABASE_URL": "https://tmplrslirkhtjqodjoen.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtcGxyc2xpcmtodGpxb2Rqb2VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDE1MDQsImV4cCI6MjA4OTY3NzUwNH0.jaY2-ucVpqYvfHX2k95xI8vHvvFyregoz1ihnY62z-s",
@@ -31,6 +32,7 @@
         "EXPO_PUBLIC_HOSPITAL_NAME": "Arun Priya Hospital",
         "EXPO_PUBLIC_HOSPITAL_TAGLINE": "Multispeciality Hospital",
         "EXPO_PUBLIC_HOSPITAL_ID": "890706cd-5f75-4ac2-91f7-210b8db44c91",
+        "EXPO_PUBLIC_HOSPITAL_LOGO": "arunpriya",
         "EXPO_PUBLIC_API_URL": "https://api.teamdvs.in/api",
         "EXPO_PUBLIC_SUPABASE_URL": "https://tmplrslirkhtjqodjoen.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtcGxyc2xpcmtodGpxb2Rqb2VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDE1MDQsImV4cCI6MjA4OTY3NzUwNH0.jaY2-ucVpqYvfHX2k95xI8vHvvFyregoz1ihnY62z-s",
@@ -41,6 +43,38 @@
       "extends": "production",
       "env": {
         "APP_VARIANT": "arunpriya"
+      }
+    },
+    "links-preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_SLUG": "links-app",
+        "EXPO_PUBLIC_BUNDLE_ID": "com.nalam.links",
+        "EXPO_PUBLIC_HOSPITAL_NAME": "Links Hospital",
+        "EXPO_PUBLIC_HOSPITAL_TAGLINE": "Your Health Partner",
+        "EXPO_PUBLIC_HOSPITAL_ID": "434990e8-530e-424a-90a0-89cece03d2d8",
+        "EXPO_PUBLIC_HOSPITAL_LOGO": "links",
+        "EXPO_PUBLIC_API_URL": "https://api.teamdvs.in/api",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://tmplrslirkhtjqodjoen.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtcGxyc2xpcmtodGpxb2Rqb2VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDE1MDQsImV4cCI6MjA4OTY3NzUwNH0.jaY2-ucVpqYvfHX2k95xI8vHvvFyregoz1ihnY62z-s",
+        "EXPO_PUBLIC_AGORA_APP_ID": "0364848909e24461a5e5736d276e65a1"
+      }
+    },
+    "links-production": {
+      "env": {
+        "EXPO_PUBLIC_APP_SLUG": "links-app",
+        "EXPO_PUBLIC_BUNDLE_ID": "com.nalam.links",
+        "EXPO_PUBLIC_HOSPITAL_NAME": "Links Hospital",
+        "EXPO_PUBLIC_HOSPITAL_TAGLINE": "Your Health Partner",
+        "EXPO_PUBLIC_HOSPITAL_ID": "434990e8-530e-424a-90a0-89cece03d2d8",
+        "EXPO_PUBLIC_HOSPITAL_LOGO": "links",
+        "EXPO_PUBLIC_API_URL": "https://api.teamdvs.in/api",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://tmplrslirkhtjqodjoen.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtcGxyc2xpcmtodGpxb2Rqb2VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDE1MDQsImV4cCI6MjA4OTY3NzUwNH0.jaY2-ucVpqYvfHX2k95xI8vHvvFyregoz1ihnY62z-s",
+        "EXPO_PUBLIC_AGORA_APP_ID": "0364848909e24461a5e5736d276e65a1"
       }
     }
   },

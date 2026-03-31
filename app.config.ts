@@ -70,16 +70,35 @@ const hospitalName = process.env.EXPO_PUBLIC_HOSPITAL_NAME || 'Nalam Health';
 const appSlug = process.env.EXPO_PUBLIC_APP_SLUG || 'nalam-app';
 const bundleId = process.env.EXPO_PUBLIC_BUNDLE_ID || 'com.nalam.app';
 
+// Per-hospital asset paths — add a new entry for each hospital
+const LOGO_MAP: Record<string, { icon: string; splash: string; splashDark: string; splashWhite: string }> = {
+  arunpriya: {
+    icon: './assets/logo_arunpriya.png',
+    splash: './assets/logo_arunpriya.png',
+    splashDark: './assets/logo_arunpriya_dark.png',
+    splashWhite: './assets/logo_arunpriya_white.png',
+  },
+  links: {
+    icon: './assets/Logo_Links_Hospital.png',
+    splash: './assets/Logo_Links_Hospital.png',
+    splashDark: './assets/Logo_Links_Hospital.png',
+    splashWhite: './assets/Logo_Links_Hospital.png',
+  },
+};
+
+const logoKey = process.env.EXPO_PUBLIC_HOSPITAL_LOGO || 'arunpriya';
+const logos = LOGO_MAP[logoKey] ?? LOGO_MAP.arunpriya;
+
 export default ({ config }: ConfigContext): ExpoConfig => withSlimAndroid({
   ...config,
   name: hospitalName,
   slug: appSlug,
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/logo_arunpriya.png',
+  icon: logos.icon,
   userInterfaceStyle: 'automatic',
   splash: {
-    image: './assets/logo_arunpriya_dark.png',
+    image: logos.splashDark,
     resizeMode: 'contain',
     backgroundColor: '#FFFFFF',
   },
@@ -96,11 +115,11 @@ export default ({ config }: ConfigContext): ExpoConfig => withSlimAndroid({
   android: {
     package: bundleId,
     splash: {
-      image: './assets/logo_arunpriya_dark.png',
+      image: logos.splashDark,
       resizeMode: 'contain',
       backgroundColor: '#FFFFFF',
       dark: {
-        image: './assets/logo_arunpriya_white.png',
+        image: logos.splashWhite,
         backgroundColor: '#0B1B3D',
       },
     },
