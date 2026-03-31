@@ -403,7 +403,7 @@ export default function PatientDashboard() {
           <View className="flex-row items-center justify-between mb-4">
             {/* Logo + name block */}
             <View className="flex-row items-center gap-3 flex-1 mr-3">
-              <Image source={HospitalConfig.logo} style={{ width: 64, height: 64 }} resizeMode="contain" />
+              <Image source={HospitalConfig.logo} style={{ width: 64, height: 64, backgroundColor: 'transparent' }} resizeMode="contain" />
               <View className="flex-1">
                 <Text className="text-[15px] font-extrabold text-midnight leading-[19px]" numberOfLines={2}>{HospitalConfig.name}</Text>
                 <View className="mt-1.5 self-start flex-row items-center gap-1 px-2.5 py-[3px] rounded-full" style={{ backgroundColor: '#1A73E8' }}>

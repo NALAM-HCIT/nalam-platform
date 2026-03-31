@@ -28,10 +28,10 @@ export default function SplashRoleScreen() {
       <View className="flex-1 items-center justify-center px-6">
         {/* Logo Section - standalone, not in card */}
         <View className="items-center mb-6">
-          <View className="w-36 h-36 mb-5 items-center justify-center">
+          <View style={{ width: 144, height: 144, marginBottom: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
             <Image
               source={HospitalConfig.logo}
-              className="w-full h-full"
+              style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
               resizeMode="contain"
             />
           </View>
