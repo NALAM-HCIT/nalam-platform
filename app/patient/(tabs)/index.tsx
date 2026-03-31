@@ -1,6 +1,6 @@
 import { CustomAlert } from '@/components/CustomAlert';
 import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Switch, Modal, RefreshControl, Dimensions, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, Switch, Modal, RefreshControl, Dimensions, ActivityIndicator, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -204,6 +204,9 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
     const painSlide                     = useRef(new Animated.Value(700)).current;
     const backdropOpacity               = useRef(new Animated.Value(0)).current;
 
+    const slide = (val: Animated.Value, to: number) =>
+      Animated.timing(val, { toValue: to, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+
     useImperativeHandle(ref, () => ({
       open(type) {
         setActive(type);
@@ -212,18 +215,19 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
         const target = type === 'unwell' ? unwellSlide : painSlide;
         const other  = type === 'unwell' ? painSlide   : unwellSlide;
         other.setValue(700);
+        target.setValue(700);
         Animated.parallel([
-          Animated.spring(target,          { toValue: 0,   useNativeDriver: true, bounciness: 0, speed: 22 }),
-          Animated.timing(backdropOpacity, { toValue: 1,   duration: 160, useNativeDriver: true }),
+          slide(target, 0),
+          Animated.timing(backdropOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
         ]).start();
       },
     }));
 
     const close = useCallback(() => {
       Animated.parallel([
-        Animated.spring(unwellSlide,     { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
-        Animated.spring(painSlide,       { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
-        Animated.timing(backdropOpacity, { toValue: 0,   duration: 160, useNativeDriver: true }),
+        slide(unwellSlide, 700),
+        slide(painSlide, 700),
+        Animated.timing(backdropOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
       ]).start(() => setActive(null));
     }, []);
 
@@ -235,7 +239,7 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
         {/* Backdrop */}
         <Animated.View
           pointerEvents={active ? 'auto' : 'none'}
-          style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 50, opacity: backdropOpacity }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 50, opacity: backdropOpacity }}
         >
           <Pressable style={{ flex: 1 }} onPress={close} />
         </Animated.View>
@@ -735,17 +739,16 @@ export default function PatientDashboard() {
                 return (
                   <Pressable
                     key={m.key}
-                    onPress={async () => {
+                    onPress={() => {
                       setMood(m.key);
-                      const scoreMap: Record<string, number> = { great: 5, good: 4, okay: 3, unwell: 2, pain: 1 };
-                      const labelMap: Record<string, string> = { great: 'great', good: 'good', okay: 'okay', unwell: 'bad', pain: 'terrible' };
-                      try {
-                        const saved = await logMood({ mood_score: scoreMap[m.key] ?? 3, mood_label: labelMap[m.key] ?? 'okay' });
-                        setTodayMoodData(saved);
-                      } catch { }
                       if (m.key === 'unwell' || m.key === 'pain') {
                         careSheetRef.current?.open(m.key as 'unwell' | 'pain');
                       }
+                      const scoreMap: Record<string, number> = { great: 5, good: 4, okay: 3, unwell: 2, pain: 1 };
+                      const labelMap: Record<string, string> = { great: 'great', good: 'good', okay: 'okay', unwell: 'bad', pain: 'terrible' };
+                      logMood({ mood_score: scoreMap[m.key] ?? 3, mood_label: labelMap[m.key] ?? 'okay' })
+                        .then(setTodayMoodData)
+                        .catch(() => {});
                     }}
                     className="items-center active:scale-95 transition-transform"
                   >
