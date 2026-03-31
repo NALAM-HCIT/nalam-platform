@@ -32,7 +32,8 @@ import {
   ChevronRight, Wind, Footprints,
   Lightbulb, Watch, Calendar, Sparkles,
   Smile, Frown, Meh, ThumbsUp, HeartPulse, Thermometer,
-  CloudLightning, ArrowDownRight, Plus
+  CloudLightning, ArrowDownRight, Plus,
+  Video, Stethoscope, ClipboardList, Siren,
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -252,14 +253,14 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
           <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
           <View className="items-center mb-6">
             <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEF3C7' }}>
-              <Text style={{ fontSize: 32 }}>🤒</Text>
+              <Thermometer size={32} color="#D97706" />
             </View>
             <Text className="text-xl font-extrabold text-midnight">Sorry you're not feeling well</Text>
             <Text className="text-sm text-slate-400 mt-1 text-center">Let us know what's going on — your care team is here</Text>
           </View>
           <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">What are you feeling?</Text>
           <View className="flex-row flex-wrap gap-2 mb-6">
-            {['🤒 Fever', '🤕 Headache', '🤢 Nausea', '💨 Breathless', '😴 Fatigue', '🤧 Cold', '💧 Dehydrated', '😵 Dizzy'].map((s) => {
+            {['Fever', 'Headache', 'Nausea', 'Breathless', 'Fatigue', 'Cold', 'Dehydrated', 'Dizzy'].map((s) => {
               const on = symptoms.includes(s);
               return (
                 <Pressable key={s} onPress={() => toggleSymptom(s)} className="px-3 py-2 rounded-full border active:opacity-70"
@@ -272,18 +273,18 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
           <View className="gap-3">
             <Pressable onPress={() => { close(); onNavigate('/patient/consultation-type'); }}
               className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90" style={{ backgroundColor: '#1A73E8' }}>
-              <Text style={{ fontSize: 18 }}>📹</Text>
+              <Video size={18} color="#fff" />
               <Text className="text-white font-bold text-base">Talk to my Doctor</Text>
             </Pressable>
             <View className="flex-row gap-3">
               <Pressable onPress={() => { close(); onNavigate('/patient/(tabs)/pharmacy'); }}
                 className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70" style={{ backgroundColor: '#F8FAFC' }}>
-                <Text style={{ fontSize: 16 }}>💊</Text>
+                <Pill size={16} color="#475569" />
                 <Text className="text-sm font-bold text-slate-600">My Medicines</Text>
               </Pressable>
               <Pressable onPress={() => { close(); onNavigate('/patient/(tabs)/records'); }}
                 className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70" style={{ backgroundColor: '#F8FAFC' }}>
-                <Text style={{ fontSize: 16 }}>📋</Text>
+                <ClipboardList size={16} color="#475569" />
                 <Text className="text-sm font-bold text-slate-600">My Records</Text>
               </Pressable>
             </View>
@@ -301,7 +302,7 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
           <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
           <View className="items-center mb-6">
             <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEE2E2' }}>
-              <Text style={{ fontSize: 32 }}>😣</Text>
+              <HeartPulse size={32} color="#EF4444" />
             </View>
             <Text className="text-xl font-extrabold text-midnight">We hear you — you're in pain</Text>
             <Text className="text-sm text-slate-400 mt-1 text-center">Tell us how bad it is so we can help</Text>
@@ -339,14 +340,14 @@ const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string
             {painScale >= 7 && (
               <Pressable onPress={() => { close(); onNavigate('/patient/sos-emergency'); }}
                 className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90" style={{ backgroundColor: '#EF4444' }}>
-                <Text style={{ fontSize: 18 }}>🚨</Text>
+                <Siren size={18} color="#fff" />
                 <Text className="text-white font-bold text-base">Alert Emergency / SOS</Text>
               </Pressable>
             )}
             <Pressable onPress={() => { close(); onNavigate('/patient/consultation-type'); }}
               className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
               style={{ backgroundColor: painScale >= 7 ? '#F8FAFC' : '#1A73E8', borderWidth: painScale >= 7 ? 1 : 0, borderColor: '#E2E8F0' }}>
-              <Text style={{ fontSize: 18 }}>📹</Text>
+              <Video size={18} color={painScale >= 7 ? '#1A73E8' : '#fff'} />
               <Text className="font-bold text-base" style={{ color: painScale >= 7 ? '#1A73E8' : '#fff' }}>Talk to my Doctor Now</Text>
             </Pressable>
             <Pressable onPress={close} className="items-center py-3 active:opacity-60">
