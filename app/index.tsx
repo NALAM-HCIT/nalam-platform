@@ -99,11 +99,11 @@ export default function SplashRoleScreen() {
       </View>
 
       {/* Footer */}
-      <View className="pb-10 pt-4 items-center gap-2">
-        <Text className="text-[10px] font-light tracking-[3px] text-slate-400 uppercase">
+      <View className="pb-10 pt-4 w-full items-center gap-2">
+        <Text className="text-[10px] font-light tracking-[3px] text-slate-400 uppercase text-center">
           Secure Encryption {'\u2022'} HIPAA Compliant {'\u2022'} NALAM v2.4
         </Text>
-        <Text className="text-[10px] font-medium tracking-widest text-slate-500/60 uppercase mt-1">
+        <Text className="text-[10px] font-medium tracking-widest text-slate-500/60 uppercase text-center">
           Powered by NALAMHCIT SOLUTIONS PVT LTD
         </Text>
       </View>
