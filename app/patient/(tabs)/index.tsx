@@ -1,5 +1,5 @@
 import { CustomAlert } from '@/components/CustomAlert';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, ScrollView, Pressable, Image, Switch, Modal, RefreshControl, Dimensions, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
@@ -192,6 +192,169 @@ function SweepRing({ progress, size = 130, strokeWidth = 8, color = '#1A73E8' }:
 }
 
 // ─── Main Dashboard ───
+// ─── Care Sheet Overlay (isolated component — never re-renders dashboard) ───
+type CareSheetHandle = { open: (type: 'unwell' | 'pain') => void };
+
+const CareSheetOverlay = forwardRef<CareSheetHandle, { onNavigate: (path: string) => void }>(
+  ({ onNavigate }, ref) => {
+    const [active, setActive]           = useState<'unwell' | 'pain' | null>(null);
+    const [painScale, setPainScale]     = useState(5);
+    const [symptoms, setSymptoms]       = useState<string[]>([]);
+    const unwellSlide                   = useRef(new Animated.Value(700)).current;
+    const painSlide                     = useRef(new Animated.Value(700)).current;
+    const backdropOpacity               = useRef(new Animated.Value(0)).current;
+
+    useImperativeHandle(ref, () => ({
+      open(type) {
+        setActive(type);
+        setSymptoms([]);
+        if (type === 'pain') setPainScale(5);
+        const target = type === 'unwell' ? unwellSlide : painSlide;
+        const other  = type === 'unwell' ? painSlide   : unwellSlide;
+        other.setValue(700);
+        Animated.parallel([
+          Animated.spring(target,          { toValue: 0,   useNativeDriver: true, bounciness: 0, speed: 22 }),
+          Animated.timing(backdropOpacity, { toValue: 1,   duration: 160, useNativeDriver: true }),
+        ]).start();
+      },
+    }));
+
+    const close = useCallback(() => {
+      Animated.parallel([
+        Animated.spring(unwellSlide,     { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
+        Animated.spring(painSlide,       { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
+        Animated.timing(backdropOpacity, { toValue: 0,   duration: 160, useNativeDriver: true }),
+      ]).start(() => setActive(null));
+    }, []);
+
+    const toggleSymptom = useCallback((s: string) =>
+      setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]), []);
+
+    return (
+      <>
+        {/* Backdrop */}
+        <Animated.View
+          pointerEvents={active ? 'auto' : 'none'}
+          style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 50, opacity: backdropOpacity }}
+        >
+          <Pressable style={{ flex: 1 }} onPress={close} />
+        </Animated.View>
+
+        {/* Unwell Sheet */}
+        <Animated.View
+          pointerEvents={active === 'unwell' ? 'auto' : 'none'}
+          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 51, backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40, transform: [{ translateY: unwellSlide }] }}
+        >
+          <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
+          <View className="items-center mb-6">
+            <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEF3C7' }}>
+              <Text style={{ fontSize: 32 }}>🤒</Text>
+            </View>
+            <Text className="text-xl font-extrabold text-midnight">Sorry you're not feeling well</Text>
+            <Text className="text-sm text-slate-400 mt-1 text-center">Let us know what's going on — your care team is here</Text>
+          </View>
+          <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">What are you feeling?</Text>
+          <View className="flex-row flex-wrap gap-2 mb-6">
+            {['🤒 Fever', '🤕 Headache', '🤢 Nausea', '😮‍💨 Breathless', '😴 Fatigue', '🤧 Cold', '💧 Dehydrated', '😵 Dizzy'].map((s) => {
+              const on = symptoms.includes(s);
+              return (
+                <Pressable key={s} onPress={() => toggleSymptom(s)} className="px-3 py-2 rounded-full border active:opacity-70"
+                  style={{ backgroundColor: on ? '#EEF4FF' : '#F8FAFC', borderColor: on ? '#1A73E8' : '#E2E8F0' }}>
+                  <Text className="text-sm" style={{ color: on ? '#1A73E8' : '#64748B', fontWeight: on ? '700' : '500' }}>{s}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View className="gap-3">
+            <Pressable onPress={() => { close(); onNavigate('/patient/consultation-type'); }}
+              className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90" style={{ backgroundColor: '#1A73E8' }}>
+              <Text style={{ fontSize: 18 }}>📹</Text>
+              <Text className="text-white font-bold text-base">Talk to my Doctor</Text>
+            </Pressable>
+            <View className="flex-row gap-3">
+              <Pressable onPress={() => { close(); onNavigate('/patient/(tabs)/pharmacy'); }}
+                className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70" style={{ backgroundColor: '#F8FAFC' }}>
+                <Text style={{ fontSize: 16 }}>💊</Text>
+                <Text className="text-sm font-bold text-slate-600">My Medicines</Text>
+              </Pressable>
+              <Pressable onPress={() => { close(); onNavigate('/patient/(tabs)/records'); }}
+                className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70" style={{ backgroundColor: '#F8FAFC' }}>
+                <Text style={{ fontSize: 16 }}>📋</Text>
+                <Text className="text-sm font-bold text-slate-600">My Records</Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={close} className="items-center py-3 active:opacity-60">
+              <Text className="text-slate-400 text-sm">I'll be okay, close this</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+
+        {/* Pain Sheet */}
+        <Animated.View
+          pointerEvents={active === 'pain' ? 'auto' : 'none'}
+          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 51, backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40, transform: [{ translateY: painSlide }] }}
+        >
+          <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
+          <View className="items-center mb-6">
+            <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEE2E2' }}>
+              <Text style={{ fontSize: 32 }}>😣</Text>
+            </View>
+            <Text className="text-xl font-extrabold text-midnight">We hear you — you're in pain</Text>
+            <Text className="text-sm text-slate-400 mt-1 text-center">Tell us how bad it is so we can help</Text>
+          </View>
+          <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Pain level</Text>
+          <View className="flex-row justify-between mb-1">
+            {[1,2,3,4,5,6,7,8,9,10].map((n) => {
+              const on = n === painScale;
+              const color = n <= 3 ? '#22C55E' : n <= 6 ? '#F59E0B' : '#EF4444';
+              return (
+                <Pressable key={n} onPress={() => setPainScale(n)} className="items-center justify-center rounded-xl active:opacity-70"
+                  style={{ width: 30, height: 36, backgroundColor: on ? color : `${color}18`, borderWidth: on ? 0 : 1, borderColor: `${color}30` }}>
+                  <Text style={{ fontSize: 12, fontWeight: on ? '800' : '600', color: on ? '#fff' : color }}>{n}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View className="flex-row justify-between mb-6">
+            <Text className="text-[10px] text-slate-400">Mild</Text>
+            <Text className="text-[10px] text-slate-400">Severe</Text>
+          </View>
+          <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Where is the pain?</Text>
+          <View className="flex-row flex-wrap gap-2 mb-6">
+            {['💔 Chest', '🧠 Head', '🫁 Back', '🦵 Leg', '🦷 Tooth', '🤰 Abdomen', '💪 Muscle', '🦴 Joint'].map((s) => {
+              const on = symptoms.includes(s);
+              return (
+                <Pressable key={s} onPress={() => toggleSymptom(s)} className="px-3 py-2 rounded-full border active:opacity-70"
+                  style={{ backgroundColor: on ? '#FEE2E2' : '#F8FAFC', borderColor: on ? '#EF4444' : '#E2E8F0' }}>
+                  <Text className="text-sm" style={{ color: on ? '#EF4444' : '#64748B', fontWeight: on ? '700' : '500' }}>{s}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View className="gap-3">
+            {painScale >= 7 && (
+              <Pressable onPress={() => { close(); onNavigate('/patient/sos-emergency'); }}
+                className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90" style={{ backgroundColor: '#EF4444' }}>
+                <Text style={{ fontSize: 18 }}>🚨</Text>
+                <Text className="text-white font-bold text-base">Alert Emergency / SOS</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={() => { close(); onNavigate('/patient/consultation-type'); }}
+              className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
+              style={{ backgroundColor: painScale >= 7 ? '#F8FAFC' : '#1A73E8', borderWidth: painScale >= 7 ? 1 : 0, borderColor: '#E2E8F0' }}>
+              <Text style={{ fontSize: 18 }}>📹</Text>
+              <Text className="font-bold text-base" style={{ color: painScale >= 7 ? '#1A73E8' : '#fff' }}>Talk to my Doctor Now</Text>
+            </Pressable>
+            <Pressable onPress={close} className="items-center py-3 active:opacity-60">
+              <Text className="text-slate-400 text-sm">I'll manage for now</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </>
+    );
+  }
+);
+
 export default function PatientDashboard() {
   const router = useRouter();
   const userName = useAuthStore((s) => s.userName);
@@ -216,31 +379,7 @@ export default function PatientDashboard() {
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
   const [waterLogLoading, setWaterLogLoading] = useState(false);
   const [upcomingAppointment, setUpcomingAppointment] = useState<CarePlan['upcomingAppointment']>(null);
-  const [showCareModal, setShowCareModal] = useState<'unwell' | 'pain' | null>(null);
-  const [painScale, setPainScale] = useState(5);
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-  const unwellSlide = useRef(new Animated.Value(700)).current;
-  const painSlide = useRef(new Animated.Value(700)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-
-  const openCareSheet = useCallback((type: 'unwell' | 'pain') => {
-    const target = type === 'unwell' ? unwellSlide : painSlide;
-    const other  = type === 'unwell' ? painSlide  : unwellSlide;
-    other.setValue(700);
-    Animated.parallel([
-      Animated.spring(target,       { toValue: 0, useNativeDriver: true, bounciness: 0, speed: 22 }),
-      Animated.timing(backdropOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-    ]).start();
-    setShowCareModal(type);
-  }, []);
-
-  const closeCareSheet = useCallback(() => {
-    Animated.parallel([
-      Animated.spring(unwellSlide,    { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
-      Animated.spring(painSlide,      { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
-      Animated.timing(backdropOpacity,{ toValue: 0, duration: 180, useNativeDriver: true }),
-    ]).start(() => closeCareSheet());
-  }, []);
+  const careSheetRef = useRef<CareSheetHandle>(null);
 
   const loadCarePlan = useCallback(() => {
     Promise.allSettled([
@@ -605,9 +744,7 @@ export default function PatientDashboard() {
                         setTodayMoodData(saved);
                       } catch { }
                       if (m.key === 'unwell' || m.key === 'pain') {
-                        setSelectedSymptoms([]);
-                        setPainScale(5);
-                        openCareSheet(m.key as 'unwell' | 'pain');
+                        careSheetRef.current?.open(m.key as 'unwell' | 'pain');
                       }
                     }}
                     className="items-center active:scale-95 transition-transform"
@@ -1284,151 +1421,7 @@ export default function PatientDashboard() {
         </View>
       </Modal>
 
-      {/* ── Care Sheets (pre-rendered, no Modal overhead) ── */}
-      {/* Backdrop */}
-      <Animated.View
-        pointerEvents={showCareModal ? 'auto' : 'none'}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 50, opacity: backdropOpacity }}
-      >
-        <Pressable style={{ flex: 1 }} onPress={closeCareSheet} />
-      </Animated.View>
-
-      {/* Unwell Sheet */}
-      <Animated.View
-        pointerEvents={showCareModal === 'unwell' ? 'auto' : 'none'}
-        style={[Shadows.presence, { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 51, backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40, transform: [{ translateY: unwellSlide }] }]}
-      >
-        <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
-        <View className="items-center mb-6">
-          <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEF3C7' }}>
-            <Text style={{ fontSize: 32 }}>🤒</Text>
-          </View>
-          <Text className="text-xl font-extrabold text-midnight">Sorry you're not feeling well</Text>
-          <Text className="text-sm text-slate-400 mt-1 text-center">Let us know what's going on — your care team is here</Text>
-        </View>
-        <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">What are you feeling?</Text>
-        <View className="flex-row flex-wrap gap-2 mb-6">
-          {['🤒 Fever', '🤕 Headache', '🤢 Nausea', '😮‍💨 Breathless', '😴 Fatigue', '🤧 Cold', '💧 Dehydrated', '😵 Dizzy'].map((s) => {
-            const active = selectedSymptoms.includes(s);
-            return (
-              <Pressable
-                key={s}
-                onPress={() => setSelectedSymptoms(prev => active ? prev.filter(x => x !== s) : [...prev, s])}
-                className="px-3 py-2 rounded-full border active:opacity-70"
-                style={{ backgroundColor: active ? '#EEF4FF' : '#F8FAFC', borderColor: active ? '#1A73E8' : '#E2E8F0' }}
-              >
-                <Text className="text-sm" style={{ color: active ? '#1A73E8' : '#64748B', fontWeight: active ? '700' : '500' }}>{s}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View className="gap-3">
-          <Pressable
-            onPress={() => { closeCareSheet(); router.push('/patient/consultation-type' as any); }}
-            className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
-            style={{ backgroundColor: '#1A73E8' }}
-          >
-            <Text style={{ fontSize: 18 }}>📹</Text>
-            <Text className="text-white font-bold text-base">Talk to my Doctor</Text>
-          </Pressable>
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={() => { closeCareSheet(); router.push('/patient/(tabs)/pharmacy' as any); }}
-              className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70"
-              style={{ backgroundColor: '#F8FAFC' }}
-            >
-              <Text style={{ fontSize: 16 }}>💊</Text>
-              <Text className="text-sm font-bold text-slate-600">My Medicines</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => { closeCareSheet(); router.push('/patient/(tabs)/records' as any); }}
-              className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70"
-              style={{ backgroundColor: '#F8FAFC' }}
-            >
-              <Text style={{ fontSize: 16 }}>📋</Text>
-              <Text className="text-sm font-bold text-slate-600">My Records</Text>
-            </Pressable>
-          </View>
-          <Pressable onPress={() => closeCareSheet()} className="items-center py-3 active:opacity-60">
-            <Text className="text-slate-400 text-sm">I'll be okay, close this</Text>
-          </Pressable>
-        </View>
-      </Animated.View>
-
-      {/* Pain Sheet */}
-      <Animated.View
-        pointerEvents={showCareModal === 'pain' ? 'auto' : 'none'}
-        style={[Shadows.presence, { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 51, backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40, transform: [{ translateY: painSlide }] }]}
-      >
-        <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
-        <View className="items-center mb-6">
-          <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEE2E2' }}>
-            <Text style={{ fontSize: 32 }}>😣</Text>
-          </View>
-          <Text className="text-xl font-extrabold text-midnight">We hear you — you're in pain</Text>
-          <Text className="text-sm text-slate-400 mt-1 text-center">Tell us how bad it is so we can help</Text>
-        </View>
-        <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Pain level</Text>
-        <View className="flex-row justify-between mb-1">
-          {[1,2,3,4,5,6,7,8,9,10].map((n) => {
-            const active = n === painScale;
-            const color = n <= 3 ? '#22C55E' : n <= 6 ? '#F59E0B' : '#EF4444';
-            return (
-              <Pressable
-                key={n}
-                onPress={() => setPainScale(n)}
-                className="items-center justify-center rounded-xl active:opacity-70"
-                style={{ width: 30, height: 36, backgroundColor: active ? color : `${color}18`, borderWidth: active ? 0 : 1, borderColor: `${color}30` }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: active ? '800' : '600', color: active ? '#fff' : color }}>{n}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View className="flex-row justify-between mb-6">
-          <Text className="text-[10px] text-slate-400">Mild</Text>
-          <Text className="text-[10px] text-slate-400">Severe</Text>
-        </View>
-        <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Where is the pain?</Text>
-        <View className="flex-row flex-wrap gap-2 mb-6">
-          {['💔 Chest', '🧠 Head', '🫁 Back', '🦵 Leg', '🦷 Tooth', '🤰 Abdomen', '💪 Muscle', '🦴 Joint'].map((s) => {
-            const active = selectedSymptoms.includes(s);
-            return (
-              <Pressable
-                key={s}
-                onPress={() => setSelectedSymptoms(prev => active ? prev.filter(x => x !== s) : [...prev, s])}
-                className="px-3 py-2 rounded-full border active:opacity-70"
-                style={{ backgroundColor: active ? '#FEE2E2' : '#F8FAFC', borderColor: active ? '#EF4444' : '#E2E8F0' }}
-              >
-                <Text className="text-sm" style={{ color: active ? '#EF4444' : '#64748B', fontWeight: active ? '700' : '500' }}>{s}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View className="gap-3">
-          {painScale >= 7 && (
-            <Pressable
-              onPress={() => { closeCareSheet(); router.push('/patient/sos-emergency' as any); }}
-              className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
-              style={{ backgroundColor: '#EF4444' }}
-            >
-              <Text style={{ fontSize: 18 }}>🚨</Text>
-              <Text className="text-white font-bold text-base">Alert Emergency / SOS</Text>
-            </Pressable>
-          )}
-          <Pressable
-            onPress={() => { closeCareSheet(); router.push('/patient/consultation-type' as any); }}
-            className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
-            style={{ backgroundColor: painScale >= 7 ? '#F8FAFC' : '#1A73E8', borderWidth: painScale >= 7 ? 1 : 0, borderColor: '#E2E8F0' }}
-          >
-            <Text style={{ fontSize: 18 }}>📹</Text>
-            <Text className="font-bold text-base" style={{ color: painScale >= 7 ? '#1A73E8' : '#fff' }}>Talk to my Doctor Now</Text>
-          </Pressable>
-          <Pressable onPress={() => closeCareSheet()} className="items-center py-3 active:opacity-60">
-            <Text className="text-slate-400 text-sm">I'll manage for now</Text>
-          </Pressable>
-        </View>
-      </Animated.View>
+      <CareSheetOverlay ref={careSheetRef} onNavigate={(path) => router.push(path as any)} />
 
     </SafeAreaView>
   );
