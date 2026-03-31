@@ -110,13 +110,5 @@ export async function warmUpApi(): Promise<boolean> {
   const msg = results.join('\n');
   console.log('[API DIAG]', msg);
 
-  // Show alert on device so user can screenshot it
-  setTimeout(() => {
-    try {
-      const { CustomAlert } = require('@/components/CustomAlert');
-      CustomAlert.alert('Network Diagnostic', msg);
-    } catch { /* ignore */ }
-  }, 1000);
-
   return !msg.includes('FAIL');
 }
