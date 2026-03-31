@@ -397,7 +397,7 @@ export default function PatientDashboard() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#1A73E8" />}>
         {/* ── Dynamic Header ── */}
         <LinearGradient
-          colors={currentHour < 12 ? ['#eff6ff', '#dbeafe'] : currentHour < 17 ? ['#fef3c7', '#fde68a'] : ['#eef2ff', '#e0e7ff']}
+          colors={['#eff6ff', '#dbeafe']}
           className="px-5 pt-4 pb-5 rounded-b-[32px] mb-3"
           style={Shadows.card}
         >
