@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -176,15 +176,23 @@ export default function OTPScreen() {
           ))}
         </View>
 
+        {error ? <Text className="text-red-500 text-sm text-center mb-4">{error}</Text> : null}
+
         {/* Verify Button */}
         <Pressable
           onPress={handleVerify}
+          disabled={isVerifying}
           className="w-full bg-primary py-4 rounded-xl items-center active:opacity-90"
-          style={Shadows.focus}
+          style={[Shadows.focus, isVerifying && { opacity: 0.8 }]}
         >
-          <Text className="text-white font-bold text-base tracking-wide">
-            Verify & Continue
-          </Text>
+          {isVerifying ? (
+            <View className="flex-row items-center gap-2">
+              <ActivityIndicator color="#FFFFFF" size="small" />
+              <Text className="text-white font-bold text-base tracking-wide">Verifying…</Text>
+            </View>
+          ) : (
+            <Text className="text-white font-bold text-base tracking-wide">Verify & Continue</Text>
+          )}
         </Pressable>
 
         {/* Resend OTP with countdown */}

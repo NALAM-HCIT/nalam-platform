@@ -33,6 +33,7 @@ export default function SplashRoleScreen() {
               source={HospitalConfig.logo}
               style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
               resizeMode="contain"
+              fadeDuration={0}
             />
           </View>
           <Text className="text-2xl font-extrabold text-center tracking-widest uppercase leading-8" style={{ color: '#1A73E8' }}>

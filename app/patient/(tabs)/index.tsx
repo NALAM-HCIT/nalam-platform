@@ -195,6 +195,7 @@ function SweepRing({ progress, size = 130, strokeWidth = 8, color = '#1A73E8' }:
 export default function PatientDashboard() {
   const router = useRouter();
   const userName = useAuthStore((s) => s.userName);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [tasks, setTasks] = useState<CareTask[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
@@ -251,6 +252,7 @@ export default function PatientDashboard() {
   }, []);
 
   const loadDashboard = useCallback(() => {
+    patientService.getProfile().then((p) => setProfilePhotoUrl(p.profilePhotoUrl)).catch(() => {});
     patientService.getNotifications().then(setNotifications).catch(() => {});
     getTodayMood().then(setTodayMoodData).catch(() => {});
     getWaterSettings().then(setWaterData).catch(() => {});
@@ -403,7 +405,7 @@ export default function PatientDashboard() {
           <View className="flex-row items-center justify-between mb-4">
             {/* Logo + name block */}
             <View className="flex-row items-center gap-3 flex-1 mr-3">
-              <Image source={HospitalConfig.logo} style={{ width: 64, height: 64, backgroundColor: 'transparent' }} resizeMode="contain" />
+              <Image source={HospitalConfig.logo} style={{ width: 64, height: 64, backgroundColor: 'transparent' }} resizeMode="contain" fadeDuration={0} />
               <View className="flex-1">
                 <Text className="text-[15px] font-extrabold text-midnight leading-[19px]" numberOfLines={2}>{HospitalConfig.name}</Text>
                 <View className="mt-1.5 self-start flex-row items-center gap-1 px-2.5 py-[3px] rounded-full" style={{ backgroundColor: '#1A73E8' }}>
@@ -429,10 +431,14 @@ export default function PatientDashboard() {
               </Pressable>
               <Pressable
                 onPress={() => router.push('/patient/(tabs)/profile' as any)}
-                className="w-10 h-10 rounded-full items-center justify-center active:opacity-70"
+                className="w-10 h-10 rounded-full overflow-hidden items-center justify-center active:opacity-70"
                 style={{ backgroundColor: '#0B1B3D' }}
               >
-                <Text className="text-sm font-bold text-white">{(userName || 'DM').slice(0, 2).toUpperCase()}</Text>
+                {profilePhotoUrl ? (
+                  <Image source={{ uri: profilePhotoUrl }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                ) : (
+                  <Text className="text-sm font-bold text-white">{(userName || 'P').slice(0, 2).toUpperCase()}</Text>
+                )}
               </Pressable>
             </View>
           </View>
