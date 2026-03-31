@@ -221,17 +221,26 @@ export default function PatientDashboard() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const unwellSlide = useRef(new Animated.Value(700)).current;
   const painSlide = useRef(new Animated.Value(700)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const show = (val: Animated.Value) =>
-      Animated.spring(val, { toValue: 0, useNativeDriver: true, bounciness: 0, speed: 22 }).start();
-    const hide = (val: Animated.Value) =>
-      Animated.spring(val, { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }).start();
+  const openCareSheet = useCallback((type: 'unwell' | 'pain') => {
+    const target = type === 'unwell' ? unwellSlide : painSlide;
+    const other  = type === 'unwell' ? painSlide  : unwellSlide;
+    other.setValue(700);
+    Animated.parallel([
+      Animated.spring(target,       { toValue: 0, useNativeDriver: true, bounciness: 0, speed: 22 }),
+      Animated.timing(backdropOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+    ]).start();
+    setShowCareModal(type);
+  }, []);
 
-    if (showCareModal === 'unwell') { show(unwellSlide); hide(painSlide); }
-    else if (showCareModal === 'pain') { show(painSlide); hide(unwellSlide); }
-    else { hide(unwellSlide); hide(painSlide); }
-  }, [showCareModal]);
+  const closeCareSheet = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(unwellSlide,    { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
+      Animated.spring(painSlide,      { toValue: 700, useNativeDriver: true, bounciness: 0, speed: 22 }),
+      Animated.timing(backdropOpacity,{ toValue: 0, duration: 180, useNativeDriver: true }),
+    ]).start(() => closeCareSheet());
+  }, []);
 
   const loadCarePlan = useCallback(() => {
     Promise.allSettled([
@@ -598,7 +607,7 @@ export default function PatientDashboard() {
                       if (m.key === 'unwell' || m.key === 'pain') {
                         setSelectedSymptoms([]);
                         setPainScale(5);
-                        setShowCareModal(m.key);
+                        openCareSheet(m.key as 'unwell' | 'pain');
                       }
                     }}
                     className="items-center active:scale-95 transition-transform"
@@ -1277,11 +1286,12 @@ export default function PatientDashboard() {
 
       {/* ── Care Sheets (pre-rendered, no Modal overhead) ── */}
       {/* Backdrop */}
-      <Pressable
-        onPress={() => setShowCareModal(null)}
+      <Animated.View
         pointerEvents={showCareModal ? 'auto' : 'none'}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 50, opacity: showCareModal ? 1 : 0 }}
-      />
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 50, opacity: backdropOpacity }}
+      >
+        <Pressable style={{ flex: 1 }} onPress={closeCareSheet} />
+      </Animated.View>
 
       {/* Unwell Sheet */}
       <Animated.View
@@ -1314,7 +1324,7 @@ export default function PatientDashboard() {
         </View>
         <View className="gap-3">
           <Pressable
-            onPress={() => { setShowCareModal(null); router.push('/patient/consultation-type' as any); }}
+            onPress={() => { closeCareSheet(); router.push('/patient/consultation-type' as any); }}
             className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
             style={{ backgroundColor: '#1A73E8' }}
           >
@@ -1323,7 +1333,7 @@ export default function PatientDashboard() {
           </Pressable>
           <View className="flex-row gap-3">
             <Pressable
-              onPress={() => { setShowCareModal(null); router.push('/patient/(tabs)/pharmacy' as any); }}
+              onPress={() => { closeCareSheet(); router.push('/patient/(tabs)/pharmacy' as any); }}
               className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70"
               style={{ backgroundColor: '#F8FAFC' }}
             >
@@ -1331,7 +1341,7 @@ export default function PatientDashboard() {
               <Text className="text-sm font-bold text-slate-600">My Medicines</Text>
             </Pressable>
             <Pressable
-              onPress={() => { setShowCareModal(null); router.push('/patient/(tabs)/records' as any); }}
+              onPress={() => { closeCareSheet(); router.push('/patient/(tabs)/records' as any); }}
               className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70"
               style={{ backgroundColor: '#F8FAFC' }}
             >
@@ -1339,7 +1349,7 @@ export default function PatientDashboard() {
               <Text className="text-sm font-bold text-slate-600">My Records</Text>
             </Pressable>
           </View>
-          <Pressable onPress={() => setShowCareModal(null)} className="items-center py-3 active:opacity-60">
+          <Pressable onPress={() => closeCareSheet()} className="items-center py-3 active:opacity-60">
             <Text className="text-slate-400 text-sm">I'll be okay, close this</Text>
           </Pressable>
         </View>
@@ -1398,7 +1408,7 @@ export default function PatientDashboard() {
         <View className="gap-3">
           {painScale >= 7 && (
             <Pressable
-              onPress={() => { setShowCareModal(null); router.push('/patient/sos-emergency' as any); }}
+              onPress={() => { closeCareSheet(); router.push('/patient/sos-emergency' as any); }}
               className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
               style={{ backgroundColor: '#EF4444' }}
             >
@@ -1407,14 +1417,14 @@ export default function PatientDashboard() {
             </Pressable>
           )}
           <Pressable
-            onPress={() => { setShowCareModal(null); router.push('/patient/consultation-type' as any); }}
+            onPress={() => { closeCareSheet(); router.push('/patient/consultation-type' as any); }}
             className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
             style={{ backgroundColor: painScale >= 7 ? '#F8FAFC' : '#1A73E8', borderWidth: painScale >= 7 ? 1 : 0, borderColor: '#E2E8F0' }}
           >
             <Text style={{ fontSize: 18 }}>📹</Text>
             <Text className="font-bold text-base" style={{ color: painScale >= 7 ? '#1A73E8' : '#fff' }}>Talk to my Doctor Now</Text>
           </Pressable>
-          <Pressable onPress={() => setShowCareModal(null)} className="items-center py-3 active:opacity-60">
+          <Pressable onPress={() => closeCareSheet()} className="items-center py-3 active:opacity-60">
             <Text className="text-slate-400 text-sm">I'll manage for now</Text>
           </Pressable>
         </View>
