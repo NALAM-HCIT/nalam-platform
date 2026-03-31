@@ -216,6 +216,9 @@ export default function PatientDashboard() {
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
   const [waterLogLoading, setWaterLogLoading] = useState(false);
   const [upcomingAppointment, setUpcomingAppointment] = useState<CarePlan['upcomingAppointment']>(null);
+  const [showCareModal, setShowCareModal] = useState<'unwell' | 'pain' | null>(null);
+  const [painScale, setPainScale] = useState(5);
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
 
   const loadCarePlan = useCallback(() => {
     Promise.allSettled([
@@ -580,7 +583,9 @@ export default function PatientDashboard() {
                         setTodayMoodData(saved);
                       } catch { }
                       if (m.key === 'unwell' || m.key === 'pain') {
-                        CustomAlert.alert('We\'re sorry to hear that', `Would you like to speak with your care team?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Call Doctor' }]);
+                        setSelectedSymptoms([]);
+                        setPainScale(5);
+                        setShowCareModal(m.key);
                       }
                     }}
                     className="items-center active:scale-95 transition-transform"
@@ -1256,6 +1261,165 @@ export default function PatientDashboard() {
           </View>
         </View>
       </Modal>
+
+      {/* ── Care Modal: Unwell ── */}
+      <Modal visible={showCareModal === 'unwell'} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-white rounded-t-[36px] px-6 pt-4 pb-10" style={Shadows.presence}>
+            {/* Handle */}
+            <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
+
+            {/* Header */}
+            <View className="items-center mb-6">
+              <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEF3C7' }}>
+                <Text style={{ fontSize: 32 }}>🤒</Text>
+              </View>
+              <Text className="text-xl font-extrabold text-midnight">Sorry you're not feeling well</Text>
+              <Text className="text-sm text-slate-400 mt-1 text-center">Let us know what's going on — your care team is here</Text>
+            </View>
+
+            {/* Symptom chips */}
+            <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">What are you feeling?</Text>
+            <View className="flex-row flex-wrap gap-2 mb-6">
+              {['🤒 Fever', '🤕 Headache', '🤢 Nausea', '😮‍💨 Breathless', '😴 Fatigue', '🤧 Cold', '💧 Dehydrated', '😵 Dizzy'].map((s) => {
+                const active = selectedSymptoms.includes(s);
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={() => setSelectedSymptoms(prev => active ? prev.filter(x => x !== s) : [...prev, s])}
+                    className="px-3 py-2 rounded-full border active:opacity-70"
+                    style={{ backgroundColor: active ? '#EEF4FF' : '#F8FAFC', borderColor: active ? '#1A73E8' : '#E2E8F0' }}
+                  >
+                    <Text className="text-sm" style={{ color: active ? '#1A73E8' : '#64748B', fontWeight: active ? '700' : '500' }}>{s}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Actions */}
+            <View className="gap-3">
+              <Pressable
+                onPress={() => { setShowCareModal(null); router.push('/patient/consultation-type' as any); }}
+                className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
+                style={{ backgroundColor: '#1A73E8' }}
+              >
+                <Text style={{ fontSize: 18 }}>📹</Text>
+                <Text className="text-white font-bold text-base">Talk to my Doctor</Text>
+              </Pressable>
+
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={() => { setShowCareModal(null); router.push('/patient/(tabs)/pharmacy' as any); }}
+                  className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70"
+                  style={{ backgroundColor: '#F8FAFC' }}
+                >
+                  <Text style={{ fontSize: 16 }}>💊</Text>
+                  <Text className="text-sm font-bold text-slate-600">My Medicines</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => { setShowCareModal(null); router.push('/patient/(tabs)/records' as any); }}
+                  className="flex-1 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 border border-slate-200 active:opacity-70"
+                  style={{ backgroundColor: '#F8FAFC' }}
+                >
+                  <Text style={{ fontSize: 16 }}>📋</Text>
+                  <Text className="text-sm font-bold text-slate-600">My Records</Text>
+                </Pressable>
+              </View>
+
+              <Pressable onPress={() => setShowCareModal(null)} className="items-center py-3 active:opacity-60">
+                <Text className="text-slate-400 text-sm">I'll be okay, close this</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Care Modal: In Pain ── */}
+      <Modal visible={showCareModal === 'pain'} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-white rounded-t-[36px] px-6 pt-4 pb-10" style={Shadows.presence}>
+            {/* Handle */}
+            <View className="w-12 h-1.5 bg-slate-200 rounded-full self-center mb-5" />
+
+            {/* Header */}
+            <View className="items-center mb-6">
+              <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: '#FEE2E2' }}>
+                <Text style={{ fontSize: 32 }}>😣</Text>
+              </View>
+              <Text className="text-xl font-extrabold text-midnight">We hear you — you're in pain</Text>
+              <Text className="text-sm text-slate-400 mt-1 text-center">Tell us how bad it is so we can help</Text>
+            </View>
+
+            {/* Pain scale */}
+            <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Pain level</Text>
+            <View className="flex-row justify-between mb-1">
+              {[1,2,3,4,5,6,7,8,9,10].map((n) => {
+                const active = n === painScale;
+                const color = n <= 3 ? '#22C55E' : n <= 6 ? '#F59E0B' : '#EF4444';
+                return (
+                  <Pressable
+                    key={n}
+                    onPress={() => setPainScale(n)}
+                    className="items-center justify-center rounded-xl active:opacity-70"
+                    style={{ width: 30, height: 36, backgroundColor: active ? color : `${color}18`, borderWidth: active ? 0 : 1, borderColor: `${color}30` }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: active ? '800' : '600', color: active ? '#fff' : color }}>{n}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View className="flex-row justify-between mb-6">
+              <Text className="text-[10px] text-slate-400">Mild</Text>
+              <Text className="text-[10px] text-slate-400">Severe</Text>
+            </View>
+
+            {/* Pain location chips */}
+            <Text className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Where is the pain?</Text>
+            <View className="flex-row flex-wrap gap-2 mb-6">
+              {['💔 Chest', '🧠 Head', '🫁 Back', '🦵 Leg', '🦷 Tooth', '🤰 Abdomen', '💪 Muscle', '🦴 Joint'].map((s) => {
+                const active = selectedSymptoms.includes(s);
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={() => setSelectedSymptoms(prev => active ? prev.filter(x => x !== s) : [...prev, s])}
+                    className="px-3 py-2 rounded-full border active:opacity-70"
+                    style={{ backgroundColor: active ? '#FEE2E2' : '#F8FAFC', borderColor: active ? '#EF4444' : '#E2E8F0' }}
+                  >
+                    <Text className="text-sm" style={{ color: active ? '#EF4444' : '#64748B', fontWeight: active ? '700' : '500' }}>{s}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Actions */}
+            <View className="gap-3">
+              {painScale >= 7 && (
+                <Pressable
+                  onPress={() => { setShowCareModal(null); router.push('/patient/sos-emergency' as any); }}
+                  className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
+                  style={{ backgroundColor: '#EF4444' }}
+                >
+                  <Text style={{ fontSize: 18 }}>🚨</Text>
+                  <Text className="text-white font-bold text-base">Alert Emergency / SOS</Text>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={() => { setShowCareModal(null); router.push('/patient/consultation-type' as any); }}
+                className="w-full py-4 rounded-2xl flex-row items-center justify-center gap-2 active:opacity-90"
+                style={{ backgroundColor: painScale >= 7 ? '#F8FAFC' : '#1A73E8', borderWidth: painScale >= 7 ? 1 : 0, borderColor: '#E2E8F0' }}
+              >
+                <Text style={{ fontSize: 18 }}>📹</Text>
+                <Text className="font-bold text-base" style={{ color: painScale >= 7 ? '#1A73E8' : '#fff' }}>Talk to my Doctor Now</Text>
+              </Pressable>
+
+              <Pressable onPress={() => setShowCareModal(null)} className="items-center py-3 active:opacity-60">
+                <Text className="text-slate-400 text-sm">I'll manage for now</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }

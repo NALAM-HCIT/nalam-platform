@@ -324,3 +324,16 @@ Only **5 touch points** total.
 |---|---|---|
 | Arun Priya Multispeciality Hospital | `arunpriya` | `com.nalam.arunpriya` |
 | Links Hospital | `links` | `com.nalam.links` |
+
+
+
+
+
+# 1. Set the env
+cp .env.links .env
+
+# 2. Regenerate the native android/ folder from scratch
+npx expo prebuild --platform android --clean
+
+# 3. Now run Gradle — it will have Links Hospital values
+cd android && ./gradlew assembleDebug
