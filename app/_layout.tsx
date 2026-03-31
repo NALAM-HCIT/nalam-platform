@@ -7,7 +7,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { CustomAlertProvider } from '@/components/CustomAlert';
-import { warmUpApi } from '@/services/api';
 
 // Known Fabric compatibility issue with react-native-svg — suppress the thrown error
 LogBox.ignoreLogs(['Unsupported top level event type "topSvgLayout"']);
@@ -26,8 +25,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Warm up Railway (wake from cold-start) while checking auth in parallel
-    warmUpApi();
     checkAuth().finally(() => setIsLoading(false));
   }, []);
 
