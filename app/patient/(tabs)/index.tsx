@@ -30,7 +30,7 @@ import {
   BriefcaseMedical, Sun, Moon, Sunrise, Heart, Activity,
   Apple, Dumbbell, X, Clock, AlertTriangle, Flame, TrendingUp,
   ChevronRight, Wind, Footprints,
-  Lightbulb, Watch,
+  Lightbulb, Watch, Calendar, Sparkles,
   Smile, Frown, Meh, ThumbsUp, HeartPulse, Thermometer,
   CloudLightning, ArrowDownRight, Plus
 } from 'lucide-react-native';
@@ -215,6 +215,7 @@ export default function PatientDashboard() {
   const [latestVitals, setLatestVitals]     = useState<LatestVitals | null>(null);
   const [apiTips, setApiTips]               = useState<HealthTip[]>([]);
   const [waterLogLoading, setWaterLogLoading] = useState(false);
+  const [upcomingAppointment, setUpcomingAppointment] = useState<CarePlan['upcomingAppointment']>(null);
 
   const loadCarePlan = useCallback(() => {
     Promise.allSettled([
@@ -248,6 +249,9 @@ export default function PatientDashboard() {
         : [];
 
       setTasks([...baseTasks, ...customTasks]);
+      if (carePlanResult.status === 'fulfilled') {
+        setUpcomingAppointment(carePlanResult.value.upcomingAppointment);
+      }
     });
   }, []);
 
@@ -388,8 +392,37 @@ export default function PatientDashboard() {
 
   // Header dynamic colors
   const currentHour = new Date().getHours();
-  // using gradient configuration instead of dynamic JS color classes
   const greetingText = currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  // Appointment countdown
+  const apptCountdown = (() => {
+    if (!upcomingAppointment) return null;
+    const apptDate = new Date(`${upcomingAppointment.scheduleDate}T${upcomingAppointment.startTime}`);
+    const diffMs = apptDate.getTime() - Date.now();
+    if (diffMs <= 0) return null;
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffDays === 0 && diffHrs === 0) return { label: 'In less than an hour', urgency: 'now' as const };
+    if (diffDays === 0) return { label: `In ${diffHrs}h`, urgency: 'today' as const };
+    if (diffDays === 1) return { label: 'Tomorrow', urgency: 'soon' as const };
+    return { label: `In ${diffDays} days`, urgency: 'upcoming' as const };
+  })();
+
+  // Personalized insight
+  const personalInsight = (() => {
+    const firstName = (userName || '').split(' ')[0];
+    if (!firstName) return null;
+    if (apptCountdown?.urgency === 'now') return `Your appointment is starting very soon!`;
+    if (apptCountdown?.urgency === 'today') return `You have an appointment today — don't forget!`;
+    if (completedTasks > 0 && completedTasks === totalTasks && totalTasks > 0) return `All ${totalTasks} tasks done today — amazing work!`;
+    if (waterData && waterData.progress_pct >= 100) return `You've hit your water goal today 💧 Keep it up!`;
+    if (mood === 'great' || mood === 'good') return `Glad you're feeling ${mood} today — let's make it count!`;
+    if (mood === 'unwell' || mood === 'pain') return `Take it easy today. Your care team is here for you.`;
+    const steps = liveSteps || stepData?.step_count || 0;
+    if (steps > 8000) return `${steps.toLocaleString()} steps already — you're crushing it!`;
+    if (latestVitals) return `Your last vitals look good. Stay consistent!`;
+    return `Every healthy habit today builds a stronger tomorrow.`;
+  })();
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
   return (
@@ -449,8 +482,36 @@ export default function PatientDashboard() {
           {/* Greeting + patient name */}
           <View>
             <Text className="text-[12px] font-semibold text-slate-500">{greetingText},</Text>
-            <Text className="text-[23px] font-extrabold text-midnight tracking-tight leading-7">{userName || 'David Miller'}</Text>
+            <Text className="text-[23px] font-extrabold text-midnight tracking-tight leading-7">{userName || 'Patient'}</Text>
           </View>
+
+          {/* ── Personalized Insight ── */}
+          {personalInsight && (
+            <View className="flex-row items-center gap-2 mt-3 px-3 py-2.5 rounded-2xl" style={{ backgroundColor: 'rgba(26,115,232,0.08)' }}>
+              <Sparkles size={14} color="#1A73E8" />
+              <Text className="text-[12px] text-primary font-semibold flex-1">{personalInsight}</Text>
+            </View>
+          )}
+
+          {/* ── Upcoming Appointment Countdown ── */}
+          {upcomingAppointment && apptCountdown && (
+            <Pressable
+              onPress={() => router.push('/patient/(tabs)/bookings' as any)}
+              className="flex-row items-center gap-3 mt-2.5 px-3 py-2.5 rounded-2xl active:opacity-80"
+              style={{ backgroundColor: apptCountdown.urgency === 'now' || apptCountdown.urgency === 'today' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: apptCountdown.urgency === 'now' || apptCountdown.urgency === 'today' ? 'rgba(239,68,68,0.2)' : 'rgba(226,234,255,0.8)' }}
+            >
+              <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: apptCountdown.urgency === 'now' || apptCountdown.urgency === 'today' ? '#FEE2E2' : '#EEF4FF' }}>
+                <Calendar size={15} color={apptCountdown.urgency === 'now' || apptCountdown.urgency === 'today' ? '#EF4444' : '#1A73E8'} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[11px] font-bold text-midnight" numberOfLines={1}>
+                  Dr. {upcomingAppointment.doctorName} · {upcomingAppointment.specialty}
+                </Text>
+                <Text className="text-[10px] text-slate-500">{upcomingAppointment.startTime} · {apptCountdown.label}</Text>
+              </View>
+              <ChevronRight size={14} color="#94A3B8" />
+            </Pressable>
+          )}
 
         </LinearGradient>
 
