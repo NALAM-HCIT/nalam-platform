@@ -1,6 +1,6 @@
 import { CustomAlert } from '@nalam/shared/components/CustomAlert';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Platform, PermissionsAndroid, Linking, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Platform, PermissionsAndroid, Linking, useWindowDimensions, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -348,9 +348,12 @@ function VitalsTab() {
   const [showLogs, setShowLogs] = useState(false);
   const [wearDetected, setWearDetected] = useState(false);
   const [signalQuality, setSignalQuality] = useState(0);
+  const [glucoseInput, setGlucoseInput] = useState('');
+  const [glucoseMeasuring, setGlucoseMeasuring] = useState(false);
+  const [ecgMeasuring, setEcgMeasuring] = useState(false);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const staged    = useRef<{ hr?: number; sbp?: number; dbp?: number; spo2?: number; temp?: number }>({});
+  const staged    = useRef<{ hr?: number; sbp?: number; dbp?: number; spo2?: number; temp?: number; blood_glucose?: number; ecg_data?: string }>({});
   const histBuf   = useRef<{ hr: LogVitalsRequest[]; spo2: LogVitalsRequest[]; temp: LogVitalsRequest[] }>
                       ({ hr: [], spo2: [], temp: [] });
   const wearQuality = useRef({ validReadings: 0, totalReadings: 0 });
@@ -411,7 +414,7 @@ function VitalsTab() {
 
     saveTimer.current = setTimeout(async () => {
       const s = staged.current;
-      if (!s.hr && !s.sbp && !s.spo2 && !s.temp) {
+      if (!s.hr && !s.sbp && !s.spo2 && !s.temp && !s.blood_glucose && !s.ecg_data) {
         saveTimer.current = null;
         return;
       }
@@ -422,9 +425,11 @@ function VitalsTab() {
           bp_diastolic:  s.dbp,
           spo2:          s.spo2,
           temperature_c: s.temp,
+          blood_glucose: s.blood_glucose,
+          ecg_data:      s.ecg_data,
           source:        'device',
         };
-        addLog(`[API] Sending: HR=${s.hr} SpO2=${s.spo2} BP=${s.sbp}/${s.dbp} Temp=${s.temp}`);
+        addLog(`[API] Sending: HR=${s.hr} SpO2=${s.spo2} BP=${s.sbp}/${s.dbp} Temp=${s.temp} Glucose=${s.blood_glucose} ECG=${s.ecg_data}`);
         const result = await logVitals(payload);
         addLog(`[API] ✓ Saved (ID: ${result.id})`);
         setLastError(null);
@@ -434,6 +439,8 @@ function VitalsTab() {
         if (s.dbp !== undefined) staged.current.dbp = undefined;
         if (s.spo2 !== undefined) staged.current.spo2 = undefined;
         if (s.temp !== undefined) staged.current.temp = undefined;
+        if (s.blood_glucose !== undefined) staged.current.blood_glucose = undefined;
+        if (s.ecg_data !== undefined) staged.current.ecg_data = undefined;
         loadLatestVitals();
       } catch (err: any) {
         const errorMsg = err?.response?.data?.error || err?.message || String(err);
@@ -631,6 +638,34 @@ function VitalsTab() {
   const handleTakeTemp = () => {
     if (tempMeasuring) return;
     setTempMeasuring(true); JCV.startMeasurement(4);
+  };
+  const handleSaveGlucose = () => {
+    const glucose = parseFloat(glucoseInput);
+    if (!glucoseInput || isNaN(glucose)) {
+      setLastError('Please enter a valid blood glucose value');
+      return;
+    }
+    if (glucose < 10 || glucose > 2000) {
+      setLastError('Blood glucose must be between 10-2000 mg/dL');
+      return;
+    }
+    addLog(`[Glucose] Logged: ${glucose} mg/dL`);
+    staged.current.blood_glucose = glucose;
+    setGlucoseInput('');
+    setGlucoseMeasuring(false);
+    setLastError(null);
+    flush();
+  };
+  const handleStartECG = () => {
+    if (ecgMeasuring) return;
+    setEcgMeasuring(true);
+    addLog('[ECG] Starting ECG measurement...');
+    // Note: JCVitals SDK supports ECG but the native module may not expose it yet
+    // For now, show "not supported" after a delay
+    setTimeout(() => {
+      addLog('[ECG] ECG measurement not available on this device');
+      setEcgMeasuring(false);
+    }, 2000);
   };
   // Auto-start vitals streaming as soon as the band connects.
   //
@@ -1059,6 +1094,75 @@ function VitalsTab() {
               </View>
             );
           })()}
+
+          {/* Blood Glucose card with manual entry */}
+          <View style={[{ backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: CARD_BORDER }, SHADOW_CARD]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: '#FEF3C720', alignItems: 'center', justifyContent: 'center' }}>
+                <Droplets size={20} color="#F59E0B" strokeWidth={1.8} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: MUTED, letterSpacing: 0.8 }}>BLOOD GLUCOSE</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: INK, marginTop: 2 }}>
+                  {latestVitals?.blood_glucose ? latestVitals.blood_glucose.toFixed(0) : '—'}
+                  <Text style={{ fontSize: 11, color: MUTED, fontWeight: '600', opacity: 0.7 }}> mg/dL</Text>
+                </Text>
+              </View>
+            </View>
+            {glucoseMeasuring ? (
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TextInput
+                  placeholder="Enter value"
+                  placeholderTextColor={MUTED}
+                  value={glucoseInput}
+                  onChangeText={setGlucoseInput}
+                  keyboardType="decimal-pad"
+                  style={{
+                    flex: 1, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+                    fontSize: 14, fontWeight: '600', color: INK,
+                  }}
+                />
+                <Pressable
+                  onPress={handleSaveGlucose}
+                  style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: ACCENT.lo }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>Save</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setGlucoseMeasuring(true)}
+                style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: '#FEF3C7', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#F59E0B' }}>Log Glucose</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* ECG card */}
+          <View style={[{ backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: CARD_BORDER }, SHADOW_CARD]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: '#DDD6FE30', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={20} color="#6366F1" strokeWidth={1.8} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: MUTED, letterSpacing: 0.8 }}>ECG</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: ecgMeasuring ? '#F97316' : INK, marginTop: 2 }}>
+                  {ecgMeasuring ? 'Measuring…' : 'Ready'}
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={handleStartECG}
+              disabled={ecgMeasuring}
+              style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: ecgMeasuring ? '#E2E8F030' : '#6366F1', alignItems: 'center', opacity: ecgMeasuring ? 0.6 : 1 }}
+            >
+              {ecgMeasuring && <ActivityIndicator size="small" color="#6366F1" />}
+              <Text style={{ fontSize: 12, fontWeight: '800', color: ecgMeasuring ? '#6366F1' : '#fff' }}>
+                {ecgMeasuring ? 'Measuring…' : 'Start ECG'}
+              </Text>
+            </Pressable>
+          </View>
 
           {/* Sync progress card */}
           {Object.values(syncState).some(s => s !== 'idle') && (
