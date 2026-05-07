@@ -1,0 +1,32 @@
+name: Vitals Aggregation
+
+on:
+  schedule:
+    - cron: '5 * * * *'    # Hourly at :05 past
+    - cron: '15 0 * * *'   # Daily at 00:15 UTC
+    - cron: '0 1 * * *'    # Daily at 01:00 UTC
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hourly Aggregation
+        if: github.event.schedule == '5 * * * *'
+        run: |
+          curl -X POST ${{ secrets.API_URL }}/api/jobs/vitals/aggregate-hourly \
+            -H "Authorization: Bearer ${{ secrets.API_KEY }}" \
+            -H "Content-Type: application/json"
+
+      - name: Daily Aggregation
+        if: github.event.schedule == '15 0 * * *'
+        run: |
+          curl -X POST ${{ secrets.API_URL }}/api/jobs/vitals/aggregate-daily \
+            -H "Authorization: Bearer ${{ secrets.API_KEY }}" \
+            -H "Content-Type: application/json"
+
+      - name: Cleanup Old Raw Data
+        if: github.event.schedule == '0 1 * * *'
+        run: |
+          curl -X POST ${{ secrets.API_URL }}/api/jobs/vitals/cleanup-old-raw \
+            -H "Authorization: Bearer ${{ secrets.API_KEY }}" \
+            -H "Content-Type: application/json"
