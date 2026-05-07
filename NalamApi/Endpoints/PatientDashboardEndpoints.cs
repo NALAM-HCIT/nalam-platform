@@ -843,6 +843,7 @@ public static class PatientDashboardEndpoints
         [property: JsonPropertyName("weight_kg")]        decimal?  WeightKg,
         [property: JsonPropertyName("height_cm")]        decimal?  HeightCm,
         [property: JsonPropertyName("blood_glucose")]    decimal?  BloodGlucose,
+        [property: JsonPropertyName("ecg_data")]         string?   EcgData,
         [property: JsonPropertyName("recorded_at")]      DateTime? RecordedAt,
         [property: JsonPropertyName("source")]           string?   Source);
 
@@ -901,6 +902,7 @@ public static class PatientDashboardEndpoints
             WeightKg        = request.WeightKg,
             HeightCm        = request.HeightCm,
             BloodGlucose    = request.BloodGlucose,
+            EcgData         = request.EcgData,
             Source          = NormaliseSource(request.Source),
         };
 
@@ -1373,7 +1375,7 @@ public static class PatientDashboardEndpoints
         try
         {
             var result = await db.Database.ExecuteSqlRawAsync(@"
-                INSERT INTO patient_vitals_hourly (hospital_id, patient_id, hr_min, hr_max, hr_avg, hr_latest, hr_count, spo2_min, spo2_max, spo2_avg, spo2_latest, spo2_count, temp_min, temp_max, temp_avg, temp_latest, temp_count, hour_start, data_quality)
+                INSERT INTO patient_vitals_hourly (hospital_id, patient_id, hr_min, hr_max, hr_avg, hr_latest, hr_count, spo2_min, spo2_max, spo2_avg, spo2_latest, spo2_count, temp_min, temp_max, temp_avg, temp_latest, temp_count, blood_glucose_min, blood_glucose_max, blood_glucose_avg, blood_glucose_count, hour_start, data_quality)
                 SELECT
                     pv.hospital_id,
                     pv.patient_id,
@@ -1392,6 +1394,10 @@ public static class PatientDashboardEndpoints
                     ROUND(AVG(pv.temperature_c::numeric), 1) as temp_avg,
                     (array_agg(pv.temperature_c ORDER BY pv.recorded_at DESC) FILTER (WHERE pv.temperature_c IS NOT NULL))[1] as temp_latest,
                     COUNT(*) FILTER (WHERE pv.temperature_c IS NOT NULL) as temp_count,
+                    MIN(pv.blood_glucose) as blood_glucose_min,
+                    MAX(pv.blood_glucose) as blood_glucose_max,
+                    ROUND(AVG(pv.blood_glucose::numeric), 1) as blood_glucose_avg,
+                    COUNT(*) FILTER (WHERE pv.blood_glucose IS NOT NULL) as blood_glucose_count,
                     date_trunc('hour', pv.recorded_at) as hour_start,
                     CASE WHEN COUNT(*) >= 50 THEN 'complete' WHEN COUNT(*) >= 25 THEN 'partial' ELSE 'sparse' END as data_quality
                 FROM patient_vitals pv
@@ -1404,6 +1410,7 @@ public static class PatientDashboardEndpoints
                     hr_min = EXCLUDED.hr_min, hr_max = EXCLUDED.hr_max, hr_avg = EXCLUDED.hr_avg, hr_latest = EXCLUDED.hr_latest, hr_count = EXCLUDED.hr_count,
                     spo2_min = EXCLUDED.spo2_min, spo2_max = EXCLUDED.spo2_max, spo2_avg = EXCLUDED.spo2_avg, spo2_latest = EXCLUDED.spo2_latest, spo2_count = EXCLUDED.spo2_count,
                     temp_min = EXCLUDED.temp_min, temp_max = EXCLUDED.temp_max, temp_avg = EXCLUDED.temp_avg, temp_latest = EXCLUDED.temp_latest, temp_count = EXCLUDED.temp_count,
+                    blood_glucose_min = EXCLUDED.blood_glucose_min, blood_glucose_max = EXCLUDED.blood_glucose_max, blood_glucose_avg = EXCLUDED.blood_glucose_avg, blood_glucose_count = EXCLUDED.blood_glucose_count,
                     data_quality = EXCLUDED.data_quality
             ");
 
@@ -1422,7 +1429,7 @@ public static class PatientDashboardEndpoints
         try
         {
             var result = await db.Database.ExecuteSqlRawAsync(@"
-                INSERT INTO patient_vitals_daily (hospital_id, patient_id, hr_min, hr_max, hr_avg, hr_morning, hr_evening, spo2_min, spo2_max, spo2_avg, spo2_morning, spo2_evening, temp_min, temp_max, temp_avg, log_date, readings_count, data_quality)
+                INSERT INTO patient_vitals_daily (hospital_id, patient_id, hr_min, hr_max, hr_avg, hr_morning, hr_evening, spo2_min, spo2_max, spo2_avg, spo2_morning, spo2_evening, temp_min, temp_max, temp_avg, blood_glucose_min, blood_glucose_max, blood_glucose_avg, log_date, readings_count, data_quality)
                 SELECT
                     pvh.hospital_id,
                     pvh.patient_id,
@@ -1439,6 +1446,9 @@ public static class PatientDashboardEndpoints
                     MIN(pvh.temp_min) as temp_min,
                     MAX(pvh.temp_max) as temp_max,
                     ROUND(AVG(pvh.temp_avg::numeric), 1) as temp_avg,
+                    MIN(pvh.blood_glucose_min) as blood_glucose_min,
+                    MAX(pvh.blood_glucose_max) as blood_glucose_max,
+                    ROUND(AVG(pvh.blood_glucose_avg::numeric), 1) as blood_glucose_avg,
                     CURRENT_DATE - INTERVAL '1 day' as log_date,
                     SUM(pvh.hr_count + pvh.spo2_count + pvh.temp_count) as readings_count,
                     CASE WHEN SUM(pvh.hr_count) >= 800 THEN 'complete' WHEN SUM(pvh.hr_count) >= 400 THEN 'partial' ELSE 'sparse' END as data_quality
@@ -1450,6 +1460,7 @@ public static class PatientDashboardEndpoints
                     hr_min = EXCLUDED.hr_min, hr_max = EXCLUDED.hr_max, hr_avg = EXCLUDED.hr_avg,
                     spo2_min = EXCLUDED.spo2_min, spo2_max = EXCLUDED.spo2_max, spo2_avg = EXCLUDED.spo2_avg,
                     temp_min = EXCLUDED.temp_min, temp_max = EXCLUDED.temp_max, temp_avg = EXCLUDED.temp_avg,
+                    blood_glucose_min = EXCLUDED.blood_glucose_min, blood_glucose_max = EXCLUDED.blood_glucose_max, blood_glucose_avg = EXCLUDED.blood_glucose_avg,
                     readings_count = EXCLUDED.readings_count, data_quality = EXCLUDED.data_quality
             ");
 

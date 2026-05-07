@@ -57,6 +57,9 @@ public class PatientVital
     [Column("blood_glucose")]
     public decimal? BloodGlucose { get; set; } // mg/dL
 
+    [Column("ecg_data")]
+    public string? EcgData { get; set; } // ECG reading result (e.g. 'Normal', 'Irregular')
+
     // 'self', 'nurse', 'doctor', 'device'
     [Required, MaxLength(20)]
     [Column("source")]
