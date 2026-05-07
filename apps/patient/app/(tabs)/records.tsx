@@ -346,11 +346,14 @@ function VitalsTab() {
   const [lastError, setLastError] = useState<string | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [wearDetected, setWearDetected] = useState(false);
+  const [signalQuality, setSignalQuality] = useState(0);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const staged    = useRef<{ hr?: number; sbp?: number; dbp?: number; spo2?: number; temp?: number }>({});
   const histBuf   = useRef<{ hr: LogVitalsRequest[]; spo2: LogVitalsRequest[]; temp: LogVitalsRequest[] }>
                       ({ hr: [], spo2: [], temp: [] });
+  const wearQuality = useRef({ validReadings: 0, totalReadings: 0 });
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -358,6 +361,39 @@ function VitalsTab() {
     setDebugLogs(prev => [...prev.slice(-49), logLine]);
     console.log(logLine);
   }, []);
+
+  const validateReading = useCallback((value: number, type: 'hr' | 'spo2' | 'temp'): boolean => {
+    // Detect wear based on signal consistency
+    wearQuality.current.totalReadings++;
+
+    // Valid ranges for each vital
+    const ranges: Record<string, [number, number]> = {
+      hr: [40, 180],      // Heart rate 40-180 bpm
+      spo2: [80, 100],    // SpO2 80-100%
+      temp: [34.0, 42.0], // Temperature 34-42°C
+    };
+
+    const [min, max] = ranges[type];
+    const isValid = value >= min && value <= max;
+
+    if (isValid) {
+      wearQuality.current.validReadings++;
+    }
+
+    // Wear detection: if >70% of readings are valid, band is being worn
+    const wearConfidence = wearQuality.current.totalReadings > 10
+      ? (wearQuality.current.validReadings / wearQuality.current.totalReadings)
+      : 0.5;
+
+    setSignalQuality(Math.round(wearConfidence * 100));
+    setWearDetected(wearConfidence > 0.7);
+
+    if (!isValid) {
+      addLog(`[WEAR] ${type.toUpperCase()} out of range: ${value}${type === 'temp' ? '°C' : ''}`);
+    }
+
+    return isValid && wearDetected;
+  }, [addLog]);
 
   const loadLatestVitals = useCallback(async () => {
     try { setLatestVitals(await getLatestVitals()); }
@@ -471,6 +507,7 @@ function VitalsTab() {
           histBuf.current.hr.push({ heart_rate: d.value, recorded_at: parseBandDate(d.date), source: 'device' });
           return;
         }
+        if (!validateReading(d.value, 'hr')) return;
         addLog(`[JCV] HR=${d.value} bpm`);
         setLiveHR(d.value); staged.current.hr = d.value; setLastSeenAt(Date.now());
         setDailyStats(prev => ({ ...prev, hr: [...prev.hr, d.value].slice(-288) }));
@@ -482,6 +519,7 @@ function VitalsTab() {
           histBuf.current.spo2.push({ spo2: d.value, recorded_at: parseBandDate(d.date), source: 'device' });
           return;
         }
+        if (!validateReading(d.value, 'spo2')) return;
         setLiveSpO2(d.value); staged.current.spo2 = d.value; setLastSeenAt(Date.now());
         setDailyStats(prev => ({ ...prev, spo2: [...prev.spo2, d.value].slice(-288) }));
         flush();
@@ -497,6 +535,7 @@ function VitalsTab() {
           histBuf.current.temp.push({ temperature_c: d.value, recorded_at: parseBandDate(d.date), source: 'device' });
           return;
         }
+        if (!validateReading(d.value, 'temp')) return;
         setLiveTemp(d.value); staged.current.temp = d.value;
         setTempMeasuring(false); setLastSeenAt(Date.now());
         setDailyStats(prev => ({ ...prev, temp: [...prev.temp, d.value].slice(-288) }));
@@ -509,7 +548,7 @@ function VitalsTab() {
       subs.forEach(s => s?.remove());
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [flush, flushHistBuf]);
+  }, [flush, flushHistBuf, validateReading]);
 
   const requestBlePermissions = useCallback(async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return true;
@@ -585,11 +624,6 @@ function VitalsTab() {
     if (tempMeasuring) return;
     setTempMeasuring(true); JCV.startMeasurement(4);
   };
-  const handleSyncHistory = () => {
-    setSyncState({ hr: 'syncing', spo2: 'syncing', temp: 'syncing' });
-    JCV.syncHistory();
-  };
-
   // Auto-start vitals streaming as soon as the band connects.
   //
   // type 2 → RealTimeStep: continuous activity stream, delivers HR + Temp.
@@ -1041,20 +1075,6 @@ function VitalsTab() {
               })}
             </View>
           )}
-
-          {/* Sync history button */}
-          <Pressable
-            onPress={handleSyncHistory}
-            disabled={isSyncing}
-            style={[{ backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: isSyncing ? CARD_BORDER : ACCENT.lo, opacity: isSyncing ? 0.5 : 1 }, SHADOW_CARD]}
-          >
-            {isSyncing
-              ? <ActivityIndicator size="small" color={ACCENT.lo} />
-              : <Activity size={16} color={ACCENT.lo} strokeWidth={1.8} />}
-            <Text style={{ fontSize: 13, fontWeight: '700', color: ACCENT.lo }}>
-              {isSyncing ? 'Syncing…' : 'Sync Band History'}
-            </Text>
-          </Pressable>
 
           {/* Debug Panel - Shows what's being saved to database */}
           <View style={[{ backgroundColor: lastError ? '#FEE2E2' : '#fff', borderRadius: 14, padding: 12, borderWidth: lastError ? 2 : 1, borderColor: lastError ? '#DC2626' : '#E5E7EB' }, SHADOW_CARD]}>
