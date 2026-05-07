@@ -907,7 +907,15 @@ public static class PatientDashboardEndpoints
         };
 
         db.PatientVitals.Add(vital);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            var inner = ex.InnerException?.Message ?? ex.Message;
+            return Results.Json(new { error = $"DB save failed: {inner}" }, statusCode: 500);
+        }
 
         return Results.Created($"/api/patient/vitals/{vital.Id}", new
         {
