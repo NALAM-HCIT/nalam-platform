@@ -49,6 +49,7 @@ public static class PatientDashboardEndpoints
 
         // ── Vitals ────────────────────────────────────────────
         group.MapPost("/vitals",         LogVitals);
+        group.MapPost("/vitals/batch",   LogVitalsBatch);
         group.MapGet("/vitals/latest",   GetLatestVitals);
         group.MapGet("/vitals/trend",    GetVitalsTrend);
 
@@ -830,16 +831,20 @@ public static class PatientDashboardEndpoints
 
     // POST /api/patient/vitals
     // Self-reports one vitals reading. All fields optional — log what you have.
+    // recorded_at: ISO-8601 UTC timestamp; if omitted, server uses NOW().
+    // source: "self" (default) | "device" (band/wearable).
     private record LogVitalsRequest(
-        [property: JsonPropertyName("bp_systolic")]      short?   BpSystolic,
-        [property: JsonPropertyName("bp_diastolic")]     short?   BpDiastolic,
-        [property: JsonPropertyName("heart_rate")]       short?   HeartRate,
-        [property: JsonPropertyName("temperature_c")]    decimal? TemperatureC,
-        [property: JsonPropertyName("spo2")]             short?   Spo2,
-        [property: JsonPropertyName("respiratory_rate")] short?   RespiratoryRate,
-        [property: JsonPropertyName("weight_kg")]        decimal? WeightKg,
-        [property: JsonPropertyName("height_cm")]        decimal? HeightCm,
-        [property: JsonPropertyName("blood_glucose")]    decimal? BloodGlucose);
+        [property: JsonPropertyName("bp_systolic")]      short?    BpSystolic,
+        [property: JsonPropertyName("bp_diastolic")]     short?    BpDiastolic,
+        [property: JsonPropertyName("heart_rate")]       short?    HeartRate,
+        [property: JsonPropertyName("temperature_c")]    decimal?  TemperatureC,
+        [property: JsonPropertyName("spo2")]             short?    Spo2,
+        [property: JsonPropertyName("respiratory_rate")] short?    RespiratoryRate,
+        [property: JsonPropertyName("weight_kg")]        decimal?  WeightKg,
+        [property: JsonPropertyName("height_cm")]        decimal?  HeightCm,
+        [property: JsonPropertyName("blood_glucose")]    decimal?  BloodGlucose,
+        [property: JsonPropertyName("recorded_at")]      DateTime? RecordedAt,
+        [property: JsonPropertyName("source")]           string?   Source);
 
     private static async Task<IResult> LogVitals(
         LogVitalsRequest request,
@@ -878,15 +883,15 @@ public static class PatientDashboardEndpoints
 
         var patientId  = GetPatientId(ctx);
         var hospitalId = GetHospitalId(ctx);
-        var now        = DateTime.UtcNow;
+        var ts         = ResolveTimestamp(request.RecordedAt);
 
         var vital = new PatientVital
         {
             HospitalId      = hospitalId,
             PatientId       = patientId,
-            RecordedById    = null,  // self-reported
-            RecordedAt      = now,
-            LogDate         = DateOnly.FromDateTime(now),
+            RecordedById    = null,
+            RecordedAt      = ts,
+            LogDate         = DateOnly.FromDateTime(ts),
             BpSystolic      = request.BpSystolic,
             BpDiastolic     = request.BpDiastolic,
             HeartRate       = request.HeartRate,
@@ -896,7 +901,7 @@ public static class PatientDashboardEndpoints
             WeightKg        = request.WeightKg,
             HeightCm        = request.HeightCm,
             BloodGlucose    = request.BloodGlucose,
-            Source          = "self"
+            Source          = NormaliseSource(request.Source),
         };
 
         db.PatientVitals.Add(vital);
@@ -909,6 +914,90 @@ public static class PatientDashboardEndpoints
             log_date    = vital.LogDate.ToString("yyyy-MM-dd")
         });
     }
+
+    // POST /api/patient/vitals/batch
+    // Saves multiple readings at once (e.g. historical sync from a wearable band).
+    // Max 500 readings per call. Each reading follows the same rules as the single endpoint.
+    private record LogVitalsBatchRequest(
+        [property: JsonPropertyName("readings")] List<LogVitalsRequest> Readings);
+
+    private static async Task<IResult> LogVitalsBatch(
+        LogVitalsBatchRequest request,
+        NalamDbContext db,
+        HttpContext ctx)
+    {
+        if (request.Readings is not { Count: > 0 })
+            return Results.BadRequest(new { error = "readings array must not be empty." });
+
+        if (request.Readings.Count > 500)
+            return Results.BadRequest(new { error = "Maximum 500 readings per batch." });
+
+        var patientId  = GetPatientId(ctx);
+        var hospitalId = GetHospitalId(ctx);
+        var vitals     = new List<PatientVital>(request.Readings.Count);
+
+        foreach (var r in request.Readings)
+        {
+            // Skip entries with no measurements
+            if (r.BpSystolic == null && r.BpDiastolic == null && r.HeartRate == null &&
+                r.TemperatureC == null && r.Spo2 == null && r.RespiratoryRate == null &&
+                r.WeightKg == null && r.HeightCm == null && r.BloodGlucose == null)
+                continue;
+
+            // Skip out-of-range values rather than rejecting the whole batch
+            if (r.BpSystolic      is < 50   or > 250)  continue;
+            if (r.BpDiastolic     is < 30   or > 150)  continue;
+            if (r.HeartRate       is < 30   or > 250)  continue;
+            if (r.TemperatureC    is < 34   or > 43)   continue;
+            if (r.Spo2            is < 70   or > 100)  continue;
+            if (r.RespiratoryRate is < 5    or > 60)   continue;
+            if (r.WeightKg        is <= 0   or > 500)  continue;
+            if (r.HeightCm        is <= 0   or > 300)  continue;
+            if (r.BloodGlucose    is < 10   or > 2000) continue;
+
+            var ts = ResolveTimestamp(r.RecordedAt);
+            vitals.Add(new PatientVital
+            {
+                HospitalId      = hospitalId,
+                PatientId       = patientId,
+                RecordedById    = null,
+                RecordedAt      = ts,
+                LogDate         = DateOnly.FromDateTime(ts),
+                BpSystolic      = r.BpSystolic,
+                BpDiastolic     = r.BpDiastolic,
+                HeartRate       = r.HeartRate,
+                TemperatureC    = r.TemperatureC,
+                Spo2            = r.Spo2,
+                RespiratoryRate = r.RespiratoryRate,
+                WeightKg        = r.WeightKg,
+                HeightCm        = r.HeightCm,
+                BloodGlucose    = r.BloodGlucose,
+                Source          = NormaliseSource(r.Source),
+            });
+        }
+
+        if (vitals.Count == 0)
+            return Results.BadRequest(new { error = "No valid readings in batch." });
+
+        db.PatientVitals.AddRange(vitals);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new { saved = vitals.Count });
+    }
+
+    // Clamps a supplied timestamp: must be in the past, not older than 1 year.
+    private static DateTime ResolveTimestamp(DateTime? supplied)
+    {
+        var now = DateTime.UtcNow;
+        if (supplied is null) return now;
+        var ts = supplied.Value.ToUniversalTime();
+        if (ts > now)                  return now;          // no future timestamps
+        if (ts < now.AddYears(-1))     return now;          // ignore implausibly old data
+        return ts;
+    }
+
+    private static string NormaliseSource(string? s) =>
+        s is "self" or "device" or "nurse" or "doctor" ? s : "self";
 
     // GET /api/patient/vitals/latest
     // Returns the most recent vitals reading. 204 if no vitals recorded yet.
