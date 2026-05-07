@@ -209,6 +209,7 @@ app.MapPharmacistEndpoints();
 app.MapPatientEndpoints();
 app.MapPatientProfileEndpoints();
 app.MapPatientDashboardEndpoints();
+app.MapVitalsAggregationJobs();  // Hourly & daily vitals aggregation
 app.MapDoctorPortalEndpoints();
 app.MapMedicineEndpoints();
 app.MapMessageEndpoints();

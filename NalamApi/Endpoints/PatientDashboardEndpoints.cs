@@ -986,14 +986,16 @@ public static class PatientDashboardEndpoints
     }
 
     // Clamps a supplied timestamp: must be in the past, not older than 1 year.
+    // Converts to IST (UTC+5:30) for storage.
     private static DateTime ResolveTimestamp(DateTime? supplied)
     {
         var now = DateTime.UtcNow;
-        if (supplied is null) return now;
+        var nowIst = now.AddHours(5.5);  // Convert UTC to IST (UTC+5:30)
+        if (supplied is null) return nowIst;
         var ts = supplied.Value.ToUniversalTime();
-        if (ts > now)                  return now;          // no future timestamps
-        if (ts < now.AddYears(-1))     return now;          // ignore implausibly old data
-        return ts;
+        if (ts > now)                  return nowIst;          // no future timestamps
+        if (ts < now.AddYears(-1))     return nowIst;          // ignore implausibly old data
+        return ts.AddHours(5.5);  // Convert to IST
     }
 
     private static string NormaliseSource(string? s) =>
@@ -1345,5 +1347,136 @@ public static class PatientDashboardEndpoints
         db.PatientDocuments.Remove(doc);
         await db.SaveChangesAsync();
         return Results.Ok(new { message = "Document deleted.", storage_path = doc.StoragePath });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  BACKGROUND JOBS: VITALS AGGREGATION
+    //  Run hourly and daily to aggregate raw vitals into summaries
+    // ═══════════════════════════════════════════════════════════
+
+    public static void MapVitalsAggregationJobs(this WebApplication app)
+    {
+        var jobGroup = app.MapGroup("/api/jobs/vitals")
+            .WithTags("Background Jobs")
+            .WithOpenApi();
+            // Note: Add authentication middleware in production
+
+        jobGroup.MapPost("/aggregate-hourly", AggregateHourlyVitals);
+        jobGroup.MapPost("/aggregate-daily",  AggregateDailyVitals);
+        jobGroup.MapPost("/cleanup-old-raw",  CleanupOldRawVitals);
+    }
+
+    // POST /api/jobs/vitals/aggregate-hourly
+    // Runs every hour at :05 past. Aggregates raw vitals into hourly buckets.
+    private static async Task<IResult> AggregateHourlyVitals(NalamDbContext db)
+    {
+        try
+        {
+            var result = await db.Database.ExecuteSqlRawAsync(@"
+                INSERT INTO patient_vitals_hourly (hospital_id, patient_id, hr_min, hr_max, hr_avg, hr_latest, hr_count, spo2_min, spo2_max, spo2_avg, spo2_latest, spo2_count, temp_min, temp_max, temp_avg, temp_latest, temp_count, hour_start, data_quality)
+                SELECT
+                    pv.hospital_id,
+                    pv.patient_id,
+                    MIN(pv.heart_rate) as hr_min,
+                    MAX(pv.heart_rate) as hr_max,
+                    ROUND(AVG(pv.heart_rate::numeric), 1) as hr_avg,
+                    (array_agg(pv.heart_rate ORDER BY pv.recorded_at DESC) FILTER (WHERE pv.heart_rate IS NOT NULL))[1] as hr_latest,
+                    COUNT(*) FILTER (WHERE pv.heart_rate IS NOT NULL) as hr_count,
+                    MIN(pv.spo2) as spo2_min,
+                    MAX(pv.spo2) as spo2_max,
+                    ROUND(AVG(pv.spo2::numeric), 1) as spo2_avg,
+                    (array_agg(pv.spo2 ORDER BY pv.recorded_at DESC) FILTER (WHERE pv.spo2 IS NOT NULL))[1] as spo2_latest,
+                    COUNT(*) FILTER (WHERE pv.spo2 IS NOT NULL) as spo2_count,
+                    MIN(pv.temperature_c) as temp_min,
+                    MAX(pv.temperature_c) as temp_max,
+                    ROUND(AVG(pv.temperature_c::numeric), 1) as temp_avg,
+                    (array_agg(pv.temperature_c ORDER BY pv.recorded_at DESC) FILTER (WHERE pv.temperature_c IS NOT NULL))[1] as temp_latest,
+                    COUNT(*) FILTER (WHERE pv.temperature_c IS NOT NULL) as temp_count,
+                    date_trunc('hour', pv.recorded_at) as hour_start,
+                    CASE WHEN COUNT(*) >= 50 THEN 'complete' WHEN COUNT(*) >= 25 THEN 'partial' ELSE 'sparse' END as data_quality
+                FROM patient_vitals pv
+                WHERE
+                    pv.recorded_at >= date_trunc('hour', now() - INTERVAL '1 hour') AND
+                    pv.recorded_at < date_trunc('hour', now())
+                GROUP BY pv.hospital_id, pv.patient_id, date_trunc('hour', pv.recorded_at)
+                ON CONFLICT (hospital_id, patient_id, hour_start)
+                DO UPDATE SET
+                    hr_min = EXCLUDED.hr_min, hr_max = EXCLUDED.hr_max, hr_avg = EXCLUDED.hr_avg, hr_latest = EXCLUDED.hr_latest, hr_count = EXCLUDED.hr_count,
+                    spo2_min = EXCLUDED.spo2_min, spo2_max = EXCLUDED.spo2_max, spo2_avg = EXCLUDED.spo2_avg, spo2_latest = EXCLUDED.spo2_latest, spo2_count = EXCLUDED.spo2_count,
+                    temp_min = EXCLUDED.temp_min, temp_max = EXCLUDED.temp_max, temp_avg = EXCLUDED.temp_avg, temp_latest = EXCLUDED.temp_latest, temp_count = EXCLUDED.temp_count,
+                    data_quality = EXCLUDED.data_quality
+            ");
+
+            return Results.Ok(new { message = $"Hourly aggregation completed", rows = result });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = "Aggregation failed", details = ex.Message }, statusCode: 500);
+        }
+    }
+
+    // POST /api/jobs/vitals/aggregate-daily
+    // Runs daily at 00:15 UTC. Aggregates hourly data into daily summaries.
+    private static async Task<IResult> AggregateDailyVitals(NalamDbContext db)
+    {
+        try
+        {
+            var result = await db.Database.ExecuteSqlRawAsync(@"
+                INSERT INTO patient_vitals_daily (hospital_id, patient_id, hr_min, hr_max, hr_avg, hr_morning, hr_evening, spo2_min, spo2_max, spo2_avg, spo2_morning, spo2_evening, temp_min, temp_max, temp_avg, log_date, readings_count, data_quality)
+                SELECT
+                    pvh.hospital_id,
+                    pvh.patient_id,
+                    MIN(pvh.hr_min) as hr_min,
+                    MAX(pvh.hr_max) as hr_max,
+                    ROUND(AVG(pvh.hr_avg::numeric), 1) as hr_avg,
+                    (array_agg(pvh.hr_latest ORDER BY pvh.hour_start ASC) FILTER (WHERE extract(hour from pvh.hour_start) = 8))[1] as hr_morning,
+                    (array_agg(pvh.hr_latest ORDER BY pvh.hour_start DESC) FILTER (WHERE extract(hour from pvh.hour_start) = 20))[1] as hr_evening,
+                    MIN(pvh.spo2_min) as spo2_min,
+                    MAX(pvh.spo2_max) as spo2_max,
+                    ROUND(AVG(pvh.spo2_avg::numeric), 1) as spo2_avg,
+                    (array_agg(pvh.spo2_latest ORDER BY pvh.hour_start ASC) FILTER (WHERE extract(hour from pvh.hour_start) = 8))[1] as spo2_morning,
+                    (array_agg(pvh.spo2_latest ORDER BY pvh.hour_start DESC) FILTER (WHERE extract(hour from pvh.hour_start) = 20))[1] as spo2_evening,
+                    MIN(pvh.temp_min) as temp_min,
+                    MAX(pvh.temp_max) as temp_max,
+                    ROUND(AVG(pvh.temp_avg::numeric), 1) as temp_avg,
+                    CURRENT_DATE - INTERVAL '1 day' as log_date,
+                    SUM(pvh.hr_count + pvh.spo2_count + pvh.temp_count) as readings_count,
+                    CASE WHEN SUM(pvh.hr_count) >= 800 THEN 'complete' WHEN SUM(pvh.hr_count) >= 400 THEN 'partial' ELSE 'sparse' END as data_quality
+                FROM patient_vitals_hourly pvh
+                WHERE DATE(pvh.hour_start) = CURRENT_DATE - INTERVAL '1 day'
+                GROUP BY pvh.hospital_id, pvh.patient_id
+                ON CONFLICT (hospital_id, patient_id, log_date)
+                DO UPDATE SET
+                    hr_min = EXCLUDED.hr_min, hr_max = EXCLUDED.hr_max, hr_avg = EXCLUDED.hr_avg,
+                    spo2_min = EXCLUDED.spo2_min, spo2_max = EXCLUDED.spo2_max, spo2_avg = EXCLUDED.spo2_avg,
+                    temp_min = EXCLUDED.temp_min, temp_max = EXCLUDED.temp_max, temp_avg = EXCLUDED.temp_avg,
+                    readings_count = EXCLUDED.readings_count, data_quality = EXCLUDED.data_quality
+            ");
+
+            return Results.Ok(new { message = "Daily aggregation completed", rows = result });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = "Aggregation failed", details = ex.Message }, statusCode: 500);
+        }
+    }
+
+    // POST /api/jobs/vitals/cleanup-old-raw
+    // Runs daily at 01:00 UTC. Deletes raw vitals older than 7 days.
+    private static async Task<IResult> CleanupOldRawVitals(NalamDbContext db)
+    {
+        try
+        {
+            var result = await db.Database.ExecuteSqlRawAsync(@"
+                DELETE FROM patient_vitals
+                WHERE recorded_at < NOW() - INTERVAL '7 days'
+            ");
+
+            return Results.Ok(new { message = "Cleanup completed", rows_deleted = result });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = "Cleanup failed", details = ex.Message }, statusCode: 500);
+        }
     }
 }
