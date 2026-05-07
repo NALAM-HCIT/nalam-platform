@@ -390,9 +390,11 @@ function VitalsTab() {
 
     if (!isValid) {
       addLog(`[WEAR] ${type.toUpperCase()} out of range: ${value}${type === 'temp' ? '°C' : ''}`);
+      return false;
     }
 
-    return isValid && wearDetected;
+    // Accept valid readings (wear detection is just tracking, not blocking)
+    return true;
   }, [addLog]);
 
   const loadLatestVitals = useCallback(async () => {
