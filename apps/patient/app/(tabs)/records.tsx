@@ -406,10 +406,15 @@ function VitalsTab() {
   useEffect(() => { loadLatestVitals(); }, [loadLatestVitals]);
 
   const flush = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    // If timer already pending, don't reset it - just accumulate data
+    if (saveTimer.current) return;
+
     saveTimer.current = setTimeout(async () => {
       const s = staged.current;
-      if (!s.hr && !s.sbp && !s.spo2 && !s.temp) return;
+      if (!s.hr && !s.sbp && !s.spo2 && !s.temp) {
+        saveTimer.current = null;
+        return;
+      }
       try {
         const payload = {
           heart_rate:    s.hr,
@@ -435,6 +440,7 @@ function VitalsTab() {
         addLog(`[ERROR] Save failed: ${errorMsg}`);
         setLastError(`API Error: ${errorMsg}`);
       }
+      saveTimer.current = null;
     }, 60000);  // Auto-flush every 60 seconds (no manual sync needed)
   }, [loadLatestVitals]);
 
