@@ -427,9 +427,9 @@ function VitalsTab() {
           temperature_c: s.temp,
           blood_glucose: s.blood_glucose,
           ecg_data:      s.ecg_data,
-          source:        'device',
+          source:        (s.blood_glucose || s.ecg_data) ? 'self' : 'device',
         };
-        addLog(`[API] Sending: HR=${s.hr} SpO2=${s.spo2} BP=${s.sbp}/${s.dbp} Temp=${s.temp} Glucose=${s.blood_glucose} ECG=${s.ecg_data}`);
+        addLog(`[API] Sending: HR=${s.hr} SpO2=${s.spo2} BP=${s.sbp}/${s.dbp} Temp=${s.temp} Glucose=${s.blood_glucose} ECG=${s.ecg_data} [${payload.source}]`);
         const result = await logVitals(payload);
         addLog(`[API] ✓ Saved (ID: ${result.id})`);
         setLastError(null);
